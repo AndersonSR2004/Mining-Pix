@@ -1,4 +1,10 @@
-export type MissionMetric = 'cycles' | 'installs'
+export type MissionEvent =
+  | 'flappy_games'
+  | 'snake_games'
+  | 'ad_lucky_boxes'
+  | 'room_energy_recharges'
+  | 'pix_coin_purchased'
+
 export type MissionPeriod = 'daily' | 'weekly'
 
 export type MissionDefinition = {
@@ -6,7 +12,7 @@ export type MissionDefinition = {
   title: string
   description: string
   period: MissionPeriod
-  metric: MissionMetric
+  event: MissionEvent | 'daily_missions_completed'
   target: number
   rewardXp: number
 }
@@ -14,18 +20,31 @@ export type MissionDefinition = {
 export type MissionState = {
   dailyPeriod: string
   weeklyPeriod: string
-  dailyCycles: number
-  dailyInstalls: number
-  weeklyCycles: number
-  weeklyInstalls: number
+  dailyProgress: Record<MissionEvent, number>
+  weeklyCompletedDailyMissions: number
+  completedDailyMissionIds: string[]
   claimed: string[]
 }
 
+const dailyEvents: MissionEvent[] = [
+  'flappy_games',
+  'snake_games',
+  'ad_lucky_boxes',
+  'room_energy_recharges',
+  'pix_coin_purchased',
+]
+
 export const MISSIONS: MissionDefinition[] = [
-  { id: 'daily-cycles', title: 'Operação diária', description: 'Conclua 3 ciclos de mineração.', period: 'daily', metric: 'cycles', target: 3, rewardXp: 100 },
-  { id: 'daily-install', title: 'Expansão diária', description: 'Instale 1 equipamento.', period: 'daily', metric: 'installs', target: 1, rewardXp: 100 },
-  { id: 'weekly-cycles', title: 'Ritmo de produção', description: 'Conclua 10 ciclos de mineração.', period: 'weekly', metric: 'cycles', target: 10, rewardXp: 300 },
-  { id: 'weekly-install', title: 'Infraestrutura em expansão', description: 'Instale 5 equipamentos.', period: 'weekly', metric: 'installs', target: 5, rewardXp: 300 },
+  { id: 'daily-flappy', title: 'Pequeno piloto', description: 'Conclua 10 partidas de Flappy Bird.', period: 'daily', event: 'flappy_games', target: 10, rewardXp: 100 },
+  { id: 'daily-snake', title: 'Mestre da cobrinha', description: 'Conclua 10 partidas da cobrinha.', period: 'daily', event: 'snake_games', target: 10, rewardXp: 100 },
+  { id: 'daily-ad-boxes', title: 'Caçador de recompensas', description: 'Obtenha por anúncios e abra 10 Lucky Boxes.', period: 'daily', event: 'ad_lucky_boxes', target: 10, rewardXp: 100 },
+  { id: 'daily-energy', title: 'Manutenção preventiva', description: 'Conclua uma recarga de energia da sala.', period: 'daily', event: 'room_energy_recharges', target: 1, rewardXp: 100 },
+  { id: 'daily-pix-coin', title: 'Investidor', description: 'Compre um total de 100 PIX COIN.', period: 'daily', event: 'pix_coin_purchased', target: 100, rewardXp: 100 },
+  { id: 'weekly-10', title: 'Consistência I', description: 'Conclua 10 missões diárias nesta semana.', period: 'weekly', event: 'daily_missions_completed', target: 10, rewardXp: 300 },
+  { id: 'weekly-20', title: 'Consistência II', description: 'Conclua 20 missões diárias nesta semana.', period: 'weekly', event: 'daily_missions_completed', target: 20, rewardXp: 300 },
+  { id: 'weekly-30', title: 'Consistência III', description: 'Conclua 30 missões diárias nesta semana.', period: 'weekly', event: 'daily_missions_completed', target: 30, rewardXp: 300 },
+  { id: 'weekly-40', title: 'Consistência IV', description: 'Conclua 40 missões diárias nesta semana.', period: 'weekly', event: 'daily_missions_completed', target: 40, rewardXp: 300 },
+  { id: 'weekly-50', title: 'Elite semanal', description: 'Conclua 50 missões diárias nesta semana.', period: 'weekly', event: 'daily_missions_completed', target: 50, rewardXp: 300 },
 ]
 
 function dateKey(date: Date): string {
@@ -42,15 +61,24 @@ export function getMissionPeriods(now = new Date()): { daily: string; weekly: st
   return { daily: dateKey(now), weekly: dateKey(monday) }
 }
 
+function emptyDailyProgress(): Record<MissionEvent, number> {
+  return {
+    flappy_games: 0,
+    snake_games: 0,
+    ad_lucky_boxes: 0,
+    room_energy_recharges: 0,
+    pix_coin_purchased: 0,
+  }
+}
+
 export function createMissionState(now = new Date()): MissionState {
   const periods = getMissionPeriods(now)
   return {
     dailyPeriod: periods.daily,
     weeklyPeriod: periods.weekly,
-    dailyCycles: 0,
-    dailyInstalls: 0,
-    weeklyCycles: 0,
-    weeklyInstalls: 0,
+    dailyProgress: emptyDailyProgress(),
+    weeklyCompletedDailyMissions: 0,
+    completedDailyMissionIds: [],
     claimed: [],
   }
 }
@@ -63,10 +91,9 @@ export function refreshMissionState(state: MissionState, now = new Date()): Miss
   return {
     dailyPeriod: periods.daily,
     weeklyPeriod: periods.weekly,
-    dailyCycles: dailyChanged ? 0 : state.dailyCycles,
-    dailyInstalls: dailyChanged ? 0 : state.dailyInstalls,
-    weeklyCycles: weeklyChanged ? 0 : state.weeklyCycles,
-    weeklyInstalls: weeklyChanged ? 0 : state.weeklyInstalls,
+    dailyProgress: dailyChanged ? emptyDailyProgress() : state.dailyProgress,
+    weeklyCompletedDailyMissions: weeklyChanged ? 0 : state.weeklyCompletedDailyMissions,
+    completedDailyMissionIds: dailyChanged ? [] : state.completedDailyMissionIds,
     claimed: state.claimed.filter((id) => {
       const mission = MISSIONS.find((item) => item.id === id)
       return mission?.period === 'daily' ? !dailyChanged : mission?.period === 'weekly' ? !weeklyChanged : false
@@ -76,17 +103,31 @@ export function refreshMissionState(state: MissionState, now = new Date()): Miss
 
 export function recordMissionProgress(
   state: MissionState,
-  metric: MissionMetric,
+  event: MissionEvent,
+  amount = 1,
   now = new Date(),
 ): MissionState {
   const current = refreshMissionState(state, now)
-  if (metric === 'cycles') {
-    return { ...current, dailyCycles: current.dailyCycles + 1, weeklyCycles: current.weeklyCycles + 1 }
+  if (!Number.isFinite(amount) || amount <= 0) return current
+  const dailyMission = MISSIONS.find((mission) => mission.period === 'daily' && mission.event === event)
+  if (!dailyMission) return current
+
+  const previous = current.dailyProgress[event]
+  const next = previous + amount
+  const reachedTarget = previous < dailyMission.target && next >= dailyMission.target
+  const completedDailyMissionIds = reachedTarget && !current.completedDailyMissionIds.includes(dailyMission.id)
+    ? [...current.completedDailyMissionIds, dailyMission.id]
+    : current.completedDailyMissionIds
+
+  return {
+    ...current,
+    dailyProgress: { ...current.dailyProgress, [event]: next },
+    completedDailyMissionIds,
+    weeklyCompletedDailyMissions: current.weeklyCompletedDailyMissions + (reachedTarget ? 1 : 0),
   }
-  return { ...current, dailyInstalls: current.dailyInstalls + 1, weeklyInstalls: current.weeklyInstalls + 1 }
 }
 
 export function getMissionProgress(state: MissionState, mission: MissionDefinition): number {
-  if (mission.period === 'daily') return mission.metric === 'cycles' ? state.dailyCycles : state.dailyInstalls
-  return mission.metric === 'cycles' ? state.weeklyCycles : state.weeklyInstalls
+  if (mission.period === 'weekly') return state.weeklyCompletedDailyMissions
+  return state.dailyProgress[mission.event as MissionEvent] ?? 0
 }
