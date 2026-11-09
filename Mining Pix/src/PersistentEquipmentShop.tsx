@@ -15,6 +15,8 @@ type OwnedEquipment = {
   catalog_sku: string
   purchase_price_pc: number
   acquired_at: string
+  status: 'inventory' | 'installed' | 'retired'
+  room_id: string | null
   equipment_catalog: {
     name: string
     equipment_type: string
