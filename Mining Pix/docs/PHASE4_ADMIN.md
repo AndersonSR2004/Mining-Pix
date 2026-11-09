@@ -39,3 +39,19 @@ Para revogar, remova `admin` ou defina `false`. Nunca coloque esse atributo em `
 - Recomenda-se habilitar MFA na conta administradora antes de operações privilegiadas.
 - A fase seguinte deve introduzir trilha de auditoria para mutações administrativas antes de liberar qualquer comando de escrita.
 - O projeto Supabase de produção, credenciais e dados reais ainda não existem; nenhuma integração de pagamento foi criada.
+
+
+## Fase 5 — fundação da auditoria administrativa
+
+A migration `202611090015_admin_audit_foundation.sql` cria `admin_audit_logs` como trilha append-only para futuras operações privilegiadas.
+
+- Cada evento registra ator, alvo, ação, tipo/ID da entidade, motivo, estado anterior/posterior, contexto não sensível, request ID e timestamp.
+- O cliente `anon` e `authenticated` não recebe permissões diretas de leitura ou escrita na tabela.
+- Somente `service_role` pode inserir eventos; não recebe UPDATE ou DELETE.
+- RLS permanece habilitada sem políticas de acesso direto.
+- A RPC `admin_audit_snapshot()` exige sessão autenticada e `app_metadata.admin=true`, retornando os 50 eventos mais recentes.
+- O Admin Center passa a exibir a trilha de auditoria, mantendo o modo somente leitura.
+- A tabela não deve armazenar senhas, tokens, credenciais de pagamento ou segredos.
+- Nenhuma operação administrativa de escrita foi habilitada nesta fase.
+
+A tabela começa vazia. Os eventos serão gravados quando as futuras Edge Functions administrativas forem implementadas e validadas.
