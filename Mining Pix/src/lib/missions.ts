@@ -35,7 +35,7 @@ export const PAID_LUCKY_BOX_PRICE = 100
 
 export const MISSIONS: MissionDefinition[] = [
   { id: 'daily-flappy', title: 'Pequeno piloto', description: 'Conclua 10 partidas de Flappy Bird.', period: 'daily', event: 'flappy_games', target: 10, rewardXp: 100 },
-  { id: 'daily-snake', title: 'Mestre da cobrinha', description: 'Conclua 10 partidas da cobrinha.', period: 'daily', event: 'snake_games', target: 10, rewardXp: 100 },
+  { id: 'daily-snake', title: 'Mestre da cobrinha', description: 'Conclua 10 partidas da cobrinha.', period: 'daily', event: 'snake_games', target: 10, rewardXp: 100 },\n  { id: 'daily-coin-catch', title: 'Caçador de moedas', description: 'Conclua 10 partidas de Coin Catch.', period: 'daily', event: 'coin_catch_games', target: 10, rewardXp: 100 },
   { id: 'daily-ad-boxes', title: 'Caçador de recompensas', description: 'Obtenha por anúncios e abra 10 Lucky Boxes.', period: 'daily', event: 'ad_lucky_boxes', target: 10, rewardXp: 100 },
   { id: 'daily-energy', title: 'Manutenção preventiva', description: 'Conclua uma recarga de energia da sala.', period: 'daily', event: 'room_energy_recharges', target: 1, rewardXp: 100 },
   { id: 'daily-pix-coin', title: 'Investidor', description: 'Compre um total de 100 PIX COIN.', period: 'daily', event: 'pix_coin_purchased', target: 100, rewardXp: 100 },
