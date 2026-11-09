@@ -167,3 +167,8 @@ Para `profiles`, `wallets`, `player_progress`, `player_equipment`, `player_rooms
 - Cada envio usa `request_id` único e índice parcial para idempotência; retry idêntico retorna o evento existente, enquanto reutilização da chave com payload diferente é rejeitada.
 - Toda nota exige motivo, ator, alvo e timestamp. O conteúdo não é enviado ao jogador nem aparece no jogo público.
 - Esta capacidade é somente de anotação; não habilita ajustes econômicos ou alterações de conta.
+
+
+## Fase 7B — controles de acesso administrativo
+
+O bloqueio/desbloqueio de jogadores usa Supabase Auth pelo backend (`admin-control`) com JWT e `app_metadata.admin` verificados. A operação tem motivo obrigatório, confirmação explícita, request ID idempotente e evento append-only na auditoria. Administradores e a própria conta do administrador não podem ser alterados pelos controles de jogador. O banimento padrão é de 30 dias. JWTs de acesso já emitidos continuam válidos até expirarem; portanto, bloqueio não significa revogação instantânea de tokens já emitidos. Consulte `docs/PHASE7B_ADMIN.md`.
