@@ -40,7 +40,7 @@ jobs:
       - name: Run read-only agent audit
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash
+          GEMINI_MODEL: gemini-3.8-flash
           AUDIT_FOCUS: ${{ inputs.focus }}
         run: |
           python - <<'PY'
@@ -53,7 +53,7 @@ jobs:
 
           root = pathlib.Path(".")
           key = os.environ["GEMINI_API_KEY"]
-          model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+          model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
           focus = os.environ.get("AUDIT_FOCUS", "Full repository audit")
 
           excluded_dirs = {".git", "node_modules", "dist", "coverage", ".next", ".vite"}
