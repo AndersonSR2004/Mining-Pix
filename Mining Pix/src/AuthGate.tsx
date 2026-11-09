@@ -64,7 +64,12 @@ export default function AuthGate() {
         return
       }
 
-      setProfileName(profileResult.data.display_name || fallbackName)
+      if (profileResult.data.display_name === 'Minerador' && metadataName) {
+        await supabase.from('profiles').update({ display_name: metadataName }).eq('user_id', user.id)
+        setProfileName(metadataName)
+      } else {
+        setProfileName(profileResult.data.display_name || fallbackName)
+      }
     }
 
     void loadAccountProfile()
@@ -138,7 +143,7 @@ export default function AuthGate() {
     return <div className="auth-shell"><div className="auth-card"><span className="auth-mark">⛏</span><h1>MINING PIX</h1><p>Verificando sessão segura...</p></div></div>
   }
 
-  if (session?.user && !errorMessage) {
+  if (session?.user && !errorMessage && mode !== 'update') {
     return <App
       userId={session.user.id}
       email={session.user.email ?? ''}
