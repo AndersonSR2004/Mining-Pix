@@ -103,3 +103,11 @@ Migration:
 Cria `player_rooms` e `player_equipment_operations`, associa equipamento à sala por FK composta de proprietário, adiciona triggers de provisionamento por VIP e RPCs `install_player_equipment`, `uninstall_player_equipment`, `rename_player_room` e `get_player_mining_summary`.
 
 Limites: até 4 salas conforme VIP e 10 equipamentos por sala. O resumo de hashrate é calculado no PostgreSQL e respeita RLS. Instalação/desinstalação são idempotentes e não alteram PC. O simulador local continua separado.
+
+
+## Otimização e visibilidade de equipamentos próprios — Fase 2C.1
+
+Migration:
+- `202611090008_facility_fk_indexes_and_owned_catalog_visibility.sql`
+
+Adiciona índices de cobertura para FKs compostas de sala/equipamento/operações e permite que o jogador consulte os dados de catálogo de equipamentos que já possui, mesmo que um SKU seja desativado para novas compras. O catálogo continua listando publicamente apenas itens ativos.
