@@ -50,11 +50,10 @@
 
 ## 5. Próximas etapas recomendadas
 
-1. Corrigir/definir a raiz do projeto no repositório sem apagar a cópia original.
-2. Rodar `npm run build` e registrar erros reais de TypeScript/build.
-3. Criar testes para distribuição da pool, arredondamento, instalação de máquinas, limites de sala e resgate de recompensas.
-4. Implementar o contador até o próximo ciclo apenas depois de definir a regra de tempo e garantir que a recompensa continue sendo calculada de forma confiável.
-5. Planejar backend e persistência compartilhada antes de qualquer multiplayer real, compra, saque ou valor financeiro.
+1. Executar e acompanhar o workflow de CI, que instala dependências e roda `npm run build` dentro de `Mining Pix/`.
+2. Adicionar testes automatizados para distribuição da pool, instalação de máquinas, limites de sala e resgate de recompensas.
+3. Avaliar a separação das regras econômicas em módulos independentes para facilitar testes e manutenção.
+4. Planejar backend e persistência compartilhada antes de qualquer multiplayer real, compra, saque ou valor financeiro.
 
 ## 6. Segurança de mudanças
 
