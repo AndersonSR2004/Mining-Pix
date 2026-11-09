@@ -325,8 +325,11 @@ function loadSavedState(storageKey: string): SavedState {
   }
 }
 
-type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }\n\nfunction App({ userId, email, displayName, onSignOut }: AppProps) {
-  const storageKey = `${STORAGE_KEY}:${userId}`\n  const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
+type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }
+
+function App({ userId, email, displayName, onSignOut }: AppProps) {
+  const storageKey = `${STORAGE_KEY}:${userId}`
+  const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
 
   const [page, setPage] = useState<Page>('Dashboard')
   const [balance, setBalance] = useState(saved.balance)
