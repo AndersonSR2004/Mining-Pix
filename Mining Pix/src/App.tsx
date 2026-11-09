@@ -4,6 +4,7 @@ import Games from './Games.tsx'
 import IntelligenceCenter from './IntelligenceCenter.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
+import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -958,8 +959,13 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">REDE GLOBAL</span>
         <h1>Central de mineração</h1>
-        <p className="page-description">A rede é calculada automaticamente pela soma dos participantes ativos.</p>
+        <p className="page-description">Os dados do simulador local e da infraestrutura persistente são apresentados separadamente.</p>
+        <PersistentFacilityPanel mode="summary" />
 
+        <div className="sandbox-section-label">
+          <span className="eyebrow">SIMULADOR LOCAL · SANDBOX</span>
+          <p className="page-description">As métricas abaixo pertencem ao ambiente demonstrativo deste navegador.</p>
+        </div>
         <div className="stats">
           <article className="stat-card">
             <span>HASHRATE DO JOGADOR</span>
@@ -1101,8 +1107,13 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">SUA INFRAESTRUTURA</span>
         <h1>Gerenciamento de salas</h1>
-        <p className="page-description">Selecione uma sala para administrar seus equipamentos.</p>
+        <p className="page-description">A infraestrutura da conta é administrada no PostgreSQL. O simulador local permanece separado.</p>
+        <PersistentFacilityPanel mode="management" />
 
+        <div className="sandbox-section-label">
+          <span className="eyebrow">GERENCIAMENTO LOCAL · SANDBOX</span>
+          <p className="page-description">Salas e máquinas abaixo pertencem apenas ao simulador demonstrativo deste navegador.</p>
+        </div>
         <div className="stats">
           <article className="stat-card">
             <span>HASHRATE DO JOGADOR</span>
