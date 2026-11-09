@@ -48,12 +48,13 @@
 - VIP e Premium Pass são conceitos separados.
 - Preservar a identidade visual atual em `App.css`; mudanças visuais devem ser deliberadas.
 
+A regra de distribuição está isolada em `src/lib/pool.ts` e coberta por seis testes nativos do Node.js. O workflow de CI executa `npm test` e `npm run build`.
+
 ## 5. Próximas etapas recomendadas
 
-1. Executar e acompanhar o workflow de CI, que instala dependências e roda `npm run build` dentro de `Mining Pix/`.
-2. Adicionar testes automatizados para distribuição da pool, instalação de máquinas, limites de sala e resgate de recompensas.
-3. Avaliar a separação das regras econômicas em módulos independentes para facilitar testes e manutenção.
-4. Planejar backend e persistência compartilhada antes de qualquer multiplayer real, compra, saque ou valor financeiro.
+1. Ampliar a suíte de testes para instalação de máquinas, limites de sala, VIP e resgate de recompensas.
+2. Avaliar a separação das demais regras econômicas em módulos independentes para facilitar testes e manutenção.
+3. Planejar backend e persistência compartilhada antes de qualquer multiplayer real, compra, saque ou valor financeiro.
 
 ## 6. Segurança de mudanças
 
