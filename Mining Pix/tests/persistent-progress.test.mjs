@@ -10,7 +10,7 @@ test('XP ledger is private, append-only to clients, and scoped to the owner', ()
   assert.match(migration, /enable row level security/i)
   assert.match(migration, /for select to authenticated\s+using \(\(select auth\.uid\(\)\) = user_id\)/i)
   assert.match(migration, /revoke all on table public\.player_xp_transactions from public, anon, authenticated/i)
-  assert.match(migration, /grant select on public\.player_xp_transactions to authenticated/i)
+  assert.match(migration, /grant select on table public\.player_xp_transactions to authenticated/i)
 })
 
 test('daily XP is derived server-side and protected against duplicate claims', () => {
