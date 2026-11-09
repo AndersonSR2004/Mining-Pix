@@ -22,6 +22,9 @@ type AdminPlayer = {
   premium_pass: boolean
   installed_equipment_count: number
   installed_hashrate: number
+  is_admin: boolean
+  banned_until: string | null
+  access_status: 'active' | 'blocked'
 }
 type AdminDirectory = { generated_at: string; total: number; limit: number; offset: number; players: AdminPlayer[] }
 type AdminSnapshot = {
@@ -74,6 +77,14 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   const [noteBusy, setNoteBusy] = useState(false)
   const [noteMessage, setNoteMessage] = useState('')
   const [noteError, setNoteError] = useState('')
+  const [selectedAccessPlayer, setSelectedAccessPlayer] = useState<AdminPlayer | null>(null)
+  const [accessAction, setAccessAction] = useState<'block' | 'unblock' | null>(null)
+  const [accessReason, setAccessReason] = useState('')
+  const [accessConfirmText, setAccessConfirmText] = useState('')
+  const [accessBusy, setAccessBusy] = useState(false)
+  const [accessMessage, setAccessMessage] = useState('')
+  const [accessError, setAccessError] = useState('')
+  const [accessRequestId, setAccessRequestId] = useState('')
 
   const loadDirectory = useCallback(async (query: string, offset: number) => {
     setDirectoryLoading(true)
@@ -127,6 +138,59 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
     void loadDirectory(directorySearch, 0)
   }
 
+  function beginAccessChange(player: AdminPlayer, action: 'block' | 'unblock') {
+    setSelectedAccessPlayer(player)
+    setAccessAction(action)
+    setAccessReason('')
+    setAccessConfirmText('')
+    setAccessRequestId(crypto.randomUUID())
+    setAccessMessage('')
+    setAccessError('')
+  }
+
+  async function submitAccessChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedAccessPlayer || !accessAction) return
+    const expected = accessAction === 'block' ? 'BLOQUEAR' : 'DESBLOQUEAR'
+    if (accessConfirmText.trim() !== expected) {
+      setAccessError(`Digite exatamente ${expected} para confirmar.`)
+      return
+    }
+
+    setAccessBusy(true)
+    setAccessError('')
+    setAccessMessage('')
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('admin-control', {
+        body: {
+          action: 'set_player_access',
+          target_user_id: selectedAccessPlayer.user_id,
+          access_action: accessAction,
+          reason: accessReason.trim(),
+          request_id: accessRequestId || crypto.randomUUID(),
+        },
+      })
+      if (invokeError) throw invokeError
+      if (data?.status !== 'succeeded') throw new Error('O servidor não confirmou a alteração de acesso.')
+      setAccessMessage(data.no_op
+        ? 'A conta já estava no estado solicitado. A verificação foi auditada.'
+        : accessAction === 'block'
+          ? 'Conta bloqueada por 30 dias. A operação foi auditada.'
+          : 'Bloqueio removido. A operação foi auditada.')
+      setSelectedAccessPlayer(null)
+      setAccessAction(null)
+      setAccessReason('')
+      setAccessConfirmText('')
+      setAccessRequestId('')
+      await load()
+      await loadDirectory(directorySearch, directory?.offset ?? 0)
+    } catch (cause) {
+      setAccessError(cause instanceof Error ? cause.message : 'Não foi possível alterar o acesso.')
+    } finally {
+      setAccessBusy(false)
+    }
+  }
+
   async function createInternalNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setNoteBusy(true)
@@ -172,7 +236,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className="admin-primary admin-refresh" onClick={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} disabled={loading || directoryLoading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
-        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Diretório de jogadores somente leitura. A única escrita habilitada continua sendo o registro de notas internas, sempre com motivo e auditoria.</span></div>
+        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Controles habilitados: notas internas auditadas e bloqueio/desbloqueio de contas por 30 dias. Toda alteração exige motivo e confirmação; não altera a economia.</span></div>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
@@ -199,7 +263,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
 
             <section className="admin-panel">
               <div className="admin-panel-heading"><div><span className="admin-eyebrow">GESTÃO DE CONTAS · FASE 7A</span><h2>Diretório de jogadores</h2></div><span>{number(directory?.total ?? 0)} contas</span></div>
-              <p className="admin-empty">Pesquise pelo nome ou pelo início do UUID. Os dados abaixo são apenas consulta; nenhuma conta ou indicador pode ser alterado nesta fase.</p>
+              <p className="admin-empty">Pesquise pelo nome ou pelo início do UUID. O diretório é somente leitura; os únicos controles disponíveis são bloquear ou desbloquear contas comuns, com motivo obrigatório e confirmação explícita.</p>
               <form className="admin-directory-search" onSubmit={searchPlayers}>
                 <input aria-label="Buscar jogador" value={directorySearch} onChange={(event) => setDirectorySearch(event.target.value)} maxLength={80} placeholder="Nome do jogador ou início do UUID..." />
                 <button className="admin-primary" type="submit" disabled={directoryLoading}>{directoryLoading ? 'BUSCANDO...' : 'PESQUISAR'}</button>
@@ -210,7 +274,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
               {!directoryError && directory && directory.players.length > 0 && (
                 <>
                   <div className="admin-directory-meta"><span>Exibindo {number(pageStart)}–{number(pageEnd)} de {number(directory.total)}</span><span>Consulta somente leitura</span></div>
-                  <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo</th><th>Nível / XP</th><th>VIP</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th></tr></thead><tbody>
+                  <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo</th><th>Nível / XP</th><th>VIP</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th><th>Acesso</th><th>Controle</th></tr></thead><tbody>
                     {directory.players.map((player) => <tr key={player.user_id}>
                       <td><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></td>
                       <td>{date(player.created_at)}</td>
@@ -220,6 +284,8 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
                       <td>{number(player.installed_equipment_count)}</td>
                       <td>{number(player.installed_hashrate)} H/s</td>
                       <td>{player.premium_pass ? 'Premium' : 'Padrão'}</td>
+                      <td>{player.is_admin ? 'Administrador' : player.access_status === 'blocked' ? <><strong className="admin-negative">Bloqueado</strong><small>Até {player.banned_until ? date(player.banned_until) : '—'}</small></> : <span className="admin-positive">Ativo</span>}</td>
+                      <td>{player.is_admin ? 'Protegido' : <button className="admin-secondary admin-access-action" onClick={() => beginAccessChange(player, player.access_status === 'blocked' ? 'unblock' : 'block')}>{player.access_status === 'blocked' ? 'DESBLOQUEAR' : 'BLOQUEAR'}</button>}</td>
                     </tr>)}
                   </tbody></table></div>
                   <div className="admin-directory-pagination">
@@ -230,6 +296,21 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
                 </>
               )}
             </section>
+
+            {selectedAccessPlayer && accessAction && (
+              <section className="admin-panel admin-access-panel">
+                <div className="admin-panel-heading"><div><span className="admin-eyebrow">CONTROLE DE ACESSO · FASE 7B</span><h2>{accessAction === 'block' ? 'Bloquear conta' : 'Desbloquear conta'}</h2></div><button className="admin-secondary" type="button" onClick={() => { setSelectedAccessPlayer(null); setAccessAction(null); setAccessRequestId(''); setAccessError('') }} disabled={accessBusy}>CANCELAR</button></div>
+                <p className="admin-empty">Conta: <strong>{selectedAccessPlayer.display_name}</strong> · {selectedAccessPlayer.user_id}</p>
+                <p className="admin-empty">{accessAction === 'block' ? 'O bloqueio impedirá novos logins e renovações de sessão por 30 dias. Tokens de acesso já emitidos podem permanecer válidos até expirarem (normalmente até 1 hora); portanto, a interrupção de sessões já abertas não é instantânea.' : 'O desbloqueio remove o banimento no Supabase Auth e permite que a conta volte a autenticar.'}</p>
+                <form className="admin-note-form" onSubmit={(event) => { void submitAccessChange(event) }}>
+                  <label>Motivo obrigatório<textarea value={accessReason} onChange={(event) => setAccessReason(event.target.value)} minLength={5} maxLength={500} rows={3} placeholder="Descreva o motivo administrativo da alteração..." required /></label>
+                  <label>Confirmação explícita<input value={accessConfirmText} onChange={(event) => setAccessConfirmText(event.target.value)} placeholder={accessAction === 'block' ? 'Digite BLOQUEAR' : 'Digite DESBLOQUEAR'} autoComplete="off" required /></label>
+                  <button className="admin-primary" type="submit" disabled={accessBusy || accessReason.trim().length < 5 || accessConfirmText.trim() !== (accessAction === 'block' ? 'BLOQUEAR' : 'DESBLOQUEAR')}>{accessBusy ? 'PROCESSANDO...' : accessAction === 'block' ? 'CONFIRMAR BLOQUEIO POR 30 DIAS' : 'CONFIRMAR DESBLOQUEIO'}</button>
+                </form>
+                {accessError && <div className="admin-error" role="alert">{accessError}<span>Se o servidor indicar auditoria pendente, tente novamente sem alterar os dados desta solicitação.</span></div>}
+                {accessMessage && <p className="admin-success" role="status">{accessMessage}</p>}
+              </section>
+            )}
 
             <section className="admin-panel">
               <div className="admin-panel-heading"><div><span className="admin-eyebrow">SUPORTE ADMINISTRATIVO</span><h2>Registrar nota interna</h2></div><span>Sem efeito na conta do jogador</span></div>
