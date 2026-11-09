@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
 
 type AdminTransaction = {
@@ -53,6 +53,12 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [auditError, setAuditError] = useState('')
+  const [targetUserId, setTargetUserId] = useState('')
+  const [internalNote, setInternalNote] = useState('')
+  const [noteReason, setNoteReason] = useState('')
+  const [noteBusy, setNoteBusy] = useState(false)
+  const [noteMessage, setNoteMessage] = useState('')
+  const [noteError, setNoteError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -80,6 +86,34 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   }, [])
 
   useEffect(() => { void load() }, [load])
+
+  async function createInternalNote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setNoteBusy(true)
+    setNoteError('')
+    setNoteMessage('')
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('admin-control', {
+        body: {
+          action: 'create_player_note',
+          target_user_id: targetUserId.trim(),
+          note: internalNote.trim(),
+          reason: noteReason.trim(),
+          request_id: crypto.randomUUID(),
+        },
+      })
+      if (invokeError) throw invokeError
+      if (!data?.event_id) throw new Error('O servidor não confirmou o registro.')
+      setNoteMessage(data.duplicate ? 'Solicitação já registrada; nenhuma duplicação foi criada.' : 'Nota interna registrada e auditada.')
+      setInternalNote('')
+      setNoteReason('')
+      await load()
+    } catch (cause) {
+      setNoteError(cause instanceof Error ? cause.message : 'Não foi possível registrar a nota.')
+    } finally {
+      setNoteBusy(false)
+    }
+  }
 
   return (
     <main className="admin-app">
@@ -124,6 +158,20 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
               {snapshot.recent_players.length === 0 ? <p className="admin-empty">Nenhum jogador cadastrado.</p> : (
                 <div className="admin-player-list">{snapshot.recent_players.map((player) => <div className="admin-player-row" key={player.user_id}><div><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></div><span>{date(player.created_at)}</span></div>)}</div>
               )}
+            </section>
+
+
+            <section className="admin-panel">
+              <div className="admin-panel-heading"><div><span className="admin-eyebrow">SUPORTE ADMINISTRATIVO</span><h2>Registrar nota interna</h2></div><span>Sem efeito na conta do jogador</span></div>
+              <p className="admin-empty">Registre um contexto interno para atendimento ou investigação. A nota fica visível somente no Admin Center e entra na trilha imutável de auditoria.</p>
+              <form className="admin-note-form" onSubmit={(event) => { void createInternalNote(event) }}>
+                <label>ID do jogador (UUID)<input value={targetUserId} onChange={(event) => setTargetUserId(event.target.value)} placeholder="Cole o UUID da conta" minLength={36} maxLength={36} required /></label>
+                <label>Nota interna<textarea value={internalNote} onChange={(event) => setInternalNote(event.target.value)} minLength={5} maxLength={1500} rows={3} placeholder="Descreva o contexto de suporte ou observação interna..." required /></label>
+                <label>Motivo do registro<textarea value={noteReason} onChange={(event) => setNoteReason(event.target.value)} minLength={3} maxLength={500} rows={2} placeholder="Por que esta nota está sendo registrada?" required /></label>
+                <button className="admin-primary" type="submit" disabled={noteBusy || !targetUserId.trim() || internalNote.trim().length < 5 || noteReason.trim().length < 3}>{noteBusy ? 'REGISTRANDO...' : 'REGISTRAR NOTA AUDITADA'}</button>
+              </form>
+              {noteError && <div className="admin-error" role="alert">{noteError}</div>}
+              {noteMessage && <p className="admin-success" role="status">{noteMessage}</p>}
             </section>
 
             <section className="admin-panel">
