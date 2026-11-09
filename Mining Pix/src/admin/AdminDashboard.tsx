@@ -128,7 +128,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className="admin-primary admin-refresh" onClick={() => { void load() }} disabled={loading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
-        <div className="admin-security-note"><strong>Modo somente leitura</strong><span>Este painel não altera carteiras, recompensas, VIP, equipamentos ou ciclos. As operações privilegiadas continuam bloqueadas até uma etapa própria de aprovação.</span></div>
+        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Não altera carteiras, recompensas, VIP, equipamentos ou ciclos. A única escrita habilitada é o registro de notas internas, sempre com motivo e auditoria.</span></div>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
