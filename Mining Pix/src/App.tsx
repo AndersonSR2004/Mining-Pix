@@ -345,7 +345,9 @@ function App() {
   const [premiumPass, setPremiumPass] = useState(saved.premiumPass)
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
   const [nextCycleAt, setNextCycleAt] = useState(saved.nextCycleAt)
-  const [missionState, setMissionState] = useState(saved.missionState)\n  const [temporaryHash, setTemporaryHash] = useState(saved.temporaryHash)\n  const [temporaryHashExpiresAt, setTemporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
+  const [missionState, setMissionState] = useState(saved.missionState)
+  const [temporaryHash, setTemporaryHash] = useState(saved.temporaryHash)
+  const [temporaryHashExpiresAt, setTemporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
   const [clockNow, setClockNow] = useState(Date.now())
 
   const [selectedRoomId, setSelectedRoomId] = useState(1)
@@ -366,7 +368,8 @@ function App() {
   const currentPlan = vipPlans[vipTier]
   const totalCapacity = currentPlan.spaces
 
-  const activeTemporaryHash = temporaryHashExpiresAt > clockNow ? temporaryHash : 0\n  const hashrate = machines.reduce((total, machine) => total + machine.hashrate, 0) + activeTemporaryHash
+  const activeTemporaryHash = temporaryHashExpiresAt > clockNow ? temporaryHash : 0
+  const hashrate = machines.reduce((total, machine) => total + machine.hashrate, 0) + activeTemporaryHash
 
   const activeBots = bots.filter((bot) => bot.active && bot.hashrate > 0)
   const botsHashrate = activeBots.reduce((total, bot) => total + bot.hashrate, 0)
@@ -704,7 +707,9 @@ function App() {
     setXp(0)
     setPremiumPass(false)
     setClaimedRewards([])
-    setMissionState(createMissionState())\n    setTemporaryHash(0)\n    setTemporaryHashExpiresAt(0)
+    setMissionState(createMissionState())
+    setTemporaryHash(0)
+    setTemporaryHashExpiresAt(0)
     setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
     setClockNow(Date.now())
     setSelectedRoomId(1)
@@ -1674,7 +1679,20 @@ function App() {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
-      case 'Jogos': return <Games onGameComplete={(event, won) => {\n        setMissionState((value) => recordMissionProgress(value, event))\n        const now = Date.now()\n        if (won) {\n          setBalance((value) => value + 1)\n          setTemporaryHash(activeTemporaryHash + 1)\n          logAction(`Vitória em ${event}: +1 PC e +1 H/s temporário`)\n          setMessage('Vitória! +1 PIX COIN e +1 H/s temporário por 24 horas.')\n        } else {\n          logAction(`Partida concluída em ${event}: sem recompensa de vitória`)\n          setMessage('Partida concluída. A missão foi atualizada; não houve recompensa de vitória.')\n        }\n        if (activeTemporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)\n      }} />
+      case 'Jogos': return <Games onGameComplete={(event, won) => {
+        setMissionState((value) => recordMissionProgress(value, event))
+        const now = Date.now()
+        if (won) {
+          setBalance((value) => value + 1)
+          setTemporaryHash(activeTemporaryHash + 1)
+          logAction(`Vitória em ${event}: +1 PC e +1 H/s temporário`)
+          setMessage('Vitória! +1 PIX COIN e +1 H/s temporário por 24 horas.')
+        } else {
+          logAction(`Partida concluída em ${event}: sem recompensa de vitória`)
+          setMessage('Partida concluída. A missão foi atualizada; não houve recompensa de vitória.')
+        }
+        if (activeTemporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)
+      }} />
       case 'Administração': return renderAdmin()
       default: return renderDashboard()
     }
