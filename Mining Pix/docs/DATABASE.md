@@ -157,3 +157,8 @@ As funções devem ter grants explícitos; revogar execução de funções sens�
 - `get_player_mining_summary`: SECURITY INVOKER; calcula hashrate e capacidade a partir das linhas visíveis via RLS.
 
 A instalação persistente não altera carteira nem gera recompensas. O simulador local continua independente.
+
+
+### Resumo por sala
+
+A função `get_player_room_summaries()` retorna somente salas ativas do usuário autenticado, com contagem instalada, hashrate agregado no banco e capacidade fixa de 10 slots. É SECURITY INVOKER e respeita RLS.
