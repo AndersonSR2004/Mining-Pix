@@ -1,7 +1,7 @@
 # Mining Pix — Fase 6: notas internas auditadas
 
 **Ambiente:** Supabase DEV  
-**Status:** implementada; validação automatizada do frontend em andamento.
+**Status:** migration 0016 aplicada no DEV; Edge Function ativa com JWT obrigatório; build e testes de aplicação aprovados; deploy Pages em nova tentativa após colisão de artefatos no retry do workflow.
 
 ## Objetivo
 
