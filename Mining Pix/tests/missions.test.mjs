@@ -47,7 +47,8 @@ test('resets weekly progress and claims on the next Monday', () => {
 })
 
 test('mission progress is capped for display and mission targets are explicit', () => {
-  const mission = MISSIONS.find((item) => item.id === 'daily-cycles')!
+  const mission = MISSIONS.find((item) => item.id === 'daily-cycles')
+  assert.ok(mission)
   const state = { ...createMissionState(), dailyCycles: 4 }
   assert.equal(getMissionProgress(state, mission), 4)
   assert.equal(mission.target, 3)
