@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { distributePoolBudget } from './lib/pool.ts'
 import './App.css'
 
 type Page =
@@ -161,33 +162,6 @@ function isValidMachine(value: unknown): value is Machine {
     typeof value.hashrate === 'number' &&
     typeof value.price === 'number'
   )
-}
-
-function distributePoolBudget(
-  budget: number,
-  participants: Array<{ id: string; hashrate: number }>,
-): Record<string, number> {
-  const eligible = participants.filter(
-    (participant) => Number.isFinite(participant.hashrate) && participant.hashrate > 0,
-  )
-  const totalHashrate = eligible.reduce((sum, participant) => sum + participant.hashrate, 0)
-  if (!Number.isFinite(budget) || budget <= 0 || totalHashrate <= 0) return {}
-
-  const rows = eligible.map((participant) => {
-    const exactShare = budget * participant.hashrate / totalHashrate
-    const wholeShare = Math.floor(exactShare)
-    return { id: participant.id, reward: wholeShare, remainder: exactShare - wholeShare }
-  })
-
-  const undistributed = budget - rows.reduce((sum, row) => sum + row.reward, 0)
-  const priority = [...rows].sort(
-    (a, b) => b.remainder - a.remainder || a.id.localeCompare(b.id),
-  )
-  for (let index = 0; index < undistributed; index += 1) {
-    priority[index % priority.length].reward += 1
-  }
-
-  return Object.fromEntries(rows.map((row) => [row.id, row.reward]))
 }
 
 function loadSavedState(): SavedState {
