@@ -42,3 +42,8 @@ Em transação revertida:
 ## Migration adicional 2C.1
 
 Foi adicionada `202611090008_facility_fk_indexes_and_owned_catalog_visibility.sql` para cobrir FKs compostas identificadas pelo Performance Advisor e preservar a leitura dos atributos de equipamentos que o jogador já possui mesmo se o catálogo desativar novas vendas desse SKU.
+
+
+## Ajuste de histórico de salas
+
+A primeira validação do downgrade identificou que excluir uma sala poderia violar a FK do histórico de operações. A migration `202611090009_preserve_room_history_on_vip_downgrade.sql` corrige isso mantendo salas excedentes como inativas, preservando auditoria e impedindo novas instalações nelas. O upgrade reativa as salas.
