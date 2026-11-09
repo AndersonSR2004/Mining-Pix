@@ -582,7 +582,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       return
     }
     if (reward.track === 'premium' && !premiumPass) {
-      setMessage('Esta recompensa está bloqueada. Ative o passe premium no painel administrativo.')
+      setMessage('Esta recompensa ainda não está disponível nesta versão demonstrativa.')
       return
     }
 
@@ -1193,7 +1193,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
             <span className="equipment-count">PREMIUM · 10 MÁQUINAS</span>
           </div>
           {!premiumPass && (
-            <p className="page-description">As recompensas desta trilha ficam bloqueadas para jogadores Free. No sandbox, o administrador pode ativar o passe.</p>
+            <p className="page-description">As recompensas desta trilha ficam bloqueadas para jogadores Free. A trilha premium ainda não está habilitada nesta versão demonstrativa.</p>
           )}
           <div className="shop-grid">
             {battleRewards.filter((reward) => reward.track === 'premium').map((reward) => {
