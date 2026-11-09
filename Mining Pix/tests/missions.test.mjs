@@ -103,13 +103,13 @@ test('weekly reset clears weekly completion and claims', () => {
   assert.deepEqual(state.claimed, [])
 })
 
-test('weekly milestones are 10, 20, 30, 40 and 50 daily missions; eight daily missions allow 56 weekly completions', () => {
+test('weekly milestones are 10, 20, 30, 40 and 50 daily missions; nine daily missions allow 63 weekly completions', () => {
   assert.deepEqual(
     MISSIONS.filter((mission) => mission.period === 'weekly').map((mission) => mission.target),
     [10, 20, 30, 40, 50],
   )
-  assert.equal(MISSIONS.filter((mission) => mission.period === 'daily').length, 8)
-  assert.equal(8 * 7, 56)
+  assert.equal(MISSIONS.filter((mission) => mission.period === 'daily').length, 9)
+  assert.equal(9 * 7, 63)
   assert.ok(MISSIONS.every((mission) => mission.rewardXp > 0))
 })
 
@@ -117,4 +117,15 @@ test('paid lucky box price and rewarded ad reward are explicit game parameters',
   assert.equal(PAID_LUCKY_BOX_PRICE, 100)
   assert.equal(REWARDED_AD_PC_REWARD, 10)
   assert.equal(DAILY_REWARDED_AD_LIMIT, 5)
+})
+
+
+test('Coin Catch completions advance the dedicated daily mission', () => {
+  const now = new Date(2026, 10, 9, 12)
+  let state = createMissionState(now)
+  state = recordMissionProgress(state, 'coin_catch_games', 10, now)
+  const mission = MISSIONS.find((item) => item.id === 'daily-coin-catch')
+  assert.ok(mission)
+  assert.equal(getMissionProgress(state, mission), 10)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
 })
