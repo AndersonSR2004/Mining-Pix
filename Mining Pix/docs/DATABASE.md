@@ -162,3 +162,14 @@ A instalação persistente não altera carteira nem gera recompensas. O simulado
 ### Resumo por sala
 
 A função `get_player_room_summaries()` retorna somente salas ativas do usuário autenticado, com contagem instalada, hashrate agregado no banco e capacidade fixa de 10 slots. É SECURITY INVOKER e respeita RLS.
+
+
+## 8. Mining Pool persistente — implementado na Fase 3
+
+- `pool_cycles`: ciclo com chave única, orçamento inteiro explícito, status e snapshot agregado. Índice parcial garante no máximo um ciclo aberto.
+- `pool_allocations`: snapshot imutável por jogador/ciclo, participação, PC atribuídos e referência ao ledger. RLS limita a leitura às próprias linhas.
+- `get_pool_dashboard()`: SECURITY DEFINER com `auth.uid()` obrigatório; retorna somente hashrate próprio, agregado global, ciclo aberto e histórico próprio. Não retorna a lista de jogadores nem dados privados.
+- `open_pool_cycle()` e `settle_pool_cycle()`: execução restrita a `service_role`. A liquidação calcula participação com hashrate persistente, usa maiores restos para fechar a soma inteira e atualiza carteira, ledger, alocações e status na mesma transação.
+- `pool-operator` Edge Function exige claim server-managed `app_metadata.pool_operator=true`; não confia em `user_metadata`.
+- Bots do sandbox e hashrate temporário de jogos não participam. Não há emissão automática: cada ciclo exige orçamento inteiro explícito.
+- Frequência e política econômica permanecem decisões de produto antes de ativar ciclos recorrentes.
