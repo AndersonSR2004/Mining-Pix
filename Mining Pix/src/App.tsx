@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react'
 import Games from './Games.tsx'
-import IntelligenceCenter from './IntelligenceCenter.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
@@ -21,7 +20,6 @@ type Page =
   | 'Passe de Batalha'
   | 'Missões'
   | 'Jogos'
-  | 'Administração'
 
 type VipTier = 0 | 1 | 2 | 3
 
@@ -160,7 +158,6 @@ const menu: { name: Page; icon: string }[] = [
   { name: 'Missões', icon: '◎' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
-  { name: 'Administração', icon: '⚙' },
 ]
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -361,18 +358,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [selectedRoomId, setSelectedRoomId] = useState(1)
   const [message, setMessage] = useState('')
 
-  const [adminBalance, setAdminBalance] = useState(String(saved.balance))
-  const [adminBalanceMode, setAdminBalanceMode] = useState<'set' | 'add' | 'remove'>('add')
-  const [adminVip, setAdminVip] = useState(String(saved.vipTier))
-  const [adminXp, setAdminXp] = useState('1000')
-  const [adminMachineName, setAdminMachineName] = useState('PIX Miner Admin')
-  const [adminMachineHash, setAdminMachineHash] = useState('100')
-  const [adminMachinePrice, setAdminMachinePrice] = useState('0')
-
-  const [botName, setBotName] = useState('')
-  const [botHashrate, setBotHashrate] = useState('100')
-  const [editingBotId, setEditingBotId] = useState<number | null>(null)
-
   const currentPlan = vipPlans[vipTier]
   const totalCapacity = currentPlan.spaces
 
@@ -571,212 +556,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     setRooms((value) => value.map((item) => item.id === room.id ? { ...item, name } : item))
     logAction(`Sala ${room.name} renomeada para ${name}`)
     setMessage('Nome da sala atualizado.')
-  }
-
-  function updatePoolBudget(value: number) {
-    if (!Number.isFinite(value) || value < 0) return
-    setPoolBudget(Math.floor(value))
-  }
-
-  // Simula a distribuição para o jogador e para todos os bots ativos.
-  function simulateMiningCycle() {
-    if (networkHashrate <= 0) {
-      setMessage('A rede não possui participantes com hashrate ativo.')
-      return
-    }
-    if (poolBudget <= 0) {
-      setMessage('Defina um orçamento de recompensas maior que zero.')
-      return
-    }
-
-    const allocations = distributePoolBudget(poolBudget, [
-      { id: 'player', hashrate },
-      ...activeBots.map((bot) => ({ id: `bot-${bot.id}`, hashrate: bot.hashrate })),
-    ])
-    const playerReward = allocations.player ?? 0
-    const updatedBots = bots.map((bot) => {
-      if (!bot.active || bot.hashrate <= 0) return bot
-      const reward = allocations[`bot-${bot.id}`] ?? 0
-      return {
-        ...bot,
-        balance: bot.balance + reward,
-        totalRewards: bot.totalRewards + reward,
-      }
-    })
-
-    const nextCycle = cycles + 1
-    const cycle: PoolCycle = {
-      id: nextCycle,
-      date: new Date().toLocaleString('pt-BR'),
-      reward: playerReward,
-      participation: participation * 100,
-      playerHashrate: hashrate,
-      networkHashrate,
-      budget: poolBudget,
-      botCount: activeBots.length,
-    }
-
-    setBalance((value) => value + playerReward)
-    setBots(updatedBots)
-    setCycles(nextCycle)
-    setTotalRewards((value) => value + playerReward)
-    setPoolHistory((value) => [cycle, ...value])
-    setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
-    setClockNow(Date.now())
-    const xpEarned = hashrate > 0 ? 100 : 0
-    if (xpEarned > 0) {
-      setXp((value) => value + xpEarned)
-    }
-    logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
-    setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC.${xpEarned > 0 ? ' XP +100.' : ' Sem XP: instale um equipamento para participar da mineração.'}`)
-  }
-
-  // PAINEL ADMINISTRATIVO — controles exclusivos deste sandbox local.
-  function applyAdminBalance() {
-    const amount = Number(adminBalance)
-    if (!Number.isFinite(amount) || amount < 0) {
-      setMessage('Informe um valor válido para o saldo.')
-      return
-    }
-
-    if (adminBalanceMode === 'set') {
-      setBalance(amount)
-      logAction(`[ADMIN] Saldo definido para ${amount.toLocaleString('pt-BR')} PC`)
-    } else if (adminBalanceMode === 'add') {
-      setBalance((value) => value + amount)
-      logAction(`[ADMIN] Adicionado ${amount.toLocaleString('pt-BR')} PC`)
-    } else {
-      setBalance((value) => Math.max(0, value - amount))
-      logAction(`[ADMIN] Removido até ${amount.toLocaleString('pt-BR')} PC`)
-    }
-
-    setMessage('Saldo administrativo atualizado.')
-  }
-
-  function applyAdminVip() {
-    const tier = Number(adminVip) as VipTier
-    if (![0, 1, 2, 3].includes(tier)) return
-    activateVip(tier)
-  }
-
-  function applyAdminXp() {
-    const amount = Number(adminXp)
-    if (!Number.isFinite(amount) || amount < 0) {
-      setMessage('Informe uma quantidade válida de XP.')
-      return
-    }
-    setXp(amount)
-    logAction(`[ADMIN] XP definido para ${amount.toLocaleString('pt-BR')}`)
-    setMessage('XP atualizado.')
-  }
-
-  function addAdminMachine() {
-    const name = adminMachineName.trim()
-    const power = Number(adminMachineHash)
-    const price = Number(adminMachinePrice)
-
-    if (!name || !Number.isFinite(power) || power <= 0 || !Number.isFinite(price) || price < 0) {
-      setMessage('Informe nome, hashrate positivo e preço válido.')
-      return
-    }
-
-    const machine: Machine = {
-      id: nextMachineId(),
-      name,
-      type: 'Equipamento administrativo',
-      hashrate: power,
-      price,
-      roomId: 0,
-    }
-
-    setInventory((value) => [...value, machine])
-    logAction(`[ADMIN] ${name} (${power} H/s) adicionado ao inventário`)
-    setMessage(`${name} adicionado ao inventário.`)
-  }
-
-  function togglePremiumPass() {
-    setPremiumPass((value) => !value)
-    logAction(`[ADMIN] Passe premium ${premiumPass ? 'desativado' : 'ativado'}`)
-    setMessage(`Passe premium ${premiumPass ? 'desativado' : 'ativado'} no sandbox.`)
-  }
-
-  function resetSandbox() {
-    if (!window.confirm('Isso apagará o progresso local e restaurará o sandbox. Continuar?')) return
-
-    setBalance(10000)
-    setMachines(initialMachines)
-    setInventory([])
-    setRooms(initialRooms)
-    setHistory(['Sandbox restaurado. Saldo inicial: 10.000 PC'])
-    setVipTier(0)
-    setPoolBudget(0)
-    setCycles(0)
-    setTotalRewards(0)
-    setPoolHistory([])
-    setBots([])
-    setXp(0)
-    setPremiumPass(false)
-    setClaimedRewards([])
-    setMissionState(createMissionState())
-    setTemporaryHash(0)
-    setTemporaryHashExpiresAt(0)
-    setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
-    setClockNow(Date.now())
-    setSelectedRoomId(1)
-    setMessage('Sandbox restaurado.')
-  }
-
-  // BOTS
-  function saveBot() {
-    const name = botName.trim()
-    const power = Number(botHashrate)
-
-    if (!name || !Number.isFinite(power) || power <= 0) {
-      setMessage('Informe um nome e um hashrate maior que zero.')
-      return
-    }
-
-    if (editingBotId !== null) {
-      setBots((value) => value.map((bot) =>
-        bot.id === editingBotId ? { ...bot, name, hashrate: power } : bot,
-      ))
-      logAction(`[ADMIN] Bot ${name} atualizado para ${power} H/s`)
-      setMessage('Bot atualizado.')
-    } else {
-      const bot: Bot = {
-        id: Date.now(),
-        name,
-        hashrate: power,
-        active: true,
-        balance: 0,
-        totalRewards: 0,
-      }
-      setBots((value) => [...value, bot])
-      logAction(`[ADMIN] Bot ${name} criado com ${power} H/s`)
-      setMessage(`Bot ${name} criado e ativado.`)
-    }
-
-    setBotName('')
-    setBotHashrate('100')
-    setEditingBotId(null)
-  }
-
-  function editBot(bot: Bot) {
-    setEditingBotId(bot.id)
-    setBotName(bot.name)
-    setBotHashrate(String(bot.hashrate))
-  }
-
-  function deleteBot(bot: Bot) {
-    if (!window.confirm(`Excluir o bot ${bot.name}?`)) return
-    setBots((value) => value.filter((item) => item.id !== bot.id))
-    logAction(`[ADMIN] Bot ${bot.name} excluído`)
-    setMessage(`Bot ${bot.name} excluído.`)
-    if (editingBotId === bot.id) {
-      setEditingBotId(null)
-      setBotName('')
-      setBotHashrate('100')
-    }
   }
 
   function recordMissionEvent(event: MissionEvent, amount = 1) {
@@ -1026,57 +805,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
             <span>Próximo ciclo de referência</span>
             <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
           </div>
-          <button className="primary-button" onClick={simulateMiningCycle}>
-            SIMULAR DISTRIBUIÇÃO DO CICLO
-          </button>
-          <p className="page-description">
-            A simulação credita sua parte no saldo e registra a parte de cada bot em sua carteira simulada.
-            O ciclo equivale a 10 minutos, mas não é executado automaticamente.
-          </p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Orçamento da Mining Pool</h2>
-            <span className="status">SANDBOX</span>
-          </div>
-          <div className="history-item">
-            <span>Orçamento total por ciclo (PC)</span>
-            <input
-              type="number"
-              min="0"
-              step="100"
-              value={poolBudget}
-              onChange={(event) => updatePoolBudget(Number(event.target.value))}
-            />
-          </div>
-          <p className="page-description">
-            O orçamento é um valor fixo definido para o ciclo. O hashrate apenas determina
-            a proporção distribuída entre os participantes.
-          </p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Participantes da rede</h2>
-            <span className="equipment-count">{activeBots.length + 1} participantes</span>
-          </div>
-          <div className="history-item">
-            <div><strong>Você</strong><small>Jogador principal</small></div>
-            <strong>{hashrate.toLocaleString('pt-BR')} H/s · {(participation * 100).toFixed(2)}%</strong>
-          </div>
-          {activeBots.map((bot) => {
-            const share = networkHashrate > 0 ? bot.hashrate / networkHashrate * 100 : 0
-            return (
-              <div className="history-item" key={bot.id}>
-                <div><strong>{bot.name}</strong><small>Bot ativo</small></div>
-                <strong>{bot.hashrate.toLocaleString('pt-BR')} H/s · {share.toFixed(2)}%</strong>
-              </div>
-            )
-          })}
-          {activeBots.length === 0 && (
-            <p className="page-description">Nenhum bot ativo. Se você for o único participante com hashrate, terá 100% da rede.</p>
-          )}
+          <p className="page-description">A distribuição desta rede demonstrativa não emite recompensas nesta tela. O saldo persistente e os ciclos oficiais são consultados separadamente acima.</p>
         </article>
 
         <article className="panel page-panel">
@@ -1522,190 +1251,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     )
   }
 
-  // ADMINISTRAÇÃO
-  function renderAdmin() {
-    return (
-      <section className="page-content">
-        <span className="eyebrow">AMBIENTE DE DESENVOLVIMENTO</span>
-        <h1>Painel administrativo</h1>
-        <p className="page-description">
-          Ferramentas locais para testar saldo, VIP, progressão, equipamentos e cenários da rede.
-          As alterações são salvas somente neste navegador.
-        </p>
-
-        <div className="stats">
-          <article className="stat-card">
-            <span>SALDO DO JOGADOR</span>
-            <h2>{balance.toLocaleString('pt-BR')} <small>PC</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>HASHRATE DA REDE</span>
-            <h2>{networkHashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>BOTS ATIVOS</span>
-            <h2>{activeBots.length} <small>/ {bots.length}</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>NÍVEL / XP</span>
-            <h2>{currentLevel} <small>· {xp} XP</small></h2>
-          </article>
-        </div>
-
-        <IntelligenceCenter
-          balance={balance}
-          totalRewards={totalRewards}
-          machines={machines}
-          inventory={inventory}
-          rooms={rooms}
-          bots={bots}
-          poolHistory={poolHistory}
-        />
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Controle do jogador</h2><span className="status">ADMIN</span></div>
-          <div className="history-item">
-            <span>Operação de saldo</span>
-            <select value={adminBalanceMode} onChange={(event) => setAdminBalanceMode(event.target.value as 'set' | 'add' | 'remove')}>
-              <option value="add">Adicionar saldo</option>
-              <option value="remove">Remover saldo</option>
-              <option value="set">Definir saldo exato</option>
-            </select>
-          </div>
-          <div className="history-item">
-            <span>Valor em PC</span>
-            <input type="number" min="0" value={adminBalance} onChange={(event) => setAdminBalance(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={applyAdminBalance}>APLICAR ALTERAÇÃO DE SALDO</button>
-
-          <div className="history-item">
-            <span>Alterar plano VIP</span>
-            <select value={adminVip} onChange={(event) => setAdminVip(event.target.value)}>
-              {vipPlans.map((plan) => <option key={plan.tier} value={plan.tier}>{plan.name}</option>)}
-            </select>
-          </div>
-          <button className="primary-button" onClick={applyAdminVip}>APLICAR VIP</button>
-
-          <div className="history-item">
-            <span>Definir XP total</span>
-            <input type="number" min="0" value={adminXp} onChange={(event) => setAdminXp(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={applyAdminXp}>ATUALIZAR XP E NÍVEL</button>
-
-          <div className="history-item">
-            <span>Passe de batalha premium</span>
-            <strong>{premiumPass ? 'ATIVADO' : 'DESATIVADO'}</strong>
-          </div>
-          <button className="secondary-button" onClick={togglePremiumPass}>
-            {premiumPass ? 'DESATIVAR PASSE PREMIUM' : 'ATIVAR PASSE PREMIUM'}
-          </button>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Adicionar equipamento</h2><span className="equipment-count">INVENTÁRIO</span></div>
-          <div className="history-item">
-            <span>Nome do equipamento</span>
-            <input value={adminMachineName} onChange={(event) => setAdminMachineName(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Hashrate (H/s)</span>
-            <input type="number" min="1" value={adminMachineHash} onChange={(event) => setAdminMachineHash(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Preço-base (PC)</span>
-            <input type="number" min="0" value={adminMachinePrice} onChange={(event) => setAdminMachinePrice(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={addAdminMachine}>ADICIONAR AO INVENTÁRIO</button>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <div><span className="eyebrow">SIMULADOR MULTIPLAYER</span><h2>Gerenciamento de bots</h2></div>
-            <span className="equipment-count">{bots.length} bots</span>
-          </div>
-          <p className="page-description">Crie participantes artificiais para simular concorrência na rede. Bots ativos entram no cálculo do hashrate e recebem sua parcela do orçamento.</p>
-
-          <div className="history-item">
-            <span>Nome do bot</span>
-            <input value={botName} placeholder="Ex.: Bot 01" onChange={(event) => setBotName(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Hashrate do bot (H/s)</span>
-            <input type="number" min="1" value={botHashrate} onChange={(event) => setBotHashrate(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={saveBot}>
-            {editingBotId === null ? 'CRIAR BOT' : 'SALVAR ALTERAÇÕES DO BOT'}
-          </button>
-          {editingBotId !== null && (
-            <button className="secondary-button" onClick={() => { setEditingBotId(null); setBotName(''); setBotHashrate('100') }}>
-              CANCELAR EDIÇÃO
-            </button>
-          )}
-
-          {bots.length === 0 ? (
-            <p className="page-description">Nenhum bot cadastrado. Crie seu primeiro participante para testar a rede.</p>
-          ) : bots.map((bot) => {
-            const share = networkHashrate > 0 && bot.active ? bot.hashrate / networkHashrate * 100 : 0
-            return (
-              <div className="panel" key={bot.id} style={{ marginTop: 12, padding: 16 }}>
-                <div className="panel-heading">
-                  <div><strong>{bot.name}</strong><p className="page-description">{bot.hashrate.toLocaleString('pt-BR')} H/s · {bot.active ? `${share.toFixed(2)}% da rede` : 'INATIVO'}</p></div>
-                  <span className={bot.active ? 'status' : 'equipment-count'}>{bot.active ? '● ATIVO' : '○ INATIVO'}</span>
-                </div>
-                <div className="pool-footer">
-                  <span>Saldo simulado do bot</span>
-                  <strong>{bot.balance.toLocaleString('pt-BR')} PC</strong>
-                </div>
-                <div className="pool-footer">
-                  <span>Total recebido</span>
-                  <strong>{bot.totalRewards.toLocaleString('pt-BR')} PC</strong>
-                </div>
-                <button className="secondary-button" onClick={() => setBots((value) => value.map((item) => item.id === bot.id ? { ...item, active: !item.active } : item))}>
-                  {bot.active ? 'DESATIVAR BOT' : 'ATIVAR BOT'}
-                </button>
-                <button className="secondary-button" onClick={() => editBot(bot)}>EDITAR</button>
-                <button className="dismantle-button" onClick={() => deleteBot(bot)}>EXCLUIR BOT</button>
-              </div>
-            )
-          })}
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Parâmetros da simulação</h2><span className="status">REDE DINÂMICA</span></div>
-          <div className="pool-footer"><span>Hashrate do jogador</span><strong>{hashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Hashrate dos bots ativos</span><strong>{botsHashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Hashrate total calculado</span><strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Participação do jogador</span><strong>{(participation * 100).toFixed(4)}%</strong></div>
-          <div className="history-item">
-            <span>Orçamento total por ciclo (PC)</span>
-            <input type="number" min="0" value={poolBudget} onChange={(event) => updatePoolBudget(Number(event.target.value))} />
-          </div>
-          <button className="primary-button" onClick={simulateMiningCycle}>EXECUTAR CICLO DE SIMULAÇÃO</button>
-          <p className="page-description">O orçamento é distribuído integralmente entre os participantes elegíveis pelo método dos maiores restos. As recompensas simuladas não representam pagamentos reais.</p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Simulador de eventos das missões</h2><span className="status">SANDBOX / QA</span></div>
-          <p className="page-description">Use estes controles apenas para testar o progresso. Eles simulam eventos concluídos; não substituem partidas reais, anúncios validados, recargas ou pagamentos.</p>
-          <button className="secondary-button" onClick={() => recordMissionEvent('flappy_games')}>SIMULAR 1 PARTIDA CONCLUÍDA — FLAPPY BIRD</button>
-          <button className="secondary-button" onClick={() => recordMissionEvent('snake_games')}>SIMULAR 1 PARTIDA CONCLUÍDA — COBRINHA</button>
-          <button className="secondary-button" onClick={() => recordMissionEvent('ad_lucky_boxes')}>SIMULAR 1 LUCKY BOX OBTIDA POR ANÚNCIO E ABERTA</button>
-          <button className="secondary-button" onClick={() => recordMissionEvent('room_energy_recharges')}>SIMULAR 1 RECARGA DE ENERGIA CONCLUÍDA</button>
-          <button className="secondary-button" onClick={() => recordMissionEvent('pix_coin_purchased', 100)}>SIMULAR COMPRA CONFIRMADA DE 100 PIX COIN</button>
-          <button className="secondary-button" onClick={simulatePaidLuckyBoxPurchase}>SIMULAR COMPRA DE LUCKY BOX PAGA — 100 PC</button>
-          <button className="secondary-button" onClick={simulateRewardedAd}>SIMULAR ANÚNCIO RECOMPENSADO — +10 PC (MÁX. 5/DIA)</button>
-          <p className="page-description">O login diário é registrado automaticamente ao abrir o jogo. Os dois controles novos simulam compras e anúncios; não representam transações ou publicidade reais.</p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Ferramentas de manutenção</h2><span className="status">CUIDADO</span></div>
-          <p className="page-description">Restaurar o sandbox apaga saldo, equipamentos, bots, XP, VIP e histórico armazenados neste navegador.</p>
-          <button className="dismantle-button" onClick={resetSandbox}>RESTAURAR SANDBOX COMPLETO</button>
-        </article>
-      </section>
-    )
-  }
-
   function renderPage() {
     switch (page) {
       case 'Dashboard': return renderDashboard()
@@ -1731,7 +1276,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         }
         if (activeTemporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)
       }} />
-      case 'Administração': return renderAdmin()
       default: return renderDashboard()
     }
   }
