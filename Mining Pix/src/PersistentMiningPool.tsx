@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase/client'
 type PoolAllocation = {
   cycle_key: string
   amount_pc: number | string
+  amount_mc: number | string
   hashrate_snapshot: number | string
   share: number | string
   created_at: string
@@ -12,7 +13,7 @@ type PoolCycle = {
   id: string
   cycle_key: string
   status: 'open'
-  budget_pc: number | string
+  budget_mc: number | string
   opened_at: string
   total_hashrate: number | string
   participant_count: number
@@ -79,7 +80,7 @@ export default function PersistentMiningPool() {
       </div>
       {cycle && (
         <>
-          <div className="pool-footer"><span>Orçamento aprovado para o ciclo</span><strong>{number(cycle.budget_pc)} PC</strong></div>
+          <div className="pool-footer"><span>Orçamento de MINING COIN do ciclo</span><strong>{number(cycle.budget_mc)} MC</strong></div>
           <div className="pool-footer"><span>Identificador</span><strong>{cycle.cycle_key}</strong></div>
         </>
       )}
@@ -87,16 +88,22 @@ export default function PersistentMiningPool() {
       <div className="panel-heading"><h3>Suas últimas distribuições</h3><span className="equipment-count">{history.length} registros</span></div>
       {loading ? <p className="page-description">Consultando a Mining Pool...</p> : history.length === 0
         ? <p className="page-description">Nenhuma distribuição persistente registrada. Recompensas locais do simulador não aparecem neste histórico.</p>
-        : history.map((item) => (
-          <div className="history-item" key={item.cycle_key}>
-            <div><strong>{item.cycle_key}</strong><small>{new Date(item.created_at).toLocaleString('pt-BR')}</small></div>
-            <strong>+{number(item.amount_pc)} PC</strong>
-          </div>
-        ))}
+        : history.map((item) => {
+          const isLegacyPc = Number(item.amount_pc) > 0 && Number(item.amount_mc) === 0
+          const amount = isLegacyPc ? item.amount_pc : item.amount_mc
+          const currency = isLegacyPc ? 'PC' : 'MC'
+          return (
+            <div className="history-item" key={item.cycle_key}>
+              <div><strong>{item.cycle_key}</strong><small>{new Date(item.created_at).toLocaleString('pt-BR')}</small></div>
+              <strong>+{number(amount)} {currency}</strong>
+            </div>
+          )
+        })}
 
       <p className="persistent-store-footnote">
         Apenas equipamentos persistentes participam. Bots locais, orçamento do sandbox e hashrate temporário de jogos são ignorados.
-        A liquidação e o crédito de PC ocorrem atomicamente no backend; este painel não simula nem credita recompensas.
+        Novos ciclos distribuem exclusivamente MINING COIN (MC); registros antigos em PIX COIN (PC) permanecem identificados como históricos.
+        A liquidação ocorre atomicamente no backend. MC ainda não pode ser comprada, convertida ou sacada.
       </p>
     </section>
   )
