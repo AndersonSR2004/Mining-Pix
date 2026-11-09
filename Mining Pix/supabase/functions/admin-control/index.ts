@@ -15,9 +15,14 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('Origin')
-  if (origin && origin !== allowedOrigin) return json({ error: 'Origin not allowed' }, 403)
+  if (origin !== allowedOrigin) return json({ error: 'Origin not allowed' }, 403)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (!req.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) {
+    return json({ error: 'Content-Type must be application/json' }, 415)
+  }
+  const declaredLength = Number(req.headers.get('Content-Length') ?? '0')
+  if (Number.isFinite(declaredLength) && declaredLength > 12000) return json({ error: 'Request too large' }, 413)
 
   try {
     const authorization = req.headers.get('Authorization')
