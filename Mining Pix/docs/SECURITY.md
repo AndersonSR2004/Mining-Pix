@@ -1,6 +1,6 @@
 # Mining Pix — segurança, RLS e matriz de permissões
 
-**Status:** especificação da Fase 0. As políticas descritas ainda precisam ser implementadas e testadas no Supabase DEV.
+**Status:** controles implementados incrementalmente no Supabase DEV; consulte as seções de implementação e os documentos de fase para distinguir controles ativos de requisitos ainda pendentes.
 
 ## 1. Modelo de ameaça
 
@@ -172,3 +172,22 @@ Para `profiles`, `wallets`, `player_progress`, `player_equipment`, `player_rooms
 ## Fase 7B — controles de acesso administrativo
 
 O bloqueio/desbloqueio de jogadores usa Supabase Auth pelo backend (`admin-control`) com JWT e `app_metadata.admin` verificados. A operação tem motivo obrigatório, confirmação explícita, request ID idempotente e evento append-only na auditoria. Administradores e a própria conta do administrador não podem ser alterados pelos controles de jogador. O banimento padrão é de 30 dias. JWTs de acesso já emitidos continuam válidos até expirarem; portanto, bloqueio não significa revogação instantânea de tokens já emitidos. Consulte `docs/PHASE7B_ADMIN.md`.
+
+
+## 13. Hardening validado — Fase 8A
+
+- `player_xp_transactions` é um ledger de XP com RLS, leitura apenas pelo proprietário e sem grants de escrita para `anon` ou `authenticated`.
+- `claim_daily_login_xp()` usa `auth.uid()`, dia UTC calculado no banco, chave idempotente única e transação atômica. O browser não escolhe usuário, XP, período ou chave.
+- A RPC usa `SECURITY DEFINER` com `search_path=''`, objetos qualificados e EXECUTE concedido apenas a `authenticated`; chamadas anônimas são negadas.
+- O componente de progressão mostra XP persistente separado do XP sandbox local.
+- `admin-control` exige origem exata do GitHub Pages, POST, JSON e JWT válido; o claim administrativo é validado no Auth e novamente no banco. Versão 4 implantada no DEV.
+- Testes SQL foram executados dentro de transações revertidas; nenhum XP de QA foi persistido.
+
+### Interpretação dos avisos do Supabase Advisor
+O advisor sinaliza funções `SECURITY DEFINER` acessíveis a `authenticated` e tabelas RLS sem policies. Isso não é automaticamente uma vulnerabilidade: algumas RPCs precisam ser chamadas pelo usuário autenticado e validam `auth.uid()`/claim administrativo internamente; tabelas de auditoria e operações administrativas sem policy são intencionalmente inacessíveis diretamente. A revisão deve conferir, para cada função, assinatura, `search_path`, grants e validação interna. Não criar policies amplas nem conceder escrita direta apenas para silenciar lints.
+
+### Pendências explícitas
+- Leaked Password Protection permanece desativada e precisa ser habilitada no Dashboard Auth/Security.
+- MFA da conta admin deve ser confirmada antes de produção.
+- Rate limiting server-side e política de sessão/revogação ainda precisam ser implementados/revistos.
+- XP de jogos, missões e recompensas do Passe não devem ser persistidos até validação server-side de cada evento.
