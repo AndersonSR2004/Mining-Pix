@@ -5,6 +5,7 @@ import IntelligenceCenter from './IntelligenceCenter.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
+import PersistentMiningPool from './PersistentMiningPool.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -961,6 +962,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         <h1>Central de mineração</h1>
         <p className="page-description">Os dados do simulador local e da infraestrutura persistente são apresentados separadamente.</p>
         <PersistentFacilityPanel mode="summary" />
+        <PersistentMiningPool />
 
         <div className="sandbox-section-label">
           <span className="eyebrow">SIMULADOR LOCAL · SANDBOX</span>
