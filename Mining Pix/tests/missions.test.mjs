@@ -17,40 +17,62 @@ test('daily and weekly periods use local dates and Monday week starts', () => {
   assert.equal(getMissionPeriods(new Date(2026, 10, 11, 12)).weekly, '2026-11-09')
 })
 
-test('records cycle and installation progress in both periods', () => {
+test('daily missions track their own event targets', () => {
   const now = new Date(2026, 10, 9, 12)
-  const afterCycle = recordMissionProgress(createMissionState(now), 'cycles', now)
-  const afterInstall = recordMissionProgress(afterCycle, 'installs', now)
-  assert.equal(afterInstall.dailyCycles, 1)
-  assert.equal(afterInstall.weeklyCycles, 1)
-  assert.equal(afterInstall.dailyInstalls, 1)
-  assert.equal(afterInstall.weeklyInstalls, 1)
+  let state = createMissionState(now)
+  for (let i = 0; i < 10; i++) state = recordMissionProgress(state, 'flappy_games', 1, now)
+  assert.equal(state.dailyProgress.flappy_games, 10)
+  const mission = MISSIONS.find((item) => item.id === 'daily-flappy')
+  assert.ok(mission)
+  assert.equal(getMissionProgress(state, mission), 10)
 })
 
-test('resets daily progress on a new date but preserves weekly progress', () => {
+test('each daily mission increments weekly completion exactly once when its target is reached', () => {
+  const now = new Date(2026, 10, 9, 12)
+  let state = createMissionState(now)
+  state = recordMissionProgress(state, 'flappy_games', 10, now)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+  state = recordMissionProgress(state, 'flappy_games', 5, now)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+  state = recordMissionProgress(state, 'snake_games', 10, now)
+  state = recordMissionProgress(state, 'ad_lucky_boxes', 10, now)
+  state = recordMissionProgress(state, 'room_energy_recharges', 1, now)
+  state = recordMissionProgress(state, 'pix_coin_purchased', 100, now)
+  assert.equal(state.weeklyCompletedDailyMissions, 5)
+})
+
+test('PIX COIN mission accumulates purchase quantity rather than number of transactions', () => {
+  const now = new Date(2026, 10, 9, 12)
+  let state = createMissionState(now)
+  state = recordMissionProgress(state, 'pix_coin_purchased', 40, now)
+  state = recordMissionProgress(state, 'pix_coin_purchased', 60, now)
+  assert.equal(state.dailyProgress.pix_coin_purchased, 100)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+})
+
+test('daily reset clears daily progress while preserving weekly completion count', () => {
   const monday = new Date(2026, 10, 9, 12)
-  let state = recordMissionProgress(createMissionState(monday), 'cycles', monday)
+  let state = recordMissionProgress(createMissionState(monday), 'flappy_games', 10, monday)
   state = refreshMissionState(state, new Date(2026, 10, 10, 12))
-  assert.equal(state.dailyCycles, 0)
-  assert.equal(state.weeklyCycles, 1)
-  assert.equal(state.dailyPeriod, '2026-11-10')
-  assert.equal(state.weeklyPeriod, '2026-11-09')
+  assert.equal(state.dailyProgress.flappy_games, 0)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+  assert.deepEqual(state.completedDailyMissionIds, [])
 })
 
-test('resets weekly progress and claims on the next Monday', () => {
+test('weekly reset clears weekly completion and claims', () => {
   const monday = new Date(2026, 10, 9, 12)
-  let state = recordMissionProgress(createMissionState(monday), 'cycles', monday)
-  state = { ...state, claimed: ['daily-cycles', 'weekly-cycles'] }
+  let state = recordMissionProgress(createMissionState(monday), 'flappy_games', 10, monday)
+  state = { ...state, claimed: ['daily-flappy', 'weekly-10'] }
   state = refreshMissionState(state, new Date(2026, 10, 16, 12))
-  assert.equal(state.weeklyCycles, 0)
+  assert.equal(state.weeklyCompletedDailyMissions, 0)
   assert.deepEqual(state.claimed, [])
 })
 
-test('mission progress is capped for display and mission targets are explicit', () => {
-  const mission = MISSIONS.find((item) => item.id === 'daily-cycles')
-  assert.ok(mission)
-  const state = { ...createMissionState(), dailyCycles: 4 }
-  assert.equal(getMissionProgress(state, mission), 4)
-  assert.equal(mission.target, 3)
-  assert.equal(mission.rewardXp, 100)
+test('weekly milestones are 10, 20, 30, 40 and 50 daily missions', () => {
+  assert.deepEqual(
+    MISSIONS.filter((mission) => mission.period === 'weekly').map((mission) => mission.target),
+    [10, 20, 30, 40, 50],
+  )
+  assert.ok(MISSIONS.every((mission) => mission.rewardXp > 0))
+  assert.ok(MISSIONS.every((mission) => mission.period === 'weekly' || mission.target > 0))
 })
