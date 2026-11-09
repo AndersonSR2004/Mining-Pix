@@ -135,3 +135,16 @@ Migration:
 - `202611090011_align_room_summary_id_with_frontend_contract.sql`
 
 Padroniza a chave de retorno de `get_player_room_summaries()` como `id`, alinhada ao tipo e aos componentes React que usam a identidade da sala para seleção e operações.
+
+
+## Mining Pool persistente — Fase 3
+
+Migrations adicionais:
+- 202611090012_persistent_mining_pool.sql — ciclos, snapshots/alocações por jogador, RLS, dashboard agregado e liquidação transacional.
+- 202611090013_pool_allocation_ledger_fk_index.sql — índice da FK do lançamento da carteira.
+
+RPCs: get_pool_dashboard (authenticated), open_pool_cycle e settle_pool_cycle (somente service_role). A liquidação congela hashrate de equipamentos instalados em salas ativas, distribui o orçamento pelo método dos maiores restos e grava carteira, ledger e alocação na mesma transação. Retry não duplica crédito.
+
+Edge Function pool-operator está implantada com JWT obrigatório. Exige app_metadata.pool_operator=true e aceita ações open_cycle e settle_cycle. Nenhum operador foi habilitado automaticamente. Não conceda essa permissão via user_metadata.
+
+A UI PersistentMiningPool consulta dados do backend e fica separada do simulador local. Nenhum ciclo ou recompensa de QA permanece no banco. Consulte docs/PHASE3_POOL.md para arquitetura, testes e decisões econômicas pendentes.
