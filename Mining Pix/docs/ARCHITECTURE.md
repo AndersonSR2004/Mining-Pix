@@ -207,3 +207,14 @@ Ainda em sandbox ou planejado:
 - Mining Pool, ciclos, bots, XP, missões, passe e recompensas de jogos ainda não estão server-authoritative.
 - A infraestrutura persistente ainda não credita PC nem altera saldo por mineração.
 - PROD permanece separado; não aplicar migrations DEV em produção.
+
+
+## 13. Admin Center e separação operacional (Fase 4)
+
+- O jogo público e o Admin Center são páginas de entrada distintas: `index.html` e `admin.html`.
+- O painel consulta dados persistentes somente no Supabase DEV por meio de `admin_dashboard_snapshot()`.
+- O RPC valida `auth.uid()` e `app_metadata.admin=true` no backend; a interface não é a fronteira de segurança.
+- A interface administrativa está em modo somente leitura. Não há concessão de PC, edição de carteira, ajuste de VIP, bots ou liquidação de ciclos.
+- Nenhuma conta recebeu a permissão administrativa automaticamente. A primeira concessão exige identificar a conta correta no Dashboard e alterar `app_metadata` por canal confiável.
+- A carteira sandbox local permanece independente da carteira persistente do Supabase DEV; não há migração automática nem sincronização entre elas.
+- O ambiente de produção deverá ser um projeto Supabase separado, com chaves, dados e deploy independentes.
