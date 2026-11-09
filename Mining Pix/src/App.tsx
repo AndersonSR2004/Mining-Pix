@@ -430,7 +430,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     }
   }, [
     balance, machines, inventory, rooms, history, vipTier, poolBudget,
-    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt, missionState,
+    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt, missionState, temporaryHash, temporaryHashExpiresAt, userId,
   ])
 
   useEffect(() => {
