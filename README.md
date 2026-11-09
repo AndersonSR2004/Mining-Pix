@@ -36,3 +36,7 @@ Consulte [docs/PROJECT_AUDIT.md](docs/PROJECT_AUDIT.md) para o levantamento téc
 - `main`: versão de referência enviada pelo proprietário.
 - `codex/mining-pix-work`: branch isolada para preparação e melhorias.
 - Alterações funcionais devem ser revisadas em Pull Requests antes de integrar à `main`.
+
+## Live preview
+
+The `codex/mining-pix-work` branch is automatically built, tested, and deployed to GitHub Pages by `.github/workflows/preview.yml`.
