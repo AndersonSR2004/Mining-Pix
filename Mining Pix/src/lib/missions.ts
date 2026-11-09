@@ -87,14 +87,28 @@ export function refreshMissionState(state: MissionState, now = new Date()): Miss
   const periods = getMissionPeriods(now)
   const dailyChanged = state.dailyPeriod !== periods.daily
   const weeklyChanged = state.weeklyPeriod !== periods.weekly
-  if (!dailyChanged && !weeklyChanged) return state
-  return {
+  const storedProgress = state.dailyProgress && typeof state.dailyProgress === 'object'
+    ? state.dailyProgress
+    : emptyDailyProgress()
+  const normalized: MissionState = {
     dailyPeriod: periods.daily,
     weeklyPeriod: periods.weekly,
-    dailyProgress: dailyChanged ? emptyDailyProgress() : state.dailyProgress,
-    weeklyCompletedDailyMissions: weeklyChanged ? 0 : state.weeklyCompletedDailyMissions,
-    completedDailyMissionIds: dailyChanged ? [] : state.completedDailyMissionIds,
-    claimed: state.claimed.filter((id) => {
+    dailyProgress: { ...emptyDailyProgress(), ...storedProgress },
+    weeklyCompletedDailyMissions: Number.isFinite(state.weeklyCompletedDailyMissions)
+      ? Math.max(0, state.weeklyCompletedDailyMissions)
+      : 0,
+    completedDailyMissionIds: Array.isArray(state.completedDailyMissionIds)
+      ? state.completedDailyMissionIds.filter((id) => typeof id === 'string')
+      : [],
+    claimed: Array.isArray(state.claimed) ? state.claimed.filter((id) => typeof id === 'string') : [],
+  }
+  if (!dailyChanged && !weeklyChanged) return normalized
+  return {
+    ...normalized,
+    dailyProgress: dailyChanged ? emptyDailyProgress() : normalized.dailyProgress,
+    weeklyCompletedDailyMissions: weeklyChanged ? 0 : normalized.weeklyCompletedDailyMissions,
+    completedDailyMissionIds: dailyChanged ? [] : normalized.completedDailyMissionIds,
+    claimed: normalized.claimed.filter((id) => {
       const mission = MISSIONS.find((item) => item.id === id)
       return mission?.period === 'daily' ? !dailyChanged : mission?.period === 'weekly' ? !weeklyChanged : false
     }),
