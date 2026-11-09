@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase/client'
 
-type Room = { id: string; room_number: number; name: string }
+type Room = { id: string; room_number: number; name: string; installed_count: number; total_hashrate: number | string; capacity: number }
 type Equipment = {
   id: string; catalog_sku: string; status: 'inventory' | 'installed' | 'retired'
   room_id: string | null; purchase_price_pc: number | string
@@ -26,7 +26,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
     setLoading(true)
     setError('')
     const [r, e, s] = await Promise.all([
-      supabase.from('player_rooms').select('id,room_number,name').eq('active', true).order('room_number'),
+      supabase.rpc('get_player_room_summaries'),
       supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,equipment_catalog(name,equipment_type,hashrate)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
     ])
@@ -72,8 +72,8 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
 
   const inventory = equipment.filter(item => item.status === 'inventory')
   const installed = equipment.filter(item => item.status === 'installed')
-  const roomItems = (id: string) => installed.filter(item => item.room_id === id)
-  const roomHash = (id: string) => roomItems(id).reduce((n, item) => n + Number(item.equipment_catalog?.hashrate ?? 0), 0)
+  const roomHash = (id: string) => Number(rooms.find(room => room.id === id)?.total_hashrate ?? 0)
+  const roomOccupancy = (id: string) => Number(rooms.find(room => room.id === id)?.installed_count ?? 0)
 
   if (mode === 'summary') return (
     <section className="persistent-facility persistent-facility-summary">
@@ -105,11 +105,11 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
       </div>
       <div className="persistent-room-grid">
         {rooms.map(room => {
-          const occupied = roomItems(room.id).length
+          const occupied = roomOccupancy(room.id)
           return <article className="panel persistent-room-card" key={room.id}>
             <div className="machine-icon large">▦</div><span className="eyebrow">SALA {room.room_number}</span>
-            <h3>{room.name}</h3><strong>{occupied} / 10 equipamentos</strong><span>{fmt(roomHash(room.id))} H/s</span>
-            <div className="progress-track"><div className="progress-fill" style={{ width: `${occupied * 10}%` }} /></div>
+            <h3>{room.name}</h3><strong>{occupied} / {room.capacity} equipamentos</strong><span>{fmt(roomHash(room.id))} H/s</span>
+            <div className="progress-track"><div className="progress-fill" style={{ width: `${occupied / room.capacity * 100}%` }} /></div>
             <button className="secondary-button" onClick={() => void renameRoom(room)} disabled={loading || pendingId !== null}>RENOMEAR SALA</button>
           </article>
         })}
@@ -120,7 +120,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
         {inventory.length > 0 && <div className="persistent-install-target">
           <label htmlFor="persistent-room-select">Sala de destino</label>
           <select id="persistent-room-select" value={selectedRoomId} onChange={event => setSelectedRoomId(event.target.value)}>
-            {rooms.map(room => <option key={room.id} value={room.id} disabled={roomItems(room.id).length >= 10}>{room.name} ({roomItems(room.id).length}/10)</option>)}
+            {rooms.map(room => <option key={room.id} value={room.id} disabled={roomOccupancy(room.id) >= room.capacity}>{room.name} ({roomItems(room.id).length}/10)</option>)}
           </select>
         </div>}
         {loading ? <p className="page-description">Carregando infraestrutura da conta...</p> : equipment.length === 0
@@ -139,7 +139,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
               {isInstalled
                 ? <button className="secondary-button" onClick={() => void operate('uninstall', item)} disabled={pendingId !== null}>{pendingId === item.id ? 'PROCESSANDO...' : 'DESINSTALAR'}</button>
                 : item.status === 'inventory'
-                  ? <button className="primary-button" onClick={() => void operate('install', item, selectedRoomId)} disabled={pendingId !== null || !selectedRoomId || rooms.every(room => roomItems(room.id).length >= 10)}>{pendingId === item.id ? 'PROCESSANDO...' : 'INSTALAR'}</button>
+                  ? <button className="primary-button" onClick={() => void operate('install', item, selectedRoomId)} disabled={pendingId !== null || !selectedRoomId || rooms.every(room => roomOccupancy(room.id) >= room.capacity)}>{pendingId === item.id ? 'PROCESSANDO...' : 'INSTALAR'}</button>
                   : <span className="equipment-count">INDISPONÍVEL</span>}
             </div>
           })}
