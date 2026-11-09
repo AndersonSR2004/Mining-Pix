@@ -17,7 +17,12 @@ export function distributePoolBudget(
   )
   const totalHashrate = eligible.reduce((sum, participant) => sum + participant.hashrate, 0)
 
-  if (!Number.isFinite(totalBudget) || totalBudget <= 0 || totalHashrate <= 0) return {}
+  if (
+    !Number.isSafeInteger(totalBudget) ||
+    totalBudget <= 0 ||
+    !Number.isFinite(totalHashrate) ||
+    totalHashrate <= 0
+  ) return {}
 
   const rows = eligible.map((participant) => {
     const exactShare = totalBudget * participant.hashrate / totalHashrate
