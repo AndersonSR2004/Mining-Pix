@@ -81,3 +81,15 @@ Não crie contas de teste com dados pessoais de terceiros. Não compartilhe senh
 - Não importar os dados legados do localStorage como legítimos.
 
 Consulte `docs/PHASE2_WALLET.md` para o escopo, testes e limites da primeira entrega da Fase 2.
+
+
+## Catálogo e compras persistentes — Fase 2B
+
+Migrations adicionais:
+- `202611090004_equipment_catalog_and_atomic_purchase.sql` — catálogo global, inventário por jogador e RPC transacional de compra.
+- `202611090005_equipment_purchase_idempotency_fix.sql` — retry idempotente preservado mesmo se o preço do catálogo for atualizado após a compra original.
+- `202611090006_equipment_catalog_fk_index.sql` — índice da FK do catálogo no inventário.
+
+Catálogo inicial: PIX Miner II (250 H/s, 2.500 PC) e PIX Miner III (600 H/s, 5.000 PC). A RPC `purchase_equipment` recebe somente SKU e chave idempotente; preço é consultado no banco. A carteira, o ledger e o inventário são alterados atomicamente.
+
+A tela Loja agora apresenta a loja persistente e o inventário vinculado à conta, mantendo a loja demonstrativa em uma seção separada. O inventário persistente ainda não alimenta a instalação e o hashrate local.
