@@ -53,3 +53,11 @@ body{min-width:320px;background:#090d14}
 .admin-directory-pagination{justify-content:center;margin-top:18px}
 .admin-directory-pagination span{min-width:120px;text-align:center}
 @media(max-width:520px){.admin-directory-search{flex-direction:column}.admin-directory-search button{width:100%}.admin-directory-meta{align-items:flex-start;flex-direction:column}}
+
+.admin-access-panel{border-color:#5b4545}
+.admin-access-action{padding:8px 10px;font-size:10px;white-space:nowrap}
+.admin-access-panel .admin-note-form{max-width:720px}
+.admin-access-panel .admin-note-form button{justify-self:start}
+.admin-access-panel .admin-panel-heading{align-items:center}
+.admin-access-panel .admin-panel-heading h2{margin-top:5px}
+.admin-access-panel .admin-empty strong{color:#eef3f8}
