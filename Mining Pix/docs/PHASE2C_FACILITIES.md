@@ -52,3 +52,8 @@ A primeira validação do downgrade identificou que excluir uma sala poderia vio
 ## Hashrate individual por sala
 
 A migration `202611090010_backend_room_hashrate_summaries.sql` adiciona `get_player_room_summaries()`. A contagem de equipamentos e o hashrate de cada sala passam a ser agregados no PostgreSQL via SECURITY INVOKER, respeitando RLS. O frontend só exibe os resultados e solicita operações.
+
+
+## Alinhamento do identificador de sala
+
+A migration `202611090011_align_room_summary_id_with_frontend_contract.sql` padroniza o campo de identificação retornado por `get_player_room_summaries()` como `id`, correspondendo ao contrato esperado pelo painel React. Isso mantém a seleção de sala e as operações de instalação consistentes.
