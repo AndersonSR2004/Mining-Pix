@@ -31,8 +31,8 @@
 1. **Somente frontend:** não há backend, autenticação, banco de dados compartilhado ou validação server-side.
 2. **Dados locais:** cada navegador possui seu próprio estado. Limpar os dados do navegador pode apagar o progresso.
 3. **Administração sem segurança real:** o painel administrativo é uma ferramenta de sandbox, não um controle de acesso protegido.
-4. **Mining Pool manual:** os ciclos são executados por botão; não há temporizador automático ou sincronização de ciclo.
-5. **Arredondamento:** as parcelas são arredondadas para baixo individualmente; parte do orçamento pode ficar sem distribuição. A interface já informa essa possibilidade.
+4. **Mining Pool manual:** existe contador persistente de referência de 10 minutos; ao zerar, a interface informa que o ciclo está disponível, mas a distribuição continua manual e não há pagamento automático no frontend.
+5. **Distribuição inteira:** o orçamento inteiro é dividido pelo método dos maiores restos, para que as parcelas do jogador e dos bots ativos somem exatamente o orçamento do ciclo.
 6. **Economia demonstrativa:** saldos, XP, VIP e recompensas não devem ser tratados como dinheiro ou pagamentos reais.
 7. **Passe Premium:** a ativação é uma flag local controlada pelo sandbox; não existe cobrança ou validação de compra.
 8. **Layout do repositório:** os arquivos estão aninhados em `Mining Pix/`, o que exige configurar a raiz do projeto corretamente em ambientes de deploy/importação.
