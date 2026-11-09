@@ -23,5 +23,7 @@ jobs:
           cache-dependency-path: Mining Pix/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Test pool allocation
+        run: npm test
       - name: Type-check and build
         run: npm run build
