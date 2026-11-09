@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { distributePoolBudget } from './lib/pool.ts'
+import { createMissionState, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
@@ -12,6 +13,7 @@ type Page =
   | 'Carteira'
   | 'VIP'
   | 'Passe de Batalha'
+  | 'Missões'
   | 'Administração'
 
 type VipTier = 0 | 1 | 2 | 3
@@ -75,6 +77,7 @@ type SavedState = {
   premiumPass: boolean
   claimedRewards: string[]
   nextCycleAt: number
+  missionState: MissionState
 }
 
 const STORAGE_KEY = 'mining-pix-demo-v1'
@@ -144,6 +147,7 @@ const menu: { name: Page; icon: string }[] = [
   { name: 'Inventário', icon: '▦' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
+  { name: 'Missões', icon: '◎' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
   { name: 'Administração', icon: '⚙' },
@@ -181,6 +185,7 @@ function loadSavedState(): SavedState {
     premiumPass: false,
     claimedRewards: [],
     nextCycleAt: Date.now() + CYCLE_DURATION_MS,
+    missionState: createMissionState(),
   }
 
   try {
@@ -301,6 +306,9 @@ function loadSavedState(): SavedState {
         typeof parsed.nextCycleAt === 'number' && parsed.nextCycleAt > 0
           ? parsed.nextCycleAt
           : Date.now() + CYCLE_DURATION_MS,
+      missionState: refreshMissionState(
+        isObject(parsed.missionState) ? parsed.missionState as unknown as MissionState : createMissionState(),
+      ),
     }
   } catch {
     return fallback
@@ -328,6 +336,7 @@ function App() {
   const [premiumPass, setPremiumPass] = useState(saved.premiumPass)
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
   const [nextCycleAt, setNextCycleAt] = useState(saved.nextCycleAt)
+  const [missionState, setMissionState] = useState(saved.missionState)
   const [clockNow, setClockNow] = useState(Date.now())
 
   const [selectedRoomId, setSelectedRoomId] = useState(1)
@@ -393,6 +402,7 @@ function App() {
       premiumPass,
       claimedRewards,
       nextCycleAt,
+      missionState,
     }
 
     try {
@@ -402,13 +412,17 @@ function App() {
     }
   }, [
     balance, machines, inventory, rooms, history, vipTier, poolBudget,
-    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt,
+    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt, missionState,
   ])
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
+
+  function recordMission(metric: 'cycles' | 'installs') {
+    setMissionState((value) => recordMissionProgress(value, metric))
+  }
 
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
@@ -451,6 +465,7 @@ function App() {
 
     setInventory((value) => value.filter((item) => item.id !== machine.id))
     setMachines((value) => [...value, { ...machine, roomId: room.id }])
+    recordMission('installs')
     logAction(`Instalação de ${machine.name} em ${room.name}`)
     setMessage(`${machine.name} instalado em ${room.name}!`)
   }
@@ -586,6 +601,7 @@ function App() {
     setTotalRewards((value) => value + playerReward)
     setPoolHistory((value) => [cycle, ...value])
     setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
+    recordMission('cycles')
     setClockNow(Date.now())
     const xpEarned = hashrate > 0 ? 100 : 0
     if (xpEarned > 0) setXp((value) => value + xpEarned)
@@ -679,6 +695,7 @@ function App() {
     setXp(0)
     setPremiumPass(false)
     setClaimedRewards([])
+    setMissionState(createMissionState())
     setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
     setClockNow(Date.now())
     setSelectedRoomId(1)
@@ -736,6 +753,20 @@ function App() {
       setBotName('')
       setBotHashrate('100')
     }
+  }
+
+  function claimMissionReward(missionId: string) {
+    const mission = MISSIONS.find((item) => item.id === missionId)
+    if (!mission) return
+    const current = refreshMissionState(missionState)
+    if (current.claimed.includes(missionId) || getMissionProgress(current, mission) < mission.target) {
+      setMessage('Missão ainda não concluída ou recompensa já resgatada.')
+      return
+    }
+    setMissionState({ ...current, claimed: [...current.claimed, missionId] })
+    setXp((value) => value + mission.rewardXp)
+    logAction(`Missão concluída: ${mission.title} · +${mission.rewardXp} XP`)
+    setMessage(`Missão resgatada! Você recebeu ${mission.rewardXp} XP.`)
   }
 
   function claimBattleReward(reward: BattleReward) {
@@ -1257,6 +1288,65 @@ function App() {
     )
   }
 
+  // MISSÕES DIÁRIAS E SEMANAIS
+  function renderMissions() {
+    const currentMissions = refreshMissionState(missionState)
+    const renderGroup = (period: 'daily' | 'weekly') => (
+      <div className="panel page-panel">
+        <div className="panel-heading">
+          <h2>{period === 'daily' ? 'Missões diárias' : 'Missões semanais'}</h2>
+          <span className="equipment-count">{period === 'daily' ? 'REINÍCIO DIÁRIO' : 'REINÍCIO SEGUNDA-FEIRA'}</span>
+        </div>
+        <div className="shop-grid">
+          {MISSIONS.filter((mission) => mission.period === period).map((mission) => {
+            const progress = Math.min(getMissionProgress(currentMissions, mission), mission.target)
+            const completed = progress >= mission.target
+            const claimed = currentMissions.claimed.includes(mission.id)
+            return (
+              <article className="panel shop-card" key={mission.id}>
+                <span className="eyebrow">{period === 'daily' ? 'DIÁRIA' : 'SEMANAL'}</span>
+                <h2>{mission.title}</h2>
+                <p>{mission.description}</p>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${progress / mission.target * 100}%` }} />
+                </div>
+                <div className="pool-footer">
+                  <span>Progresso</span>
+                  <strong>{progress} / {mission.target}</strong>
+                </div>
+                <div className="pool-footer">
+                  <span>Recompensa</span>
+                  <strong>{mission.rewardXp} XP</strong>
+                </div>
+                {claimed ? <span className="status">✓ RESGATADA</span> : (
+                  <button className="primary-button" disabled={!completed} onClick={() => claimMissionReward(mission.id)}>
+                    {completed ? 'RESGATAR XP' : 'EM ANDAMENTO'}
+                  </button>
+                )}
+              </article>
+            )
+          })}
+        </div>
+      </div>
+    )
+
+    return (
+      <section className="page-content">
+        <span className="eyebrow">CENTRAL DE OBJETIVOS</span>
+        <h1>Missões</h1>
+        <p className="page-description">Conclua atividades para ganhar XP e avançar no Passe de Batalha. O progresso é salvo neste navegador.</p>
+        <div className="stats">
+          <article className="stat-card"><span>NÍVEL ATUAL</span><h2>{currentLevel}</h2></article>
+          <article className="stat-card"><span>XP TOTAL</span><h2>{xp.toLocaleString('pt-BR')}</h2></article>
+          <article className="stat-card"><span>MISSÕES DISPONÍVEIS</span><h2>{MISSIONS.length - currentMissions.claimed.length}</h2></article>
+        </div>
+        {renderGroup('daily')}
+        {renderGroup('weekly')}
+        <p className="page-description">Valores de XP e metas são parâmetros iniciais de balanceamento do sandbox e poderão ser ajustados após avaliação.</p>
+      </section>
+    )
+  }
+
   // PASSE DE BATALHA
   function renderBattlePass() {
     return (
@@ -1523,6 +1613,7 @@ function App() {
       case 'Carteira': return renderWallet()
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
+      case 'Missões': return renderMissions()
       case 'Administração': return renderAdmin()
       default: return renderDashboard()
     }
@@ -1538,7 +1629,7 @@ function App() {
 
         <nav>
           <p className="nav-label">MENU PRINCIPAL</p>
-          {menu.slice(0, 6).map((item) => (
+          {menu.slice(0, 7).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
@@ -1549,7 +1640,7 @@ function App() {
           ))}
 
           <p className="nav-label">CONTA</p>
-          {menu.slice(6).map((item) => (
+          {menu.slice(7).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
