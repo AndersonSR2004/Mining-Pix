@@ -1626,3 +1626,86 @@ body::-webkit-scrollbar-thumb:hover {
     flex-direction: column;
   }
 }
+
+
+/* Persistent rooms, installations and backend hashrate */
+.persistent-facility {
+  display: grid;
+  gap: 18px;
+  margin: 22px 0 30px;
+}
+.persistent-facility-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.persistent-facility-heading h2 {
+  margin: 5px 0;
+  color: #e8f0ed;
+}
+.persistent-facility-heading p {
+  margin: 5px 0 0;
+  color: #84958e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.persistent-facility-summary {
+  padding: 18px;
+  border: 1px solid #29483a;
+  border-radius: 12px;
+  background: #101c17;
+}
+.persistent-facility-summary .stats { margin-bottom: 0; }
+.persistent-room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+.persistent-room-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 18px;
+}
+.persistent-room-card h3 { margin: 0; color: #e8f0ed; }
+.persistent-room-card > strong,
+.persistent-room-card > span:not(.eyebrow) { color: #a7b7af; font-size: 12px; }
+.persistent-room-card .progress-track { width: 100%; }
+.persistent-room-card .secondary-button { width: 100%; }
+.persistent-facility-inventory {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #263a33;
+  border-radius: 12px;
+  background: #101a17;
+}
+.persistent-install-target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.persistent-install-target label { color: #a7b7af; font-size: 12px; }
+.persistent-install-target select {
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid #344b40;
+  border-radius: 8px;
+  background: #101a17;
+  color: #e8f0ed;
+}
+.persistent-machine { flex-wrap: wrap; }
+.sandbox-section-label {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #263a33;
+}
+.sandbox-section-label .page-description { margin-top: 6px; }
+@media (max-width: 600px) {
+  .persistent-facility-heading { flex-direction: column; }
+  .persistent-machine > .primary-button,
+  .persistent-machine > .secondary-button { width: 100%; }
+}
