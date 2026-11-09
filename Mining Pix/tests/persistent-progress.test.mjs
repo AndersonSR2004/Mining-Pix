@@ -29,5 +29,6 @@ test('browser requests daily XP without choosing the amount, player id, or perio
 test('admin control function requires the expected origin and JSON content type', () => {
   assert.match(adminFunction, /if \(origin !== allowedOrigin\)/)
   assert.match(adminFunction, /Content-Type must be application\/json/)
-  assert.match(adminFunction, /verify_jwt/)
+  assert.match(adminFunction, /auth\.getUser\(token\)/)
+  assert.match(adminFunction, /app_metadata\?\.admin !== true/)
 })
