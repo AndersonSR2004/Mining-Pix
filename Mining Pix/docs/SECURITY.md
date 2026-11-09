@@ -143,3 +143,15 @@ Para `profiles`, `wallets`, `player_progress`, `player_equipment`, `player_rooms
 - Identificar usuários, transações e intervalo afetado.
 - Corrigir por migration revisada e lançar ajustes compensatórios auditáveis.
 - Comunicar impacto de forma clara; nunca apagar ledger para ocultar incidente.
+
+
+## 11. Implementação do Admin Center (Fase 4)
+
+- O Admin Center utiliza Supabase Auth para autenticação e `app_metadata.admin` para autorização.
+- A função `public.admin_dashboard_snapshot()` repete a verificação no PostgreSQL a cada chamada; usa `SECURITY DEFINER`, `search_path=''`, grants mínimos e consultas qualificadas.
+- O claim nunca é lido de `user_metadata`, pois esse campo é controlável pelo usuário.
+- `anon` não possui EXECUTE; `authenticated` pode chamar o RPC, mas chamadas sem claim administrativo são rejeitadas pela função.
+- A função retorna apenas indicadores agregados, últimos lançamentos e perfis recentes, sem e-mails ou credenciais.
+- O painel é somente leitura nesta fase. Ações de escrita exigirão uma trilha append-only em `admin_audit_logs`, motivo obrigatório, ator/alvo, idempotência e validação server-side.
+- A URL administrativa não é secreta nem mecanismo de controle; a autorização real ocorre no backend.
+- Antes de produção: MFA na conta administradora, Leaked Password Protection habilitada, revisão de advisors e projeto PROD separado.
