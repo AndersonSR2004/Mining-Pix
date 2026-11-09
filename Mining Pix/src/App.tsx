@@ -601,10 +601,12 @@ function App() {
     setTotalRewards((value) => value + playerReward)
     setPoolHistory((value) => [cycle, ...value])
     setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
-    recordMission('cycles')
     setClockNow(Date.now())
     const xpEarned = hashrate > 0 ? 100 : 0
-    if (xpEarned > 0) setXp((value) => value + xpEarned)
+    if (xpEarned > 0) {
+      setXp((value) => value + xpEarned)
+      recordMission('cycles')
+    }
     logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
     setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC.${xpEarned > 0 ? ' XP +100.' : ' Sem XP: instale um equipamento para participar da mineração.'}`)
   }
