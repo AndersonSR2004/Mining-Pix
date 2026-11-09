@@ -88,3 +88,15 @@ A arquitetura da Pool foi atualizada para uma economia dual:
 As distribuições antigas em PC permanecem intactas. Não há conversão entre moedas, compra de MC, saques ou conversão em reais. MC é distribuída exclusivamente pela Mining Pool nesta etapa; missões, eventos, torneios, anúncios e Lucky Boxes não emitem MC.
 
 A migration foi aplicada no Supabase DEV e registrada no repositório. Nenhum operador foi habilitado e nenhum ciclo/recompensa foi ativado. A regra de orçamento de 30% da arrecadação elegível continua sendo uma diretriz aprovada, mas ainda depende do revenue ledger e das definições de receita, taxas, reembolsos e chargebacks.
+
+
+### QA da separação PC/MC — D-012/D-013
+
+Teste transacional no Supabase DEV, revertido integralmente:
+- Jogador A: 250 H/s; jogador B: 600 H/s; orçamento de teste: 101 MC.
+- Distribuição: 30 MC e 71 MC pelo método dos maiores restos.
+- Cada jogador recebeu lançamento somente no ledger MC; `amount_pc=0` e `wallet_transaction_id=null` nas alocações novas.
+- Saldos PC permaneceram em 0 durante o teste; saldos MC foram 30 e 71 dentro da transação.
+- Retry do settlement retornou `already_settled=true`; permaneceram 2 alocações e 2 lançamentos MC, sem duplicação.
+- Após rollback: 0 equipamentos de teste, 0 ciclos, 0 alocações, 0 transações MC e saldos PC/MC em 0.
+- Teste de leitura autenticada do dashboard e da própria carteira MC concluído; permissões diretas de INSERT/UPDATE para authenticated e leitura anon foram confirmadas como negadas.
