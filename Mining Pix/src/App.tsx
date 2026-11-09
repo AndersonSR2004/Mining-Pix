@@ -316,6 +316,8 @@ function loadSavedState(): SavedState {
       missionState: refreshMissionState(
         isObject(parsed.missionState) ? parsed.missionState as unknown as MissionState : createMissionState(),
       ),
+      temporaryHash: typeof parsed.temporaryHash === 'number' && parsed.temporaryHash > 0 ? parsed.temporaryHash : 0,
+      temporaryHashExpiresAt: typeof parsed.temporaryHashExpiresAt === 'number' && parsed.temporaryHashExpiresAt > 0 ? parsed.temporaryHashExpiresAt : 0,
     }
   } catch {
     return fallback
@@ -1672,7 +1674,7 @@ function App() {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
-      case 'Jogos': return <Games onGameComplete={(event, won) => {\n        setMissionState((value) => recordMissionProgress(value, event))\n        const now = Date.now()\n        if (won) {\n          setBalance((value) => value + 1)\n          setTemporaryHash((value) => value + 1)\n          logAction(`Vitória em ${event}: +1 PC e +1 H/s temporário`)\n          setMessage('Vitória! +1 PIX COIN e +1 H/s temporário por 24 horas.')\n        } else {\n          logAction(`Partida concluída em ${event}: sem recompensa de vitória`)\n          setMessage('Partida concluída. A missão foi atualizada; não houve recompensa de vitória.')\n        }\n        if (temporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)\n      }} />
+      case 'Jogos': return <Games onGameComplete={(event, won) => {\n        setMissionState((value) => recordMissionProgress(value, event))\n        const now = Date.now()\n        if (won) {\n          setBalance((value) => value + 1)\n          setTemporaryHash(activeTemporaryHash + 1)\n          logAction(`Vitória em ${event}: +1 PC e +1 H/s temporário`)\n          setMessage('Vitória! +1 PIX COIN e +1 H/s temporário por 24 horas.')\n        } else {\n          logAction(`Partida concluída em ${event}: sem recompensa de vitória`)\n          setMessage('Partida concluída. A missão foi atualizada; não houve recompensa de vitória.')\n        }\n        if (activeTemporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)\n      }} />
       case 'Administração': return renderAdmin()
       default: return renderDashboard()
     }
