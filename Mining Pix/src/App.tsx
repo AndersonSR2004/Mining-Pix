@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { distributePoolBudget } from './lib/pool.ts'
-import { createMissionState, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionEvent, type MissionState } from './lib/missions.ts'
+import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
@@ -761,25 +761,25 @@ function App() {
   }
 
   function simulatePaidLuckyBoxPurchase() {
-    if (balance < 100) {
-      setMessage('Saldo insuficiente. Uma Lucky Box paga custa 100 PC.')
+    if (balance < PAID_LUCKY_BOX_PRICE) {
+      setMessage(`Saldo insuficiente. Uma Lucky Box paga custa ${PAID_LUCKY_BOX_PRICE} PC.`)
       return
     }
-    setBalance((value) => value - 100)
+    setBalance((value) => value - PAID_LUCKY_BOX_PRICE)
     recordMissionEvent('paid_lucky_boxes')
-    logAction('Compra simulada de Lucky Box paga: -100 PC')
+    logAction(`Compra simulada de Lucky Box paga: -${PAID_LUCKY_BOX_PRICE} PC`)
     setMessage('Compra simulada concluída: -100 PC. A missão de Lucky Box paga foi atualizada.')
   }
 
   function simulateRewardedAd() {
-    if ((missionState.dailyProgress.rewarded_ads ?? 0) >= 5) {
+    if ((missionState.dailyProgress.rewarded_ads ?? 0) >= DAILY_REWARDED_AD_LIMIT) {
       setMessage('Limite diário de 5 anúncios atingido.')
       return
     }
-    setBalance((value) => value + 10)
+    setBalance((value) => value + REWARDED_AD_PC_REWARD)
     recordMissionEvent('rewarded_ads')
-    logAction('Anúncio recompensado simulado: +10 PC')
-    setMessage('Anúncio simulado concluído: +10 PC. Limite diário: 5 anúncios.')
+    logAction(`Anúncio recompensado simulado: +${REWARDED_AD_PC_REWARD} PC`)
+    setMessage(`Anúncio simulado concluído: +${REWARDED_AD_PC_REWARD} PC. Limite diário: ${DAILY_REWARDED_AD_LIMIT} anúncios.`)
   }
 
   function claimMissionReward(missionId: string) {
@@ -1341,6 +1341,12 @@ function App() {
                   <span>Progresso</span>
                   <strong>{progress} / {mission.target}</strong>
                 </div>
+                {mission.id === 'daily-rewarded-ad' && (
+                  <div className="pool-footer">
+                    <span>Anúncios assistidos hoje</span>
+                    <strong>{missionState.dailyProgress.rewarded_ads ?? 0} / {DAILY_REWARDED_AD_LIMIT}</strong>
+                  </div>
+                )}
                 <div className="pool-footer">
                   <span>Recompensa</span>
                   <strong>{mission.rewardXp} XP do Passe</strong>
