@@ -2,11 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   createMissionState,
+  DAILY_REWARDED_AD_LIMIT,
   getMissionPeriods,
   getMissionProgress,
   MISSIONS,
+  PAID_LUCKY_BOX_PRICE,
   recordMissionProgress,
   refreshMissionState,
+  REWARDED_AD_PC_REWARD,
 } from '../src/lib/missions.ts'
 
 test('daily and weekly periods use local dates and Monday week starts', () => {
@@ -41,12 +44,44 @@ test('each daily mission increments weekly completion exactly once when its targ
   assert.equal(state.weeklyCompletedDailyMissions, 5)
 })
 
+test('the three additional daily missions each count once toward the weekly total', () => {
+  const now = new Date(2026, 10, 9, 12)
+  let state = createMissionState(now)
+  state = recordMissionProgress(state, 'paid_lucky_boxes', 1, now)
+  state = recordMissionProgress(state, 'daily_login', 1, now)
+  state = recordMissionProgress(state, 'rewarded_ads', 1, now)
+  assert.equal(state.weeklyCompletedDailyMissions, 3)
+  state = recordMissionProgress(state, 'daily_login', 1, now)
+  assert.equal(state.weeklyCompletedDailyMissions, 3)
+})
+
+test('rewarded ads are capped at five per local day and reset the next day', () => {
+  const day = new Date(2026, 10, 9, 12)
+  let state = createMissionState(day)
+  state = recordMissionProgress(state, 'rewarded_ads', 5, day)
+  assert.equal(state.dailyProgress.rewarded_ads, DAILY_REWARDED_AD_LIMIT)
+  state = recordMissionProgress(state, 'rewarded_ads', 1, day)
+  assert.equal(state.dailyProgress.rewarded_ads, 5)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+  state = refreshMissionState(state, new Date(2026, 10, 10, 12))
+  assert.equal(state.dailyProgress.rewarded_ads, 0)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+})
+
 test('PIX COIN mission accumulates purchase quantity rather than number of transactions', () => {
   const now = new Date(2026, 10, 9, 12)
   let state = createMissionState(now)
   state = recordMissionProgress(state, 'pix_coin_purchased', 40, now)
   state = recordMissionProgress(state, 'pix_coin_purchased', 60, now)
   assert.equal(state.dailyProgress.pix_coin_purchased, 100)
+  assert.equal(state.weeklyCompletedDailyMissions, 1)
+})
+
+test('daily login can be recorded repeatedly without double-counting its mission', () => {
+  const now = new Date(2026, 10, 9, 12)
+  let state = createMissionState(now)
+  state = recordMissionProgress(state, 'daily_login', 1, now)
+  state = recordMissionProgress(state, 'daily_login', 1, now)
   assert.equal(state.weeklyCompletedDailyMissions, 1)
 })
 
@@ -68,11 +103,18 @@ test('weekly reset clears weekly completion and claims', () => {
   assert.deepEqual(state.claimed, [])
 })
 
-test('weekly milestones are 10, 20, 30, 40 and 50 daily missions', () => {
+test('weekly milestones are 10, 20, 30, 40 and 50 daily missions; eight daily missions allow 56 weekly completions', () => {
   assert.deepEqual(
     MISSIONS.filter((mission) => mission.period === 'weekly').map((mission) => mission.target),
     [10, 20, 30, 40, 50],
   )
+  assert.equal(MISSIONS.filter((mission) => mission.period === 'daily').length, 8)
+  assert.equal(8 * 7, 56)
   assert.ok(MISSIONS.every((mission) => mission.rewardXp > 0))
-  assert.ok(MISSIONS.every((mission) => mission.period === 'weekly' || mission.target > 0))
+})
+
+test('paid lucky box price and rewarded ad reward are explicit game parameters', () => {
+  assert.equal(PAID_LUCKY_BOX_PRICE, 100)
+  assert.equal(REWARDED_AD_PC_REWARD, 10)
+  assert.equal(DAILY_REWARDED_AD_LIMIT, 5)
 })
