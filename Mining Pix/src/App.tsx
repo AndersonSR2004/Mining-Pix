@@ -420,6 +420,10 @@ function App() {
     return () => window.clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    setMissionState((value) => recordMissionProgress(value, 'daily_login'))
+  }, [])
+
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
   }
@@ -754,6 +758,28 @@ function App() {
   function recordMissionEvent(event: MissionEvent, amount = 1) {
     setMissionState((value) => recordMissionProgress(value, event, amount))
     setMessage('Evento de missão registrado no sandbox. Confira o progresso na página Missões.')
+  }
+
+  function simulatePaidLuckyBoxPurchase() {
+    if (balance < 100) {
+      setMessage('Saldo insuficiente. Uma Lucky Box paga custa 100 PC.')
+      return
+    }
+    setBalance((value) => value - 100)
+    recordMissionEvent('paid_lucky_boxes')
+    logAction('Compra simulada de Lucky Box paga: -100 PC')
+    setMessage('Compra simulada concluída: -100 PC. A missão de Lucky Box paga foi atualizada.')
+  }
+
+  function simulateRewardedAd() {
+    if ((missionState.dailyProgress.rewarded_ads ?? 0) >= 5) {
+      setMessage('Limite diário de 5 anúncios atingido.')
+      return
+    }
+    setBalance((value) => value + 10)
+    recordMissionEvent('rewarded_ads')
+    logAction('Anúncio recompensado simulado: +10 PC')
+    setMessage('Anúncio simulado concluído: +10 PC. Limite diário: 5 anúncios.')
   }
 
   function claimMissionReward(missionId: string) {
@@ -1608,6 +1634,9 @@ function App() {
           <button className="secondary-button" onClick={() => recordMissionEvent('ad_lucky_boxes')}>SIMULAR 1 LUCKY BOX OBTIDA POR ANÚNCIO E ABERTA</button>
           <button className="secondary-button" onClick={() => recordMissionEvent('room_energy_recharges')}>SIMULAR 1 RECARGA DE ENERGIA CONCLUÍDA</button>
           <button className="secondary-button" onClick={() => recordMissionEvent('pix_coin_purchased', 100)}>SIMULAR COMPRA CONFIRMADA DE 100 PIX COIN</button>
+          <button className="secondary-button" onClick={simulatePaidLuckyBoxPurchase}>SIMULAR COMPRA DE LUCKY BOX PAGA — 100 PC</button>
+          <button className="secondary-button" onClick={simulateRewardedAd}>SIMULAR ANÚNCIO RECOMPENSADO — +10 PC (MÁX. 5/DIA)</button>
+          <p className="page-description">O login diário é registrado automaticamente ao abrir o jogo. Os dois controles novos simulam compras e anúncios; não representam transações ou publicidade reais.</p>
         </article>
 
         <article className="panel page-panel">
