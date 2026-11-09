@@ -74,3 +74,17 @@ Verificações adicionais:
 4. Regra para ciclos sem participantes e limite máximo de emissão por período.
 
 Até essas regras serem definidas, nenhum ciclo foi aberto, nenhuma recompensa foi emitida e nenhum operador foi habilitado. O mecanismo transacional está pronto para testes controlados, mas não há liquidação automática recorrente.
+
+
+## Atualização econômica — D-012/D-013: MINING COIN
+
+A arquitetura da Pool foi atualizada para uma economia dual:
+- PC permanece na carteira e ledger legados, para compras e consumo interno.
+- MC possui carteira e ledger independentes.
+- Novos ciclos recebem orçamento em MC e liquidam exclusivamente em MC.
+- O painel identifica distribuições antigas como PC e novas distribuições como MC.
+- O operador da Pool aceita agora `budget_mc`, não `budget_pc`.
+
+As distribuições antigas em PC permanecem intactas. Não há conversão entre moedas, compra de MC, saques ou conversão em reais. MC é distribuída exclusivamente pela Mining Pool nesta etapa; missões, eventos, torneios, anúncios e Lucky Boxes não emitem MC.
+
+A migration foi aplicada no Supabase DEV e registrada no repositório. Nenhum operador foi habilitado e nenhum ciclo/recompensa foi ativado. A regra de orçamento de 30% da arrecadação elegível continua sendo uma diretriz aprovada, mas ainda depende do revenue ledger e das definições de receita, taxas, reembolsos e chargebacks.
