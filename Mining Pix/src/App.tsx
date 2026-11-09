@@ -174,7 +174,7 @@ function isValidMachine(value: unknown): value is Machine {
   )
 }
 
-function loadSavedState(): SavedState {
+function loadSavedState(storageKey: string): SavedState {
   const fallback: SavedState = {
     balance: 10000,
     machines: initialMachines,
@@ -197,7 +197,7 @@ function loadSavedState(): SavedState {
   }
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey)
     if (!raw) return fallback
 
     const parsed = JSON.parse(raw) as Record<string, unknown>
@@ -325,8 +325,8 @@ function loadSavedState(): SavedState {
   }
 }
 
-function App() {
-  const [saved] = useState<SavedState>(loadSavedState)
+type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }\n\nfunction App({ userId, email, displayName, onSignOut }: AppProps) {
+  const storageKey = `${STORAGE_KEY}:${userId}`\n  const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
 
   const [page, setPage] = useState<Page>('Dashboard')
   const [balance, setBalance] = useState(saved.balance)
@@ -421,7 +421,7 @@ function App() {
     }
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      localStorage.setItem(storageKey, JSON.stringify(data))
     } catch {
       setMessage('Não foi possível salvar os dados neste navegador.')
     }
@@ -1692,7 +1692,7 @@ function App() {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
-      case 'Jogos': return <Games onGameComplete={(event, won) => {
+      case 'Jogos': return <Games userId={userId} onGameComplete={(event, won) => {
         setMissionState((value) => recordMissionProgress(value, event))
         const now = Date.now()
         if (won) {
@@ -1744,15 +1744,16 @@ function App() {
         </nav>
 
         <div className="profile">
-          <div className="avatar">A</div>
-          <div><strong>Minerador</strong><small>{currentPlan.name}</small></div>
+          <div className="avatar">{displayName.trim().charAt(0).toUpperCase() || 'M'}</div>
+          <div className="profile-identity"><strong>{displayName}</strong><small>{email || currentPlan.name}</small></div>
+          <button className="auth-logout-button" onClick={() => { void onSignOut() }} title="Encerrar sessão">SAIR</button>
         </div>
       </aside>
 
       <main className="main">
         <header className="topbar">
           <div><span className="breadcrumb">MINING PIX /</span><strong> {page.toUpperCase()}</strong></div>
-          <div className="online"><span className="online-dot" /> SISTEMA ONLINE</div>
+          <div className="topbar-actions"><div className="online"><span className="online-dot" /> CONTA CONECTADA · SANDBOX LOCAL</div><button className="auth-logout-button mobile-logout" onClick={() => { void onSignOut() }}>SAIR</button></div>
         </header>
 
         {message && (
