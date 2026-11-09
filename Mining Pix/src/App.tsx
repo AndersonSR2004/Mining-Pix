@@ -145,12 +145,12 @@ const battleRewards: BattleReward[] = [
 const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
   { name: 'Mineração', icon: '▣' },
+  { name: 'Jogos', icon: '🎮' },
   { name: 'Equipamentos', icon: '▤' },
   { name: 'Inventário', icon: '▦' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
   { name: 'Missões', icon: '◎' },
-  { name: 'Jogos', icon: '🎮' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
   { name: 'Administração', icon: '⚙' },
