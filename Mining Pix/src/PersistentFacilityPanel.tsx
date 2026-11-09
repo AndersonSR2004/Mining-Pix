@@ -120,7 +120,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
         {inventory.length > 0 && <div className="persistent-install-target">
           <label htmlFor="persistent-room-select">Sala de destino</label>
           <select id="persistent-room-select" value={selectedRoomId} onChange={event => setSelectedRoomId(event.target.value)}>
-            {rooms.map(room => <option key={room.id} value={room.id} disabled={roomOccupancy(room.id) >= room.capacity}>{room.name} ({roomItems(room.id).length}/10)</option>)}
+            {rooms.map(room => <option key={room.id} value={room.id} disabled={roomOccupancy(room.id) >= room.capacity}>{room.name} ({roomOccupancy(room.id)}/{room.capacity})</option>)}
           </select>
         </div>}
         {loading ? <p className="page-description">Carregando infraestrutura da conta...</p> : equipment.length === 0
