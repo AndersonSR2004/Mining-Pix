@@ -587,9 +587,10 @@ function App() {
     setPoolHistory((value) => [cycle, ...value])
     setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
     setClockNow(Date.now())
-    setXp((value) => value + 100)
+    const xpEarned = hashrate > 0 ? 100 : 0
+    if (xpEarned > 0) setXp((value) => value + xpEarned)
     logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
-    setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC. XP +100.`)
+    setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC.${xpEarned > 0 ? ' XP +100.' : ' Sem XP: instale um equipamento para participar da mineração.'}`)
   }
 
   // PAINEL ADMINISTRATIVO — controles exclusivos deste sandbox local.
@@ -1500,7 +1501,7 @@ function App() {
             <input type="number" min="0" value={poolBudget} onChange={(event) => updatePoolBudget(Number(event.target.value))} />
           </div>
           <button className="primary-button" onClick={simulateMiningCycle}>EXECUTAR CICLO DE SIMULAÇÃO</button>
-          <p className="page-description">A distribuição individual pode apresentar pequenas sobras por arredondamento para baixo. Não há emissão adicional para compensá-las.</p>
+          <p className="page-description">O orçamento é distribuído integralmente entre os participantes elegíveis pelo método dos maiores restos. As recompensas simuladas não representam pagamentos reais.</p>
         </article>
 
         <article className="panel page-panel">
