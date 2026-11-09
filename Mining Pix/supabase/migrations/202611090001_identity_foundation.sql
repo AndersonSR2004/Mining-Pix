@@ -97,4 +97,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- The trigger can invoke this function, but API clients cannot call it as RPC.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 commit;
