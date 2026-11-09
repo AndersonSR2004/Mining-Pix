@@ -26,7 +26,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
     setLoading(true)
     setError('')
     const [r, e, s] = await Promise.all([
-      supabase.from('player_rooms').select('id,room_number,name').order('room_number'),
+      supabase.from('player_rooms').select('id,room_number,name').eq('active', true).order('room_number'),
       supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,equipment_catalog(name,equipment_type,hashrate)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
     ])
