@@ -1,6 +1,6 @@
 # Mining Pix — modelo relacional PostgreSQL
 
-**Status:** especificação da Fase 0; não é migration pronta para aplicar.  
+**Status:** modelo de referência em evolução; as tabelas e operações marcadas como implementadas já possuem migrations DEV versionadas. Consulte `supabase/README.md` para a sequência aplicada.  
 **Convenções:** UUID como PK; `timestamptz` em UTC; `numeric` para valores econômicos (nunca float); `auth.users(id)` como identidade; `user_id` como proprietário de dados privados.
 
 ## 1. Diagrama lógico resumido
@@ -131,3 +131,29 @@ As funções devem ter grants explícitos; revogar execução de funções sens�
 - Decidir se bots são somente participantes visuais da pool ou se suas reservas são contabilizadas separadamente.
 - Definir retenção de sessões, eventos e logs.
 - Testar constraints e políticas com pelo menos dois usuários e um admin.
+
+
+## 7. Modelo implementado na Fase 2C
+
+### `player_rooms`
+- `id`, `user_id`, `room_number` (1–4), `name`, `created_at`.
+- Unique `(user_id, room_number)` e `(id, user_id)`.
+- RLS de leitura própria; escrita somente por triggers/RPC.
+- Trigger provisiona 1 + VIP tier salas; downgrade remove salas vazias e bloqueia remoção de sala com equipamento instalado.
+
+### Extensões de `player_equipment`
+- `room_id nullable`, FK composta `(room_id,user_id)` para impedir sala de outro jogador.
+- Estado `installed` exige sala; `inventory` e `retired` exigem `room_id IS NULL`.
+- Até 10 equipamentos por sala, validados sob lock da linha da sala.
+
+### `player_equipment_operations`
+- Histórico append-only de instalação/desinstalação com chave idempotente única por usuário.
+- SELECT próprio via RLS; sem escrita direta do cliente.
+
+### Operações implementadas
+- `install_player_equipment`: valida dono, VIP, sala, estado e capacidade; altera equipamento e registra operação atomicamente.
+- `uninstall_player_equipment`: devolve item ao inventário e registra operação atomicamente.
+- `rename_player_room`: valida nome e propriedade.
+- `get_player_mining_summary`: SECURITY INVOKER; calcula hashrate e capacidade a partir das linhas visíveis via RLS.
+
+A instalação persistente não altera carteira nem gera recompensas. O simulador local continua independente.
