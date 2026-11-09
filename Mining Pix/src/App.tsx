@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import Games from './Games.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -14,6 +15,7 @@ type Page =
   | 'VIP'
   | 'Passe de Batalha'
   | 'Missões'
+  | 'Jogos'
   | 'Administração'
 
 type VipTier = 0 | 1 | 2 | 3
@@ -148,6 +150,7 @@ const menu: { name: Page; icon: string }[] = [
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
   { name: 'Missões', icon: '◎' },
+  { name: 'Jogos', icon: '🎮' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
   { name: 'Administração', icon: '⚙' },
@@ -1665,6 +1668,7 @@ function App() {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
+      case 'Jogos': return <Games onGameComplete={(event) => recordMissionEvent(event)} />
       case 'Administração': return renderAdmin()
       default: return renderDashboard()
     }
