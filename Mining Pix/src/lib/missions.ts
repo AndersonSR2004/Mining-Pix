@@ -1,6 +1,7 @@
 export type MissionEvent =
   | 'flappy_games'
   | 'snake_games'
+  | 'coin_catch_games'
   | 'ad_lucky_boxes'
   | 'room_energy_recharges'
   | 'pix_coin_purchased'
@@ -68,6 +69,7 @@ function emptyDailyProgress(): Record<MissionEvent, number> {
   return {
     flappy_games: 0,
     snake_games: 0,
+    coin_catch_games: 0,
     ad_lucky_boxes: 0,
     room_energy_recharges: 0,
     pix_coin_purchased: 0,
