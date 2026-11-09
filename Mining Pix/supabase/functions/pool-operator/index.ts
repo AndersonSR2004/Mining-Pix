@@ -45,16 +45,16 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
     if (body?.action === 'open_cycle') {
       const cycleKey = typeof body.cycle_key === 'string' ? body.cycle_key.trim() : ''
-      const budget = typeof body.budget_pc === 'string' ? body.budget_pc : String(body.budget_pc ?? '')
+      const budget = typeof body.budget_mc === 'string' ? body.budget_mc : String(body.budget_mc ?? '')
       if (!cycleKey || cycleKey.length > 100 || !/^\d{1,20}$/.test(budget)) {
-        return json({ error: 'Invalid cycle key or integer PC budget' }, 400)
+        return json({ error: 'Invalid cycle key or integer MINING COIN budget' }, 400)
       }
       const { data, error } = await admin.rpc('open_pool_cycle', {
         p_cycle_key: cycleKey,
-        p_budget_pc: budget,
+        p_budget_mc: budget,
       })
       if (error) return json({ error: error.message }, 400)
-      return json({ cycle_id: data, status: 'open' }, 201)
+      return json({ cycle_id: data, status: 'open', currency: 'MC' }, 201)
     }
 
     if (body?.action === 'settle_cycle') {
