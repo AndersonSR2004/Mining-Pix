@@ -11,7 +11,19 @@ type AdminTransaction = {
   description: string | null
   created_at: string
 }
-type AdminPlayer = { user_id: string; display_name: string; created_at: string }
+type AdminPlayer = {
+  user_id: string
+  display_name: string
+  created_at: string
+  wallet_balance_pc: number
+  level: number
+  xp: number
+  vip_tier: number
+  premium_pass: boolean
+  installed_equipment_count: number
+  installed_hashrate: number
+}
+type AdminDirectory = { generated_at: string; total: number; limit: number; offset: number; players: AdminPlayer[] }
 type AdminSnapshot = {
   generated_at: string
   players_count: number
@@ -23,7 +35,6 @@ type AdminSnapshot = {
   pool_settled_cycles: number
   pool_distributed_pc: number
   latest_transactions: AdminTransaction[]
-  recent_players: AdminPlayer[]
 }
 type AdminAuditEvent = {
   id: string
@@ -50,6 +61,10 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
+  const [directory, setDirectory] = useState<AdminDirectory | null>(null)
+  const [directorySearch, setDirectorySearch] = useState('')
+  const [directoryLoading, setDirectoryLoading] = useState(false)
+  const [directoryError, setDirectoryError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [auditError, setAuditError] = useState('')
@@ -59,6 +74,23 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   const [noteBusy, setNoteBusy] = useState(false)
   const [noteMessage, setNoteMessage] = useState('')
   const [noteError, setNoteError] = useState('')
+
+  const loadDirectory = useCallback(async (query = directorySearch, offset = 0) => {
+    setDirectoryLoading(true)
+    setDirectoryError('')
+    const { data, error: directoryRpcError } = await supabase.rpc('admin_player_directory', {
+      p_search: query.trim() || null,
+      p_limit: 25,
+      p_offset: offset,
+    })
+    if (directoryRpcError) {
+      setDirectoryError(directoryRpcError.message)
+      setDirectory(null)
+    } else {
+      setDirectory(data as AdminDirectory)
+    }
+    setDirectoryLoading(false)
+  }, [directorySearch])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -83,9 +115,15 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
       setAudit(auditResult.data as AdminAuditSnapshot)
     }
     setLoading(false)
-  }, [])
+    await loadDirectory(directorySearch, directory?.offset ?? 0)
+  }, [directorySearch, directory?.offset, loadDirectory])
 
   useEffect(() => { void load() }, [load])
+
+  function searchPlayers(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void loadDirectory(directorySearch, 0)
+  }
 
   async function createInternalNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -115,6 +153,9 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
     }
   }
 
+  const pageStart = directory && directory.total > 0 ? directory.offset + 1 : 0
+  const pageEnd = directory ? Math.min(directory.offset + directory.players.length, directory.total) : 0
+
   return (
     <main className="admin-app">
       <header className="admin-header">
@@ -128,7 +169,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className="admin-primary admin-refresh" onClick={() => { void load() }} disabled={loading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
-        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Não altera carteiras, recompensas, VIP, equipamentos ou ciclos. A única escrita habilitada é o registro de notas internas, sempre com motivo e auditoria.</span></div>
+        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Diretório de jogadores somente leitura. A única escrita habilitada continua sendo o registro de notas internas, sempre com motivo e auditoria.</span></div>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
@@ -154,12 +195,38 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
             </section>
 
             <section className="admin-panel">
-              <div className="admin-panel-heading"><div><span className="admin-eyebrow">CONTAS</span><h2>Jogadores recentes</h2></div><span>Últimos 10</span></div>
-              {snapshot.recent_players.length === 0 ? <p className="admin-empty">Nenhum jogador cadastrado.</p> : (
-                <div className="admin-player-list">{snapshot.recent_players.map((player) => <div className="admin-player-row" key={player.user_id}><div><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></div><span>{date(player.created_at)}</span></div>)}</div>
+              <div className="admin-panel-heading"><div><span className="admin-eyebrow">GESTÃO DE CONTAS · FASE 7A</span><h2>Diretório de jogadores</h2></div><span>{number(directory?.total ?? 0)} contas</span></div>
+              <p className="admin-empty">Pesquise pelo nome ou pelo início do UUID. Os dados abaixo são apenas consulta; nenhuma conta ou indicador pode ser alterado nesta fase.</p>
+              <form className="admin-directory-search" onSubmit={searchPlayers}>
+                <input aria-label="Buscar jogador" value={directorySearch} onChange={(event) => setDirectorySearch(event.target.value)} maxLength={80} placeholder="Nome do jogador ou início do UUID..." />
+                <button className="admin-primary" type="submit" disabled={directoryLoading}>{directoryLoading ? 'BUSCANDO...' : 'PESQUISAR'}</button>
+              </form>
+              {directoryError && <div className="admin-error" role="alert">{directoryError}</div>}
+              {directoryLoading && !directory && <p className="admin-empty">Carregando diretório...</p>}
+              {!directoryError && directory && directory.players.length === 0 && <p className="admin-empty">Nenhum jogador encontrado para esta pesquisa.</p>}
+              {!directoryError && directory && directory.players.length > 0 && (
+                <>
+                  <div className="admin-directory-meta"><span>Exibindo {number(pageStart)}–{number(pageEnd)} de {number(directory.total)}</span><span>Consulta somente leitura</span></div>
+                  <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo</th><th>Nível / XP</th><th>VIP</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th></tr></thead><tbody>
+                    {directory.players.map((player) => <tr key={player.user_id}>
+                      <td><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></td>
+                      <td>{date(player.created_at)}</td>
+                      <td>{number(player.wallet_balance_pc)} PC</td>
+                      <td>{number(player.level)} / {number(player.xp)} XP</td>
+                      <td>VIP {number(player.vip_tier)}</td>
+                      <td>{number(player.installed_equipment_count)}</td>
+                      <td>{number(player.installed_hashrate)} H/s</td>
+                      <td>{player.premium_pass ? 'Premium' : 'Padrão'}</td>
+                    </tr>)}
+                  </tbody></table></div>
+                  <div className="admin-directory-pagination">
+                    <button className="admin-secondary" disabled={directoryLoading || directory.offset === 0} onClick={() => { void loadDirectory(directorySearch, Math.max(0, directory.offset - directory.limit)) }}>ANTERIOR</button>
+                    <span>Página {Math.floor(directory.offset / directory.limit) + 1} de {Math.max(1, Math.ceil(directory.total / directory.limit))}</span>
+                    <button className="admin-secondary" disabled={directoryLoading || directory.offset + directory.limit >= directory.total} onClick={() => { void loadDirectory(directorySearch, directory.offset + directory.limit) }}>PRÓXIMA</button>
+                  </div>
+                </>
               )}
             </section>
-
 
             <section className="admin-panel">
               <div className="admin-panel-heading"><div><span className="admin-eyebrow">SUPORTE ADMINISTRATIVO</span><h2>Registrar nota interna</h2></div><span>Sem efeito na conta do jogador</span></div>
