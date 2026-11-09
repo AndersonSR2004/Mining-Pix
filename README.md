@@ -16,9 +16,10 @@ npm install
 npm run dev
 ```
 
-Para validar a compilação:
+Para executar os testes da distribuição da Mining Pool e validar a compilação:
 
 ```bash
+npm test
 npm run build
 ```
 
