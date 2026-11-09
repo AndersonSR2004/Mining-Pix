@@ -31,3 +31,8 @@
 
 #root{width:100%;max-width:none;margin:0;text-align:left;border:0;min-height:100vh;display:block}
 body{min-width:320px;background:#090d14}
+
+.admin-audit-reason{white-space:normal!important;min-width:180px;max-width:280px;line-height:1.5}
+.admin-audit-details{min-width:110px}
+.admin-audit-details summary{color:#63e7a1;cursor:pointer;font-size:11px}
+.admin-audit-details pre{max-width:420px;max-height:260px;overflow:auto;padding:12px;border:1px solid #293744;border-radius:8px;background:#0b121a;color:#c7d1db;font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere}
