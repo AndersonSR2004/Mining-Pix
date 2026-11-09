@@ -1,56 +1,77 @@
-# Supabase DEV — Mining Pix
+# Supabase — Mining Pix (DEV)
 
-Esta pasta contém migrations versionadas. **Não aplique migrations no projeto PROD.**
+O projeto Supabase conectado é o ambiente de desenvolvimento do Mining Pix:
+- Projeto: `Mining Pix`
+- Project ref: `odlasosyewiiepvrvbnn`
+- Região: `us-west-2`
+- Status verificado: `ACTIVE_HEALTHY`
 
-## Criar o projeto DEV
+**Não use este projeto para dados de produção.** O frontend publicado nesta etapa continua sendo uma demonstração; carteira e progressão ainda não são autoritativas no banco.
 
-1. Entre em https://supabase.com/dashboard e crie um projeto chamado `mining-pix-dev`.
-2. Escolha uma região próxima dos jogadores (a região não pode ser alterada depois da criação).
-3. Use uma senha forte para o banco e guarde-a em um gerenciador de senhas.
-4. Aguarde o provisionamento e abra **Project Settings → API**.
-5. Copie a Project URL e a chave pública **publishable** (ou a chave legada `anon`, se o painel ainda apresentar esse formato).
-6. Não copie a `service_role` para o frontend, GitHub, arquivos versionados ou variáveis `VITE_*`.
+## Infraestrutura implantada
 
-## Aplicar a primeira migration
+Migration aplicada: `202611090001_identity_foundation.sql`.
 
-No painel do Supabase, abra **SQL Editor → New query**, cole o conteúdo de:
+Tabelas:
+- `profiles`: nome público e avatar do jogador;
+- `wallets`: saldo inicial zero;
+- `player_progress`: XP, nível, VIP e passe.
 
-`supabase/migrations/202611090001_identity_foundation.sql`
+As três tabelas têm RLS habilitada. O cliente autenticado pode consultar somente os registros da própria conta. A carteira e a progressão não aceitam escrita direta pelo navegador. O trigger de Auth cria os três registros ao cadastrar uma identidade.
 
-Execute somente no projeto `mining-pix-dev`. A migration cria:
-- `profiles`: perfil básico individual;
-- `wallets`: carteira inicial com saldo zero, sem escrita direta pelo cliente;
-- `player_progress`: progressão inicial, também somente leitura pelo cliente;
-- trigger de provisionamento ao criar uma identidade no Supabase Auth;
-- políticas RLS e privilégios mínimos.
+## Configuração de autenticação obrigatória
 
-A migration é transacional. Se ocorrer erro, não avance para integração do frontend; envie o erro para revisão.
+No painel Supabase, abra **Authentication → URL Configuration**:
 
-## Configurar autenticação
+1. Configure **Site URL** como:
+   `https://andersonsr2004.github.io/Mining-Pix/`
+2. Em **Redirect URLs**, adicione exatamente:
+   `https://andersonsr2004.github.io/Mining-Pix/`
+3. Se for usar previews temporários do StackBlitz, adicione somente a URL exata do preview que estiver utilizando. Evite curingas amplos.
+4. Em **Authentication → Providers → Email**, mantenha habilitada a confirmação de e-mail para os testes.
 
-Em **Authentication → URL Configuration**:
-- Site URL DEV: URL de preview que será usada durante os testes.
-- Redirect URLs: adicionar a URL exata do preview e, quando necessário, a URL GitHub Pages de teste.
-- Para a primeira homologação, manter confirmação de e-mail habilitada e usar endereços de teste controlados.
+O cliente já envia a URL de retorno para cadastro e recuperação de senha. Ela precisa estar na lista de URLs permitidas.
 
-Não habilite login social, recuperação customizada ou produção nesta etapa.
+## Configuração do frontend
 
-## Configuração local futura
+O cliente Supabase usa:
+- Project URL: `https://odlasosyewiiepvrvbnn.supabase.co`
+- Publishable key: chave pública de navegador (não é segredo).
 
-Quando a integração do frontend for adicionada, os valores públicos serão fornecidos via variáveis:
+Esses valores de DEV estão como fallback em `src/lib/supabase/client.ts`, para que o GitHub Pages funcione sem variáveis adicionais. Podem ser substituídos por:
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY` (ou `VITE_SUPABASE_ANON_KEY` para chave legada)
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-O arquivo `.env` não deve ser commitado. Nunca forneça a senha do banco ou `service_role` no chat.
+O arquivo `.env` não deve ser commitado. Nunca use `service_role`, secret key ou senha do banco no frontend, em `VITE_*` ou no GitHub.
 
-## Teste de isolamento obrigatório
+## Fluxo de conta implementado
 
-Depois da integração Auth:
-1. Criar duas contas de teste independentes (A e B).
-2. Confirmar que cada conta recebe exatamente um perfil, uma carteira com saldo 0 e um progresso inicial.
-3. Autenticado como A, confirmar que as consultas de perfil/carteira/progresso retornam somente A.
-4. Tentar consultar os UUIDs de B diretamente pela API: nenhuma linha de B pode ser retornada.
-5. Tentar INSERT/UPDATE/DELETE direto em `wallets` e `player_progress`: deve ser negado.
-6. Confirmar que usuário anônimo não lê dados privados.
+- Cadastro com e-mail, senha e nome de jogador;
+- Login por e-mail e senha;
+- Persistência e restauração da sessão;
+- Logout;
+- Recuperação de senha e atualização após o link;
+- Consulta de perfil, carteira e progressão após autenticação;
+- Exibição do perfil da conta.
 
-Não creditar recompensas de jogo, importar saldos locais ou liberar operações econômicas nesta fase.
+Os dados de jogo ainda são sandbox local. O estado do simulador e o progresso dos jogos agora são separados por UUID de usuário no navegador, para evitar que duas contas no mesmo dispositivo compartilhem o mesmo save. Isso **não** equivale à sincronização entre dispositivos nem à persistência de economia no backend.
+
+## Homologação de duas contas
+
+1. Depois de configurar as URLs, abra o site e crie a conta A com um e-mail de teste controlado.
+2. Confirme o e-mail e entre.
+3. Verifique no Supabase **Authentication → Users** se a conta foi criada.
+4. Em **Table Editor**, confirme que existe exatamente um registro correspondente em `profiles`, `wallets` e `player_progress`.
+5. Saia, crie e confirme a conta B.
+6. Confirme que B recebe registros próprios e que, ao alternar entre A e B no mesmo navegador, os saves locais são separados.
+7. Não tente alterar saldo, XP ou VIP por chamadas diretas: essas colunas estão protegidas e ainda não há RPC econômica.
+
+Não crie contas de teste com dados pessoais de terceiros. Não compartilhe senhas no chat.
+
+## Limites desta etapa
+
+- PC, XP, inventário, equipamentos, bots, Mining Pool, missões, passe e recompensas de jogos continuam locais e manipuláveis no sandbox.
+- O saldo real no banco permanece zero e somente leitura pelo cliente.
+- Nenhuma recompensa de jogo é creditada no banco.
+- Não existe ainda role administrativa, ledger, RPC transacional ou Edge Function.
+- Não importar os dados legados do localStorage como legítimos.
