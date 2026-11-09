@@ -127,3 +127,11 @@ Migration:
 - `202611090010_backend_room_hashrate_summaries.sql`
 
 Adiciona `get_player_room_summaries()`, função SECURITY INVOKER que retorna capacidade, quantidade instalada e hashrate de cada sala ativa. O painel não calcula mais o hashrate das salas no navegador; apenas apresenta os valores calculados pelo PostgreSQL.
+
+
+## Contrato de retorno da consulta de salas — Fase 2C.4
+
+Migration:
+- `202611090011_align_room_summary_id_with_frontend_contract.sql`
+
+Padroniza a chave de retorno de `get_player_room_summaries()` como `id`, alinhada ao tipo e aos componentes React que usam a identidade da sala para seleção e operações.
