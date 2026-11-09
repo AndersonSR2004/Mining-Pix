@@ -26,14 +26,6 @@ export type MissionState = {
   claimed: string[]
 }
 
-const dailyEvents: MissionEvent[] = [
-  'flappy_games',
-  'snake_games',
-  'ad_lucky_boxes',
-  'room_energy_recharges',
-  'pix_coin_purchased',
-]
-
 export const MISSIONS: MissionDefinition[] = [
   { id: 'daily-flappy', title: 'Pequeno piloto', description: 'Conclua 10 partidas de Flappy Bird.', period: 'daily', event: 'flappy_games', target: 10, rewardXp: 100 },
   { id: 'daily-snake', title: 'Mestre da cobrinha', description: 'Conclua 10 partidas da cobrinha.', period: 'daily', event: 'snake_games', target: 10, rewardXp: 100 },
