@@ -6,7 +6,7 @@ import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import PersistentMiningPool from './PersistentMiningPool.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
-import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
+import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
@@ -340,16 +340,16 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [history, setHistory] = useState<string[]>(saved.history)
   const [vipTier, setVipTier] = useState<VipTier>(saved.vipTier)
 
-  const [poolBudget, setPoolBudget] = useState(saved.poolBudget)
-  const [cycles, setCycles] = useState(saved.cycles)
-  const [totalRewards, setTotalRewards] = useState(saved.totalRewards)
-  const [poolHistory, setPoolHistory] = useState<PoolCycle[]>(saved.poolHistory)
-  const [bots, setBots] = useState<Bot[]>(saved.bots)
+  const [poolBudget] = useState(saved.poolBudget)
+  const [cycles] = useState(saved.cycles)
+  const [totalRewards] = useState(saved.totalRewards)
+  const [poolHistory] = useState<PoolCycle[]>(saved.poolHistory)
+  const [bots] = useState<Bot[]>(saved.bots)
 
   const [xp, setXp] = useState(saved.xp)
-  const [premiumPass, setPremiumPass] = useState(saved.premiumPass)
+  const [premiumPass] = useState(saved.premiumPass)
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
-  const [nextCycleAt, setNextCycleAt] = useState(saved.nextCycleAt)
+  const [nextCycleAt] = useState(saved.nextCycleAt)
   const [missionState, setMissionState] = useState(saved.missionState)
   const [temporaryHash, setTemporaryHash] = useState(saved.temporaryHash)
   const [temporaryHashExpiresAt, setTemporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
@@ -556,33 +556,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     setRooms((value) => value.map((item) => item.id === room.id ? { ...item, name } : item))
     logAction(`Sala ${room.name} renomeada para ${name}`)
     setMessage('Nome da sala atualizado.')
-  }
-
-  function recordMissionEvent(event: MissionEvent, amount = 1) {
-    setMissionState((value) => recordMissionProgress(value, event, amount))
-    setMessage('Evento de missão registrado no sandbox. Confira o progresso na página Missões.')
-  }
-
-  function simulatePaidLuckyBoxPurchase() {
-    if (balance < PAID_LUCKY_BOX_PRICE) {
-      setMessage(`Saldo insuficiente. Uma Lucky Box paga custa ${PAID_LUCKY_BOX_PRICE} PC.`)
-      return
-    }
-    setBalance((value) => value - PAID_LUCKY_BOX_PRICE)
-    recordMissionEvent('paid_lucky_boxes')
-    logAction(`Compra simulada de Lucky Box paga: -${PAID_LUCKY_BOX_PRICE} PC`)
-    setMessage('Compra simulada concluída: -100 PC. A missão de Lucky Box paga foi atualizada.')
-  }
-
-  function simulateRewardedAd() {
-    if ((missionState.dailyProgress.rewarded_ads ?? 0) >= DAILY_REWARDED_AD_LIMIT) {
-      setMessage('Limite diário de 5 anúncios atingido.')
-      return
-    }
-    setBalance((value) => value + REWARDED_AD_PC_REWARD)
-    recordMissionEvent('rewarded_ads')
-    logAction(`Anúncio recompensado simulado: +${REWARDED_AD_PC_REWARD} PC`)
-    setMessage(`Anúncio simulado concluído: +${REWARDED_AD_PC_REWARD} PC. Limite diário: ${DAILY_REWARDED_AD_LIMIT} anúncios.`)
   }
 
   function claimMissionReward(missionId: string) {
