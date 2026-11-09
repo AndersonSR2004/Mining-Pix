@@ -51,3 +51,21 @@ test('floors fractional budgets to whole PIX COIN units', () => {
     { player: 10 },
   )
 })
+
+
+test('rejects budgets outside the safe integer range', () => {
+  assert.deepEqual(
+    distributePoolBudget(Number.MAX_SAFE_INTEGER + 1, [{ id: 'player', hashrate: 1 }]),
+    {},
+  )
+})
+
+test('rejects aggregate hashrate overflow', () => {
+  assert.deepEqual(
+    distributePoolBudget(100, [
+      { id: 'a', hashrate: Number.MAX_VALUE },
+      { id: 'b', hashrate: Number.MAX_VALUE },
+    ]),
+    {},
+  )
+})
