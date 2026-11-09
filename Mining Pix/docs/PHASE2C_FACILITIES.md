@@ -47,3 +47,8 @@ Foi adicionada `202611090008_facility_fk_indexes_and_owned_catalog_visibility.sq
 ## Ajuste de histórico de salas
 
 A primeira validação do downgrade identificou que excluir uma sala poderia violar a FK do histórico de operações. A migration `202611090009_preserve_room_history_on_vip_downgrade.sql` corrige isso mantendo salas excedentes como inativas, preservando auditoria e impedindo novas instalações nelas. O upgrade reativa as salas.
+
+
+## Hashrate individual por sala
+
+A migration `202611090010_backend_room_hashrate_summaries.sql` adiciona `get_player_room_summaries()`. A contagem de equipamentos e o hashrate de cada sala passam a ser agregados no PostgreSQL via SECURITY INVOKER, respeitando RLS. O frontend só exibe os resultados e solicita operações.
