@@ -7,6 +7,7 @@ type Point = { x: number; y: number }
 type Pipe = { x: number; gapY: number; scored: boolean }
 type Progress = Record<GameMode, { level: number; wins: number; cooldownUntil: number }>
 type Props = {
+  userId: string
   onGameComplete: (game: 'flappy_games' | 'snake_games' | 'coin_catch_games', won: boolean) => void
 }
 
@@ -26,7 +27,9 @@ const events: Record<GameMode, 'flappy_games' | 'snake_games' | 'coin_catch_game
 const targetFor = (level: number) => 10 + (level - 1) * 5
 const cooldownFor = (level: number) => level === 1 ? 10 : level === 2 ? 20 : level === 3 ? 30 : 60
 
-export default function Games({ userId, onGameComplete }: Props) {\n  const progressStorageKey = `${STORAGE}:${userId}`\n  const bestStorageKey = `mining-pix-games-best-v1:${userId}`
+export default function Games({ userId, onGameComplete }: Props) {
+  const progressStorageKey = `${STORAGE}:${userId}`
+  const bestStorageKey = `mining-pix-games-best-v1:${userId}`
   const [mode, setMode] = useState<GameMode>('flappy')
   const [status, setStatus] = useState<GameStatus>('ready')
   const [score, setScore] = useState(0)
