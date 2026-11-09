@@ -148,3 +148,20 @@ RPCs: get_pool_dashboard (authenticated), open_pool_cycle e settle_pool_cycle (s
 Edge Function pool-operator está implantada com JWT obrigatório. Exige app_metadata.pool_operator=true e aceita ações open_cycle e settle_cycle. Nenhum operador foi habilitado automaticamente. Não conceda essa permissão via user_metadata.
 
 A UI PersistentMiningPool consulta dados do backend e fica separada do simulador local. Nenhum ciclo ou recompensa de QA permanece no banco. Consulte docs/PHASE3_POOL.md para arquitetura, testes e decisões econômicas pendentes.
+
+
+## Economia dual — D-012/D-013 (DEV)
+
+Migration:
+- `20261109223748_dual_currency_mining_coin.sql` — cria carteiras e ledger independentes de MINING COIN (MC), provisiona carteiras MC para contas existentes e novas, e altera a liquidação da Mining Pool para creditar exclusivamente MC.
+
+Regras vigentes:
+- **PIX COIN (PC):** carteira legada `wallets` e ledger `wallet_transactions`; permanece destinada às compras e ao consumo interno.
+- **MINING COIN (MC):** `mining_coin_wallets` e `mining_coin_transactions`; nesta fase, só recebe créditos originados pela Mining Pool.
+- Não existe conversão PC→MC, compra de MC, saque ou conversão em dinheiro.
+- Missões, anúncios, torneios, eventos e Lucky Boxes não distribuem MC.
+- Saldos e transações PC históricos não são convertidos nem reclassificados.
+- Novos ciclos usam orçamento `budget_mc`; a liquidação atualiza somente a carteira e o ledger MC.
+- O ledger MC é append-only para os papéis de cliente; RLS limita leitura ao próprio usuário. Escrita fica restrita às funções privilegiadas do backend.
+
+A mudança está implantada no projeto DEV. A distribuição real continua desativada: nenhum operador foi habilitado, nenhum ciclo foi aberto e nenhum crédito MC foi emitido.
