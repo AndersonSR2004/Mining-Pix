@@ -13,6 +13,7 @@ function getRedirectUrl() {
 export default function AuthGate() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [accountLoading, setAccountLoading] = useState(false)
   const [mode, setMode] = useState<AuthMode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,12 +26,14 @@ export default function AuthGate() {
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
+      setAccountLoading(Boolean(nextSession))
       if (event === 'PASSWORD_RECOVERY') setMode('update')
     })
 
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) setErrorMessage('Não foi possível recuperar sua sessão. Entre novamente.')
       setSession(data.session)
+      setAccountLoading(Boolean(data.session))
       setLoading(false)
     })
 
@@ -39,36 +42,53 @@ export default function AuthGate() {
 
   useEffect(() => {
     let active = true
+
     async function loadAccountProfile() {
-      if (!session?.user) return
+      if (!session?.user) {
+        setAccountLoading(false)
+        return
+      }
+
+      setAccountLoading(true)
       const user = session.user
       const metadataName = typeof user.user_metadata?.display_name === 'string'
         ? user.user_metadata.display_name
         : ''
       const fallbackName = metadataName || user.email?.split('@')[0] || 'Minerador'
 
-      const [profileResult, walletResult, progressResult] = await Promise.all([
-        supabase.from('profiles').select('display_name').eq('user_id', user.id).maybeSingle(),
-        supabase.from('wallets').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('player_progress').select('xp, level').eq('user_id', user.id).maybeSingle(),
-      ])
+      try {
+        const [profileResult, walletResult, progressResult] = await Promise.all([
+          supabase.from('profiles').select('display_name').eq('user_id', user.id).maybeSingle(),
+          supabase.from('wallets').select('balance').eq('user_id', user.id).maybeSingle(),
+          supabase.from('player_progress').select('xp, level').eq('user_id', user.id).maybeSingle(),
+        ])
 
-      if (!active) return
-      if (profileResult.error || walletResult.error || progressResult.error) {
-        setErrorMessage('Sua sessão foi autenticada, mas não foi possível consultar todos os registros da conta. Tente atualizar a página; nenhuma recompensa foi sincronizada.')
-        return
-      }
+        if (!active) return
+        if (profileResult.error || walletResult.error || progressResult.error) {
+          setErrorMessage('Sua sessão foi autenticada, mas não foi possível consultar todos os registros da conta. Tente atualizar a página; nenhuma recompensa foi sincronizada.')
+          return
+        }
 
-      if (!profileResult.data || !walletResult.data || !progressResult.data) {
-        setErrorMessage('A conta foi autenticada, mas a estrutura inicial do jogador está incompleta. Entre em contato com a administração do projeto.')
-        return
-      }
+        if (!profileResult.data || !walletResult.data || !progressResult.data) {
+          setErrorMessage('A conta foi autenticada, mas a estrutura inicial do jogador está incompleta. Entre em contato com a administração do projeto.')
+          return
+        }
 
-      if (profileResult.data.display_name === 'Minerador' && metadataName) {
-        await supabase.from('profiles').update({ display_name: metadataName }).eq('user_id', user.id)
-        setProfileName(metadataName)
-      } else {
-        setProfileName(profileResult.data.display_name || fallbackName)
+        if (profileResult.data.display_name === 'Minerador' && metadataName) {
+          const { error } = await supabase.from('profiles').update({ display_name: metadataName }).eq('user_id', user.id)
+          if (error) {
+            setErrorMessage('Sua conta foi carregada, mas não foi possível salvar o nome de jogador. Tente novamente.')
+            return
+          }
+          setProfileName(metadataName)
+        } else {
+          setProfileName(profileResult.data.display_name || fallbackName)
+        }
+        setErrorMessage('')
+      } catch {
+        if (active) setErrorMessage('Não foi possível carregar os dados iniciais da conta. Tente atualizar a página.')
+      } finally {
+        if (active) setAccountLoading(false)
       }
     }
 
@@ -143,7 +163,13 @@ export default function AuthGate() {
     return <div className="auth-shell"><div className="auth-card"><span className="auth-mark">⛏</span><h1>MINING PIX</h1><p>Verificando sessão segura...</p></div></div>
   }
 
-  if (session?.user && !errorMessage && mode !== 'update') {
+  if (session?.user && mode !== 'update') {
+    if (accountLoading) {
+      return <div className="auth-shell"><div className="auth-card"><span className="auth-mark">⛏</span><h1>MINING PIX</h1><p>Carregando perfil, carteira e progressão...</p></div></div>
+    }
+    if (errorMessage) {
+      return <main className="auth-shell"><section className="auth-card"><span className="eyebrow">VERIFICAÇÃO DA CONTA</span><h1>Não foi possível iniciar</h1><p className="auth-error" role="alert">{errorMessage}</p><button className="primary-button auth-submit" onClick={() => { void handleSignOut() }}>SAIR DA CONTA</button></section></main>
+    }
     return <App
       userId={session.user.id}
       email={session.user.email ?? ''}
