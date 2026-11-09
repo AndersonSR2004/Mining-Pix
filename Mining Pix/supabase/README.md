@@ -93,3 +93,13 @@ Migrations adicionais:
 Catálogo inicial: PIX Miner II (250 H/s, 2.500 PC) e PIX Miner III (600 H/s, 5.000 PC). A RPC `purchase_equipment` recebe somente SKU e chave idempotente; preço é consultado no banco. A carteira, o ledger e o inventário são alterados atomicamente.
 
 A tela Loja agora apresenta a loja persistente e o inventário vinculado à conta, mantendo a loja demonstrativa em uma seção separada. O inventário persistente ainda não alimenta a instalação e o hashrate local.
+
+
+## Salas, instalação e hashrate — Fase 2C
+
+Migration:
+- `202611090007_persistent_rooms_installation_and_hashrate.sql`
+
+Cria `player_rooms` e `player_equipment_operations`, associa equipamento à sala por FK composta de proprietário, adiciona triggers de provisionamento por VIP e RPCs `install_player_equipment`, `uninstall_player_equipment`, `rename_player_room` e `get_player_mining_summary`.
+
+Limites: até 4 salas conforme VIP e 10 equipamentos por sala. O resumo de hashrate é calculado no PostgreSQL e respeita RLS. Instalação/desinstalação são idempotentes e não alteram PC. O simulador local continua separado.
