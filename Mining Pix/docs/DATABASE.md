@@ -43,7 +43,7 @@ Não expor e-mail ou metadados privados em consultas públicas de perfil. A atri
 |---|---|---|
 | `wallets` | `user_id PK/FK`, `balance numeric(20,0)`, `created_at`, `updated_at`, `version bigint` | Uma carteira por jogador. Saldo >= 0. Sem INSERT/UPDATE/DELETE direto pelo cliente. |
 | `wallet_transactions` | `id`, `user_id`, `amount numeric(20,0)`, `balance_after numeric(20,0)`, `type`, `reference_type`, `reference_id`, `idempotency_key`, `description`, `created_at`, `actor_user_id` | Ledger append-only. Crédito positivo, débito negativo. Unique por `(user_id,idempotency_key)`. Sem UPDATE/DELETE para cliente. |
-| `admin_audit_logs` | `id`, `actor_user_id`, `target_user_id`, `action`, `reason`, `before_data jsonb`, `after_data jsonb`, `request_id`, `created_at` | Append-only; registra ajustes e ações administrativas, sem armazenar segredos. |
+| `admin_audit_logs` | `id`, `actor_user_id`, `target_user_id`, `action`, `entity_type`, `entity_id`, `reason`, `before_data jsonb`, `after_data jsonb`, `metadata jsonb`, `request_id`, `created_at` | Append-only; INSERT somente por `service_role`; leitura administrativa via RPC protegida; sem armazenar segredos. |
 
 O saldo em `wallets` é um agregado transacional para leitura rápida; `wallet_transactions` é a trilha contábil virtual. Ambos são atualizados na mesma transação por RPC. Correções usam lançamentos compensatórios, não edição de registros antigos.
 
