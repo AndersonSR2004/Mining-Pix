@@ -5,6 +5,7 @@ import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import PersistentMiningPool from './PersistentMiningPool.tsx'
+import PersistentProgressPanel from './PersistentProgressPanel.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -1135,6 +1136,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">TEMPORADA DE TESTES</span>
         <h1>Passe de Batalha</h1>
+        <PersistentProgressPanel userId={userId} />
         <p className="page-description">Avance de nível, acumule XP e desbloqueie equipamentos nas duas trilhas.</p>
 
         <article className="panel page-panel">
