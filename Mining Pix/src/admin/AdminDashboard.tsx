@@ -169,7 +169,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
       <section className="admin-content">
         <div className="admin-title-row">
           <div><span className="admin-eyebrow">VISÃO OPERACIONAL</span><h1>Painel administrativo</h1><p>Visão consolidada do banco DEV. Todas as informações são consultadas no backend.</p></div>
-          <button className="admin-primary admin-refresh" onClick={() => { void load() }} disabled={loading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
+          <button className="admin-primary admin-refresh" onClick={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} disabled={loading || directoryLoading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
         <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Diretório de jogadores somente leitura. A única escrita habilitada continua sendo o registro de notas internas, sempre com motivo e auditoria.</span></div>
