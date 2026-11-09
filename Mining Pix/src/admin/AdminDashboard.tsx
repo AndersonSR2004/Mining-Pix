@@ -75,7 +75,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   const [noteMessage, setNoteMessage] = useState('')
   const [noteError, setNoteError] = useState('')
 
-  const loadDirectory = useCallback(async (query = directorySearch, offset = 0) => {
+  const loadDirectory = useCallback(async (query: string, offset: number) => {
     setDirectoryLoading(true)
     setDirectoryError('')
     const { data, error: directoryRpcError } = await supabase.rpc('admin_player_directory', {
@@ -90,7 +90,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
       setDirectory(data as AdminDirectory)
     }
     setDirectoryLoading(false)
-  }, [directorySearch])
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -115,10 +115,12 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
       setAudit(auditResult.data as AdminAuditSnapshot)
     }
     setLoading(false)
-    await loadDirectory(directorySearch, directory?.offset ?? 0)
-  }, [directorySearch, directory?.offset, loadDirectory])
+  }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load()
+    void loadDirectory('', 0)
+  }, [load, loadDirectory])
 
   function searchPlayers(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -146,6 +148,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
       setInternalNote('')
       setNoteReason('')
       await load()
+      await loadDirectory(directorySearch, directory?.offset ?? 0)
     } catch (cause) {
       setNoteError(cause instanceof Error ? cause.message : 'Não foi possível registrar a nota.')
     } finally {
