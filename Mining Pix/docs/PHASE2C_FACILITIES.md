@@ -37,3 +37,8 @@ Em transação revertida:
 - Inventário persistente começa vazio e recebe itens somente por compra válida.
 - A Mining Pool ainda não usa este hashrate; isso exigirá snapshots e settlement server-side em fase própria.
 - VIP ainda não possui fluxo de compra/entitlement persistente.
+
+
+## Migration adicional 2C.1
+
+Foi adicionada `202611090008_facility_fk_indexes_and_owned_catalog_visibility.sql` para cobrir FKs compostas identificadas pelo Performance Advisor e preservar a leitura dos atributos de equipamentos que o jogador já possui mesmo se o catálogo desativar novas vendas desse SKU.
