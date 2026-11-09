@@ -111,3 +111,11 @@ Migration:
 - `202611090008_facility_fk_indexes_and_owned_catalog_visibility.sql`
 
 Adiciona índices de cobertura para FKs compostas de sala/equipamento/operações e permite que o jogador consulte os dados de catálogo de equipamentos que já possui, mesmo que um SKU seja desativado para novas compras. O catálogo continua listando publicamente apenas itens ativos.
+
+
+## Retenção do histórico de salas em downgrade VIP — Fase 2C.2
+
+Migration:
+- `202611090009_preserve_room_history_on_vip_downgrade.sql`
+
+Salas excedentes passam a ser marcadas como inativas, em vez de excluídas. Isso preserva as referências históricas das operações de instalação/desinstalação. Salas inativas não aparecem ao jogador, não entram na capacidade disponível e não podem receber equipamentos. Um upgrade reativa as salas correspondentes.
