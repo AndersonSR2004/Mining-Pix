@@ -21,6 +21,7 @@ export default function Games({ onGameComplete }: Props) {
   const [mode, setMode] = useState<GameMode>('flappy')
   const [status, setStatus] = useState<GameStatus>('ready')
   const [score, setScore] = useState(0)
+  const [, setFrame] = useState(0)
   const [best, setBest] = useState<Record<GameMode, number>>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem('mining-pix-games-best-v1') || '{}')
@@ -127,6 +128,7 @@ export default function Games({ onGameComplete }: Props) {
         foodRef.current = food
       }
       snakeRef.current = nextBody
+      setFrame((value) => value + 1)
     }, 135)
     return () => window.clearInterval(timer)
   }, [mode, status, score])
