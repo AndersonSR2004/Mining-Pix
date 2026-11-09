@@ -45,35 +45,119 @@ Deno.serve(async (req: Request) => {
     const rawBody = await req.text()
     if (rawBody.length > 12000) return json({ error: 'Request too large' }, 413)
     const body = JSON.parse(rawBody)
-    if (body?.action !== 'create_player_note') return json({ error: 'Unsupported action' }, 400)
-
-    const targetUserId = typeof body.target_user_id === 'string' ? body.target_user_id : ''
-    const requestId = typeof body.request_id === 'string' ? body.request_id : ''
-    const note = typeof body.note === 'string' ? body.note.trim() : ''
-    const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
-    if (!uuidPattern.test(targetUserId) || !uuidPattern.test(requestId)) {
-      return json({ error: 'Invalid player or request identifier' }, 400)
-    }
-    if (note.length < 5 || note.length > 1500 || reason.length < 3 || reason.length > 500) {
-      return json({ error: 'Check note and reason lengths' }, 400)
-    }
-
     const adminClient = createClient(url, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
-    const { data, error } = await adminClient.rpc('admin_create_player_note', {
+
+    if (body?.action === 'create_player_note') {
+      const targetUserId = typeof body.target_user_id === 'string' ? body.target_user_id : ''
+      const requestId = typeof body.request_id === 'string' ? body.request_id : ''
+      const note = typeof body.note === 'string' ? body.note.trim() : ''
+      const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+      if (!uuidPattern.test(targetUserId) || !uuidPattern.test(requestId)) {
+        return json({ error: 'Invalid player or request identifier' }, 400)
+      }
+      if (note.length < 5 || note.length > 1500 || reason.length < 3 || reason.length > 500) {
+        return json({ error: 'Check note and reason lengths' }, 400)
+      }
+
+      const { data, error } = await adminClient.rpc('admin_create_player_note', {
+        p_actor_user_id: authData.user.id,
+        p_target_user_id: targetUserId,
+        p_note: note,
+        p_reason: reason,
+        p_request_id: requestId,
+      })
+      if (error) {
+        const status = error.code === 'P0002' ? 404 : error.code === '42501' ? 403 : 400
+        return json({ error: status === 404 ? 'Player not found' : status === 403 ? 'Administrative permission required' : 'Could not save the internal note' }, status)
+      }
+      return json({ event_id: data.event_id, duplicate: data.duplicate === true }, 201)
+    }
+
+    if (body?.action !== 'set_player_access') return json({ error: 'Unsupported action' }, 400)
+
+    const targetUserId = typeof body.target_user_id === 'string' ? body.target_user_id : ''
+    const requestId = typeof body.request_id === 'string' ? body.request_id : ''
+    const accessAction = body.access_action === 'block' || body.access_action === 'unblock' ? body.access_action : ''
+    const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
+    if (!uuidPattern.test(targetUserId) || !uuidPattern.test(requestId) || !accessAction) {
+      return json({ error: 'Invalid player, request identifier, or access action' }, 400)
+    }
+    if (reason.length < 5 || reason.length > 500) {
+      return json({ error: 'The reason must contain between 5 and 500 characters' }, 400)
+    }
+
+    const { data: operation, error: beginError } = await adminClient.rpc('admin_begin_player_access_change', {
       p_actor_user_id: authData.user.id,
       p_target_user_id: targetUserId,
-      p_note: note,
+      p_action: accessAction,
       p_reason: reason,
       p_request_id: requestId,
     })
-    if (error) {
-      const status = error.code === 'P0002' ? 404 : error.code === '42501' ? 403 : 400
-      return json({ error: status === 404 ? 'Player not found' : status === 403 ? 'Administrative permission required' : 'Could not save the internal note' }, status)
+    if (beginError) {
+      const status = beginError.code === 'P0002' ? 404 : beginError.code === '42501' ? 403 : beginError.code === '23505' ? 409 : 400
+      return json({ error: status === 404 ? 'Player not found' : status === 403 ? 'This account cannot be changed by player controls' : status === 409 ? 'This request identifier was already used with different data' : 'Could not initialize the access operation' }, status)
     }
 
-    return json({ event_id: data.event_id, duplicate: data.duplicate === true }, 201)
+    if (operation.status === 'succeeded') {
+      return json({ operation_id: operation.operation_id, status: 'succeeded', duplicate: true }, 200)
+    }
+    if (operation.status === 'failed') {
+      return json({ operation_id: operation.operation_id, status: 'failed', duplicate: true, error: 'This request previously failed. Submit a new request after reviewing the account status.' }, 409)
+    }
+
+    let afterBannedUntil: string | null = operation.before_banned_until ?? null
+    const noOp = operation.already_in_state === true
+
+    if (!noOp) {
+      const { data: updatedUser, error: authUpdateError } = await adminClient.auth.admin.updateUserById(
+        targetUserId,
+        { ban_duration: accessAction === 'block' ? '720h' : 'none' },
+      )
+
+      if (authUpdateError || !updatedUser.user) {
+        const { error: completionError } = await adminClient.rpc('admin_complete_player_access_change', {
+          p_actor_user_id: authData.user.id,
+          p_operation_id: operation.operation_id,
+          p_success: false,
+          p_after_banned_until: operation.before_banned_until ?? null,
+          p_error_code: 'auth_api_error',
+          p_no_op: false,
+        })
+        if (completionError) {
+          return json({ error: 'The Auth operation failed and its audit status is pending. Retry this exact request once.', retryable: true, operation_id: operation.operation_id }, 503)
+        }
+        return json({ error: 'Supabase Auth could not update this account. No access change was confirmed.', status: 'failed' }, 502)
+      }
+
+      afterBannedUntil = updatedUser.user.banned_until ?? (
+        accessAction === 'block' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null
+      )
+    }
+
+    const { data: completed, error: completionError } = await adminClient.rpc('admin_complete_player_access_change', {
+      p_actor_user_id: authData.user.id,
+      p_operation_id: operation.operation_id,
+      p_success: true,
+      p_after_banned_until: afterBannedUntil,
+      p_error_code: null,
+      p_no_op: noOp,
+    })
+
+    if (completionError) {
+      return json({ error: 'The Auth change was applied, but audit finalization is pending. Retry this exact request to complete the audit safely.', retryable: true, operation_id: operation.operation_id }, 503)
+    }
+
+    return json({
+      operation_id: operation.operation_id,
+      event_id: completed.event_id ?? null,
+      status: 'succeeded',
+      duplicate: completed.duplicate === true,
+      access_action: accessAction,
+      banned_until: afterBannedUntil,
+      no_op: noOp,
+    }, 200)
   } catch {
     return json({ error: 'Invalid request' }, 400)
   }
