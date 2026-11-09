@@ -26,6 +26,8 @@ npm run build
 
 Esta versão é um **sandbox frontend**. Saldo, máquinas, VIP, bots, Mining Pool, XP e recompensas são armazenados localmente no navegador via `localStorage`. Não representam pagamentos, saques ou uma economia multiplayer real.
 
+O simulador possui contador de referência de 10 minutos por ciclo e distribuição inteira pelo método dos maiores restos; a execução continua manual nesta versão frontend.
+
 Consulte [docs/PROJECT_AUDIT.md](docs/PROJECT_AUDIT.md) para o levantamento técnico inicial.
 
 ## Fluxo de desenvolvimento
