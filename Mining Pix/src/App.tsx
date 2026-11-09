@@ -415,6 +415,8 @@ function App() {
       claimedRewards,
       nextCycleAt,
       missionState,
+      temporaryHash,
+      temporaryHashExpiresAt,
     }
 
     try {
