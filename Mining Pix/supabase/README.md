@@ -119,3 +119,11 @@ Migration:
 - `202611090009_preserve_room_history_on_vip_downgrade.sql`
 
 Salas excedentes passam a ser marcadas como inativas, em vez de excluídas. Isso preserva as referências históricas das operações de instalação/desinstalação. Salas inativas não aparecem ao jogador, não entram na capacidade disponível e não podem receber equipamentos. Um upgrade reativa as salas correspondentes.
+
+
+## Resumo de hashrate por sala no backend — Fase 2C.3
+
+Migration:
+- `202611090010_backend_room_hashrate_summaries.sql`
+
+Adiciona `get_player_room_summaries()`, função SECURITY INVOKER que retorna capacidade, quantidade instalada e hashrate de cada sala ativa. O painel não calcula mais o hashrate das salas no navegador; apenas apresenta os valores calculados pelo PostgreSQL.
