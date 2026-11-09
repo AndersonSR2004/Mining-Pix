@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
       return json({ operation_id: operation.operation_id, status: 'failed', duplicate: true, error: 'This request previously failed. Submit a new request after reviewing the account status.' }, 409)
     }
 
-    let afterBannedUntil: string | null = operation.before_banned_until ?? null
+    let afterBannedUntil: string | null = operation.current_banned_until ?? null
     const noOp = operation.already_in_state === true
 
     if (!noOp) {
