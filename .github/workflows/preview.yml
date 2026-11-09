@@ -1,0 +1,49 @@
+name: Mining Pix Preview
+
+on:
+  push:
+    branches: [codex/mining-pix-work]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Mining Pix/package-lock.json
+      - name: Install dependencies
+        working-directory: Mining Pix
+        run: npm ci
+      - name: Run tests
+        working-directory: Mining Pix
+        run: npm test
+      - name: Build application
+        working-directory: Mining Pix
+        run: npm run build
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: Mining Pix/dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
