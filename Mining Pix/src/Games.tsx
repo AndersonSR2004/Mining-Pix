@@ -26,7 +26,7 @@ const events: Record<GameMode, 'flappy_games' | 'snake_games' | 'coin_catch_game
 const targetFor = (level: number) => 10 + (level - 1) * 5
 const cooldownFor = (level: number) => level === 1 ? 10 : level === 2 ? 20 : level === 3 ? 30 : 60
 
-export default function Games({ onGameComplete }: Props) {
+export default function Games({ userId, onGameComplete }: Props) {\n  const progressStorageKey = `${STORAGE}:${userId}`\n  const bestStorageKey = `mining-pix-games-best-v1:${userId}`
   const [mode, setMode] = useState<GameMode>('flappy')
   const [status, setStatus] = useState<GameStatus>('ready')
   const [score, setScore] = useState(0)
@@ -34,7 +34,7 @@ export default function Games({ onGameComplete }: Props) {
   const [frame, setFrame] = useState(0)
   const [progress, setProgress] = useState<Progress>(() => {
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE) || '{}')
+      const parsed = JSON.parse(localStorage.getItem(progressStorageKey) || '{}')
       return Object.fromEntries((['flappy', 'snake', 'coin'] as GameMode[]).map((key) => {
         const item = parsed[key] || {}
         return [key, {
@@ -48,7 +48,7 @@ export default function Games({ onGameComplete }: Props) {
   const [now, setNow] = useState(Date.now())
   const [best, setBest] = useState<Record<GameMode, number>>(() => {
     try {
-      const parsed = JSON.parse(localStorage.getItem('mining-pix-games-best-v1') || '{}')
+      const parsed = JSON.parse(localStorage.getItem(bestStorageKey) || '{}')
       return { flappy: Number(parsed.flappy) || 0, snake: Number(parsed.snake) || 0, coin: Number(parsed.coin) || 0 }
     } catch { return { flappy: 0, snake: 0, coin: 0 } }
   })
@@ -68,7 +68,7 @@ export default function Games({ onGameComplete }: Props) {
   const remainingCooldown = Math.max(0, Math.ceil((current.cooldownUntil - now) / 1000))
   const canStart = remainingCooldown === 0 && status !== 'running'
 
-  useEffect(() => { localStorage.setItem(STORAGE, JSON.stringify(progress)) }, [progress])
+  useEffect(() => { localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }, [progress])
   useEffect(() => {
     const clock = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(clock)
@@ -77,7 +77,7 @@ export default function Games({ onGameComplete }: Props) {
   function updateBest(value: number) {
     setBest((old) => {
       const next = { ...old, [mode]: Math.max(old[mode], value) }
-      try { localStorage.setItem('mining-pix-games-best-v1', JSON.stringify(next)) } catch { /* storage optional */ }
+      try { localStorage.setItem(bestStorageKey, JSON.stringify(next)) } catch { /* storage optional */ }
       return next
     })
   }
