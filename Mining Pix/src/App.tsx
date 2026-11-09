@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { distributePoolBudget } from './lib/pool.ts'
-import { createMissionState, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
+import { createMissionState, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
@@ -420,10 +420,6 @@ function App() {
     return () => window.clearInterval(timer)
   }, [])
 
-  function recordMission(metric: 'cycles' | 'installs') {
-    setMissionState((value) => recordMissionProgress(value, metric))
-  }
-
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
   }
@@ -465,7 +461,6 @@ function App() {
 
     setInventory((value) => value.filter((item) => item.id !== machine.id))
     setMachines((value) => [...value, { ...machine, roomId: room.id }])
-    recordMission('installs')
     logAction(`Instalação de ${machine.name} em ${room.name}`)
     setMessage(`${machine.name} instalado em ${room.name}!`)
   }
@@ -605,7 +600,6 @@ function App() {
     const xpEarned = hashrate > 0 ? 100 : 0
     if (xpEarned > 0) {
       setXp((value) => value + xpEarned)
-      recordMission('cycles')
     }
     logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
     setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC.${xpEarned > 0 ? ' XP +100.' : ' Sem XP: instale um equipamento para participar da mineração.'}`)
@@ -755,6 +749,11 @@ function App() {
       setBotName('')
       setBotHashrate('100')
     }
+  }
+
+  function recordMissionEvent(event: MissionEvent, amount = 1) {
+    setMissionState((value) => recordMissionProgress(value, event, amount))
+    setMessage('Evento de missão registrado no sandbox. Confira o progresso na página Missões.')
   }
 
   function claimMissionReward(missionId: string) {
@@ -1318,7 +1317,7 @@ function App() {
                 </div>
                 <div className="pool-footer">
                   <span>Recompensa</span>
-                  <strong>{mission.rewardXp} XP</strong>
+                  <strong>{mission.rewardXp} XP do Passe</strong>
                 </div>
                 {claimed ? <span className="status">✓ RESGATADA</span> : (
                   <button className="primary-button" disabled={!completed} onClick={() => claimMissionReward(mission.id)}>
@@ -1336,15 +1335,20 @@ function App() {
       <section className="page-content">
         <span className="eyebrow">CENTRAL DE OBJETIVOS</span>
         <h1>Missões</h1>
-        <p className="page-description">Conclua atividades para ganhar XP e avançar no Passe de Batalha. O progresso é salvo neste navegador.</p>
+        <p className="page-description">Conclua atividades para receber XP do Passe de Batalha. Cada missão diária concluída conta automaticamente como 1 unidade para as metas semanais, mesmo antes do resgate.</p>
         <div className="stats">
-          <article className="stat-card"><span>NÍVEL ATUAL</span><h2>{currentLevel}</h2></article>
-          <article className="stat-card"><span>XP TOTAL</span><h2>{xp.toLocaleString('pt-BR')}</h2></article>
-          <article className="stat-card"><span>MISSÕES DISPONÍVEIS</span><h2>{MISSIONS.length - currentMissions.claimed.length}</h2></article>
+          <article className="stat-card"><span>NÍVEL DO PASSE</span><h2>{currentLevel}</h2></article>
+          <article className="stat-card"><span>XP DO PASSE</span><h2>{xp.toLocaleString('pt-BR')}</h2></article>
+          <article className="stat-card"><span>MISSÕES DIÁRIAS CONCLUÍDAS NA SEMANA</span><h2>{currentMissions.weeklyCompletedDailyMissions}</h2></article>
         </div>
         {renderGroup('daily')}
+        <article className="panel page-panel">
+          <div className="panel-heading"><h2>Contador semanal</h2><span className="equipment-count">MISSÕES DIÁRIAS CONCLUÍDAS</span></div>
+          <p className="page-description">O contador soma cada missão diária uma única vez por dia. As metas são cumulativas: ao chegar a 50, todas as metas anteriores também estarão concluídas.</p>
+          <div className="pool-footer"><span>Total nesta semana</span><strong>{currentMissions.weeklyCompletedDailyMissions} / 50</strong></div>
+        </article>
         {renderGroup('weekly')}
-        <p className="page-description">Valores de XP e metas são parâmetros iniciais de balanceamento do sandbox e poderão ser ajustados após avaliação.</p>
+        <p className="page-description">Recompensas atuais de XP são valores provisórios de balanceamento do sandbox. O progresso permanece salvo neste navegador.</p>
       </section>
     )
   }
@@ -1594,6 +1598,16 @@ function App() {
           </div>
           <button className="primary-button" onClick={simulateMiningCycle}>EXECUTAR CICLO DE SIMULAÇÃO</button>
           <p className="page-description">O orçamento é distribuído integralmente entre os participantes elegíveis pelo método dos maiores restos. As recompensas simuladas não representam pagamentos reais.</p>
+        </article>
+
+        <article className="panel page-panel">
+          <div className="panel-heading"><h2>Simulador de eventos das missões</h2><span className="status">SANDBOX / QA</span></div>
+          <p className="page-description">Use estes controles apenas para testar o progresso. Eles simulam eventos concluídos; não substituem partidas reais, anúncios validados, recargas ou pagamentos.</p>
+          <button className="secondary-button" onClick={() => recordMissionEvent('flappy_games')}>SIMULAR 1 PARTIDA CONCLUÍDA — FLAPPY BIRD</button>
+          <button className="secondary-button" onClick={() => recordMissionEvent('snake_games')}>SIMULAR 1 PARTIDA CONCLUÍDA — COBRINHA</button>
+          <button className="secondary-button" onClick={() => recordMissionEvent('ad_lucky_boxes')}>SIMULAR 1 LUCKY BOX OBTIDA POR ANÚNCIO E ABERTA</button>
+          <button className="secondary-button" onClick={() => recordMissionEvent('room_energy_recharges')}>SIMULAR 1 RECARGA DE ENERGIA CONCLUÍDA</button>
+          <button className="secondary-button" onClick={() => recordMissionEvent('pix_coin_purchased', 100)}>SIMULAR COMPRA CONFIRMADA DE 100 PIX COIN</button>
         </article>
 
         <article className="panel page-panel">
