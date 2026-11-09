@@ -30,14 +30,20 @@ const number = (value: number | string) => Number(value).toLocaleString('pt-BR',
 export default function PersistentMiningPool() {
   const [data, setData] = useState<PoolDashboard | null>(null)
   const [loading, setLoading] = useState(true)
+  const [miningCoinBalance, setMiningCoinBalance] = useState<number | string | null>(null)
   const [error, setError] = useState('')
 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
-    const { data: result, error: requestError } = await supabase.rpc('get_pool_dashboard')
-    if (requestError) setError(requestError.message)
-    else setData(result as PoolDashboard)
+    const [dashboardResult, walletResult] = await Promise.all([
+      supabase.rpc('get_pool_dashboard'),
+      supabase.from('mining_coin_wallets').select('balance').maybeSingle(),
+    ])
+    if (dashboardResult.error) setError(dashboardResult.error.message)
+    else setData(dashboardResult.data as PoolDashboard)
+    if (walletResult.error) setError((previous) => previous || walletResult.error.message)
+    else setMiningCoinBalance(walletResult.data?.balance ?? 0)
     setLoading(false)
   }, [])
 
@@ -78,6 +84,7 @@ export default function PersistentMiningPool() {
         <span>Status do ciclo</span>
         <strong>{loading ? 'CONSULTANDO...' : cycle ? 'CICLO ABERTO' : 'AGUARDANDO PRÓXIMO CICLO'}</strong>
       </div>
+      <div className="pool-footer"><span>Seu saldo de MINING COIN</span><strong>{loading || miningCoinBalance === null ? 'CONSULTANDO...' : `${number(miningCoinBalance)} MC`}</strong></div>
       {cycle && (
         <>
           <div className="pool-footer"><span>Orçamento de MINING COIN do ciclo</span><strong>{number(cycle.budget_mc)} MC</strong></div>
