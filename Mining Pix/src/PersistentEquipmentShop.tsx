@@ -53,7 +53,7 @@ export default function PersistentEquipmentShop() {
         .eq('active', true)
         .order('display_order', { ascending: true }),
       supabase.from('player_equipment')
-        .select('id,catalog_sku,purchase_price_pc,acquired_at,equipment_catalog(name,equipment_type,hashrate)')
+        .select('id,catalog_sku,purchase_price_pc,acquired_at,status,room_id,equipment_catalog(name,equipment_type,hashrate)')
         .order('acquired_at', { ascending: false }),
       supabase.from('wallets').select('balance').maybeSingle(),
     ])
@@ -166,13 +166,14 @@ export default function PersistentEquipmentShop() {
               <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
               <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento adquirido'}</span>
               <small>{Number(item.equipment_catalog?.hashrate ?? 0).toLocaleString('pt-BR')} H/s · {formatPc(item.purchase_price_pc)} PC</small>
+              <small>{item.status === 'installed' ? 'Instalado na infraestrutura' : item.status === 'retired' ? 'Desativado' : 'Disponível para instalação'}</small>
             </div>
             <span className="equipment-count">ADQUIRIDO</span>
           </div>
         ))}
       </div>
       <p className="persistent-store-footnote">
-        Equipamentos desta lista são persistentes e ainda não são instaláveis no simulador local. A integração de instalação e capacidade será uma etapa posterior.
+        A instalação, desinstalação e o cálculo de hashrate persistente são gerenciados na tela Equipamentos. A loja sandbox continua independente.
       </p>
     </section>
   )
