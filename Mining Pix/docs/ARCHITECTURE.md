@@ -1,6 +1,6 @@
 # Mining Pix — arquitetura-alvo
 
-**Status:** proposta técnica da Fase 0. Ainda não implementada.  
+**Status:** arquitetura-alvo em implementação incremental. Fases 1, 2A, 2B e 2C estão aplicadas no ambiente DEV; demais domínios continuam planejados.  
 **Escopo:** preparar a transição do sandbox local para contas individuais com backend autoritativo, preservando o frontend estático.
 
 ## 1. Objetivos e princípios
@@ -191,3 +191,19 @@ A estrutura é um destino incremental, não uma exigência de reorganizar todo o
 6. **Fase 5 — homologação:** migração controlada, testes de segurança, backup e lançamento.
 
 Cada fase deve ser revisada e aprovada antes de avançar para operações que alterem dados ou serviços externos.
+
+
+## 12. Estado atual da implementação (09/11/2026)
+
+Implementado no DEV e na branch de trabalho:
+- Supabase Auth, profiles, wallets e player_progress.
+- Carteira persistente, ledger e RPC de débito idempotente.
+- Catálogo e compra atômica de equipamentos.
+- Salas persistentes conforme VIP, instalação/desinstalação idempotentes e resumo de hashrate calculado no PostgreSQL.
+- RLS e grants mínimos nos domínios já ativados.
+
+Ainda em sandbox ou planejado:
+- Equipamentos/salas locais legados não são importados como ativos legítimos.
+- Mining Pool, ciclos, bots, XP, missões, passe e recompensas de jogos ainda não estão server-authoritative.
+- A infraestrutura persistente ainda não credita PC nem altera saldo por mineração.
+- PROD permanece separado; não aplicar migrations DEV em produção.
