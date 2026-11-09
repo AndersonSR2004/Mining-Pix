@@ -73,11 +73,13 @@ type SavedState = {
   xp: number
   premiumPass: boolean
   claimedRewards: string[]
+  nextCycleAt: number
 }
 
 const STORAGE_KEY = 'mining-pix-demo-v1'
 const ROOM_CAPACITY = 10
 const XP_PER_LEVEL = 1000
+const CYCLE_DURATION_MS = 10 * 60 * 1000
 
 const vipPlans = [
   { tier: 0 as VipTier, name: 'FREE', rooms: 1, spaces: 10 },
@@ -161,6 +163,33 @@ function isValidMachine(value: unknown): value is Machine {
   )
 }
 
+function distributePoolBudget(
+  budget: number,
+  participants: Array<{ id: string; hashrate: number }>,
+): Record<string, number> {
+  const eligible = participants.filter(
+    (participant) => Number.isFinite(participant.hashrate) && participant.hashrate > 0,
+  )
+  const totalHashrate = eligible.reduce((sum, participant) => sum + participant.hashrate, 0)
+  if (!Number.isFinite(budget) || budget <= 0 || totalHashrate <= 0) return {}
+
+  const rows = eligible.map((participant) => {
+    const exactShare = budget * participant.hashrate / totalHashrate
+    const wholeShare = Math.floor(exactShare)
+    return { id: participant.id, reward: wholeShare, remainder: exactShare - wholeShare }
+  })
+
+  const undistributed = budget - rows.reduce((sum, row) => sum + row.reward, 0)
+  const priority = [...rows].sort(
+    (a, b) => b.remainder - a.remainder || a.id.localeCompare(b.id),
+  )
+  for (let index = 0; index < undistributed; index += 1) {
+    priority[index % priority.length].reward += 1
+  }
+
+  return Object.fromEntries(rows.map((row) => [row.id, row.reward]))
+}
+
 function loadSavedState(): SavedState {
   const fallback: SavedState = {
     balance: 10000,
@@ -177,6 +206,7 @@ function loadSavedState(): SavedState {
     xp: 0,
     premiumPass: false,
     claimedRewards: [],
+    nextCycleAt: Date.now() + CYCLE_DURATION_MS,
   }
 
   try {
@@ -293,6 +323,10 @@ function loadSavedState(): SavedState {
       claimedRewards: Array.isArray(parsed.claimedRewards)
         ? parsed.claimedRewards.filter((item): item is string => typeof item === 'string')
         : [],
+      nextCycleAt:
+        typeof parsed.nextCycleAt === 'number' && parsed.nextCycleAt > 0
+          ? parsed.nextCycleAt
+          : Date.now() + CYCLE_DURATION_MS,
     }
   } catch {
     return fallback
@@ -319,6 +353,8 @@ function App() {
   const [xp, setXp] = useState(saved.xp)
   const [premiumPass, setPremiumPass] = useState(saved.premiumPass)
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
+  const [nextCycleAt, setNextCycleAt] = useState(saved.nextCycleAt)
+  const [clockNow, setClockNow] = useState(Date.now())
 
   const [selectedRoomId, setSelectedRoomId] = useState(1)
   const [message, setMessage] = useState('')
@@ -349,7 +385,14 @@ function App() {
   const participation =
     networkHashrate > 0 ? hashrate / networkHashrate : 0
 
-  const estimatedReward = Math.floor(poolBudget * participation)
+  const poolAllocations = distributePoolBudget(poolBudget, [
+    { id: 'player', hashrate },
+    ...activeBots.map((bot) => ({ id: `bot-${bot.id}`, hashrate: bot.hashrate })),
+  ])
+  const estimatedReward = poolAllocations.player ?? 0
+  const secondsUntilCycle = Math.max(0, Math.ceil((nextCycleAt - clockNow) / 1000))
+  const countdownLabel = `${String(Math.floor(secondsUntilCycle / 60)).padStart(2, '0')}:${String(secondsUntilCycle % 60).padStart(2, '0')}`
+  const cycleReady = secondsUntilCycle === 0
 
   const currentLevel = Math.floor(xp / XP_PER_LEVEL) + 1
   const levelProgress = (xp % XP_PER_LEVEL) / XP_PER_LEVEL * 100
@@ -375,6 +418,7 @@ function App() {
       xp,
       premiumPass,
       claimedRewards,
+      nextCycleAt,
     }
 
     try {
@@ -384,8 +428,13 @@ function App() {
     }
   }, [
     balance, machines, inventory, rooms, history, vipTier, poolBudget,
-    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards,
+    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt,
   ])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
@@ -530,10 +579,14 @@ function App() {
       return
     }
 
-    const playerReward = Math.floor(poolBudget * (hashrate / networkHashrate))
+    const allocations = distributePoolBudget(poolBudget, [
+      { id: 'player', hashrate },
+      ...activeBots.map((bot) => ({ id: `bot-${bot.id}`, hashrate: bot.hashrate })),
+    ])
+    const playerReward = allocations.player ?? 0
     const updatedBots = bots.map((bot) => {
       if (!bot.active || bot.hashrate <= 0) return bot
-      const reward = Math.floor(poolBudget * (bot.hashrate / networkHashrate))
+      const reward = allocations[`bot-${bot.id}`] ?? 0
       return {
         ...bot,
         balance: bot.balance + reward,
@@ -558,6 +611,8 @@ function App() {
     setCycles(nextCycle)
     setTotalRewards((value) => value + playerReward)
     setPoolHistory((value) => [cycle, ...value])
+    setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
+    setClockNow(Date.now())
     setXp((value) => value + 100)
     logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
     setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC. XP +100.`)
@@ -649,6 +704,8 @@ function App() {
     setXp(0)
     setPremiumPass(false)
     setClaimedRewards([])
+    setNextCycleAt(Date.now() + CYCLE_DURATION_MS)
+    setClockNow(Date.now())
     setSelectedRoomId(1)
     setMessage('Sandbox restaurado.')
   }
@@ -799,6 +856,10 @@ function App() {
               <span>Hashrate total da rede</span>
               <strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong>
             </div>
+            <div className="pool-footer">
+              <span>Próximo ciclo de referência</span>
+              <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
+            </div>
             <button className="primary-button" onClick={() => setPage('Mineração')}>
               ACESSAR MINERAÇÃO →
             </button>
@@ -897,6 +958,10 @@ function App() {
           <div className="pool-footer">
             <span>Recompensa estimada para você</span>
             <strong>{estimatedReward.toLocaleString('pt-BR')} PC</strong>
+          </div>
+          <div className="pool-footer">
+            <span>Próximo ciclo de referência</span>
+            <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
           </div>
           <button className="primary-button" onClick={simulateMiningCycle}>
             SIMULAR DISTRIBUIÇÃO DO CICLO
