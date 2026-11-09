@@ -155,3 +155,15 @@ Para `profiles`, `wallets`, `player_progress`, `player_equipment`, `player_rooms
 - O painel é somente leitura nesta fase. Ações de escrita exigirão uma trilha append-only em `admin_audit_logs`, motivo obrigatório, ator/alvo, idempotência e validação server-side.
 - A URL administrativa não é secreta nem mecanismo de controle; a autorização real ocorre no backend.
 - Antes de produção: MFA na conta administradora, Leaked Password Protection habilitada, revisão de advisors e projeto PROD separado.
+
+
+## 12. Fase 6 — notas internas auditadas
+
+- O Admin Center permite registrar notas internas vinculadas a um UUID de jogador.
+- Notas não alteram carteira, saldo, VIP, progresso, inventário, equipamentos ou acesso à conta.
+- A Edge Function `admin-control` exige JWT válido, resolve o usuário com `auth.getUser(token)` e verifica `app_metadata.admin` obtido do Auth.
+- O banco revalida o claim atual em `auth.users.raw_app_meta_data`, confirma a existência do alvo e grava a nota dentro de `admin_audit_logs`.
+- A escrita ocorre por função SQL disponível somente a `service_role`; a tabela de auditoria continua sem leitura/escrita direta por clientes.
+- Cada envio usa `request_id` único e índice parcial para idempotência; retry idêntico retorna o evento existente, enquanto reutilização da chave com payload diferente é rejeitada.
+- Toda nota exige motivo, ator, alvo e timestamp. O conteúdo não é enviado ao jogador nem aparece no jogo público.
+- Esta capacidade é somente de anotação; não habilita ajustes econômicos ou alterações de conta.
