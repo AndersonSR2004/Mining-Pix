@@ -273,7 +273,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
               {!directoryError && directory && directory.players.length === 0 && <p className="admin-empty">Nenhum jogador encontrado para esta pesquisa.</p>}
               {!directoryError && directory && directory.players.length > 0 && (
                 <>
-                  <div className="admin-directory-meta"><span>Exibindo {number(pageStart)}–{number(pageEnd)} de {number(directory.total)}</span><span>Consulta somente leitura</span></div>
+                  <div className="admin-directory-meta"><span>Exibindo {number(pageStart)}–{number(pageEnd)} de {number(directory.total)}</span><span>Consulta e ações de acesso auditadas</span></div>
                   <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo</th><th>Nível / XP</th><th>VIP</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th><th>Acesso</th><th>Controle</th></tr></thead><tbody>
                     {directory.players.map((player) => <tr key={player.user_id}>
                       <td><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></td>
