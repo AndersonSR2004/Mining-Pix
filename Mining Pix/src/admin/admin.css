@@ -43,3 +43,13 @@ body{min-width:320px;background:#090d14}
 .admin-note-form input:focus,.admin-note-form textarea:focus{outline:1px solid #63e7a1;border-color:#63e7a1}
 .admin-note-form button{justify-self:start}
 .admin-success{padding:12px;border:1px solid #315744;border-radius:9px;background:#10251c;color:#aee8c2;font-size:13px}
+
+.admin-directory-search{display:flex;gap:10px;margin:16px 0}
+.admin-directory-search input{flex:1;min-width:180px;padding:11px 12px;border:1px solid #2a3948;border-radius:9px;background:#0b121a;color:#f2f6fb;font:inherit}
+.admin-directory-search input:focus{outline:1px solid #63e7a1;border-color:#63e7a1}
+.admin-directory-meta,.admin-directory-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0;color:#8493a3;font-size:11px}
+.admin-directory-table td{white-space:nowrap}
+.admin-directory-table td:first-child{min-width:210px;white-space:normal;overflow-wrap:anywhere}
+.admin-directory-pagination{justify-content:center;margin-top:18px}
+.admin-directory-pagination span{min-width:120px;text-align:center}
+@media(max-width:520px){.admin-directory-search{flex-direction:column}.admin-directory-search button{width:100%}.admin-directory-meta{align-items:flex-start;flex-direction:column}}
