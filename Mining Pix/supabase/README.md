@@ -10,12 +10,16 @@ O projeto Supabase conectado é o ambiente de desenvolvimento do Mining Pix:
 
 ## Infraestrutura implantada
 
-Migration aplicada: `202611090001_identity_foundation.sql`.
+Migrations aplicadas:
+- `202611090001_identity_foundation.sql` — identidade;
+- `202611090002_wallet_ledger.sql` — ledger e RPC de débito;
+- `202611090003_wallet_idempotency_lock.sql` — serialização de retries.
 
 Tabelas:
 - `profiles`: nome público e avatar do jogador;
 - `wallets`: saldo inicial zero;
-- `player_progress`: XP, nível, VIP e passe.
+- `player_progress`: XP, nível, VIP e passe;
+- `wallet_transactions`: ledger imutável de movimentações da carteira.
 
 As três tabelas têm RLS habilitada. O cliente autenticado pode consultar somente os registros da própria conta. A carteira e a progressão não aceitam escrita direta pelo navegador. O trigger de Auth cria os três registros ao cadastrar uma identidade.
 
@@ -71,7 +75,9 @@ Não crie contas de teste com dados pessoais de terceiros. Não compartilhe senh
 ## Limites desta etapa
 
 - PC, XP, inventário, equipamentos, bots, Mining Pool, missões, passe e recompensas de jogos continuam locais e manipuláveis no sandbox.
-- O saldo real no banco permanece zero e somente leitura pelo cliente.
+- A carteira persistente é consultável pelo próprio usuário; alterações diretas continuam bloqueadas. A RPC `debit_wallet` permite apenas débitos autenticados, com saldo suficiente, lock transacional e idempotência. Créditos não são expostos ao cliente. O saldo atual no banco permanece zero.
 - Nenhuma recompensa de jogo é creditada no banco.
-- Não existe ainda role administrativa, ledger, RPC transacional ou Edge Function.
+- Não existe ainda role administrativa, RPC de crédito, compras server-side, settlement da Mining Pool ou Edge Function econômica.
 - Não importar os dados legados do localStorage como legítimos.
+
+Consulte `docs/PHASE2_WALLET.md` para o escopo, testes e limites da primeira entrega da Fase 2.
