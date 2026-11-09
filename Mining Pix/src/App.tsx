@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Games from './Games.tsx'
 import IntelligenceCenter from './IntelligenceCenter.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
+import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, PAID_LUCKY_BOX_PRICE, recordMissionProgress, refreshMissionState, REWARDED_AD_PC_REWARD, type MissionEvent, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -1245,24 +1246,30 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">EXPANDA SUA OPERAÇÃO</span>
         <h1>Loja de equipamentos</h1>
-        <p className="page-description">Adquira máquinas e encontre-as no inventário.</p>
-        <article className="wallet-summary">
-          <span>SEU SALDO DISPONÍVEL</span>
-          <strong>{balance.toLocaleString('pt-BR')} PC</strong>
-        </article>
-        <div className="shop-grid">
-          {shopMachines.map((machine) => (
-            <article className="panel shop-card" key={machine.id}>
-              <div className="machine-icon large">▦</div>
-              <span className="eyebrow">EQUIPAMENTO DE MINERAÇÃO</span>
-              <h2>{machine.name}</h2>
-              <p>{machine.type}</p>
-              <div className="shop-hash">{machine.hashrate} H/s</div>
-              <strong className="shop-price">{machine.price.toLocaleString('pt-BR')} PC</strong>
-              <button className="primary-button" onClick={() => buyMachine(machine)}>COMPRAR EQUIPAMENTO</button>
-            </article>
-          ))}
-        </div>
+        <p className="page-description">Compras oficiais usam a carteira persistente; o sandbox permanece separado.</p>
+        <PersistentEquipmentShop />
+        <section className="sandbox-store">
+          <span className="eyebrow">AMBIENTE DE TESTES</span>
+          <h2>Loja demonstrativa (sandbox)</h2>
+          <p className="page-description">Estas compras alteram somente o saldo e o inventário locais deste navegador. Não geram transações persistentes.</p>
+          <article className="wallet-summary">
+            <span>SALDO DEMONSTRATIVO DO SANDBOX</span>
+            <strong>{balance.toLocaleString('pt-BR')} PC</strong>
+          </article>
+          <div className="shop-grid">
+            {shopMachines.map((machine) => (
+              <article className="panel shop-card" key={machine.id}>
+                <div className="machine-icon large">▦</div>
+                <span className="eyebrow">EQUIPAMENTO DE TESTE</span>
+                <h3>{machine.name}</h3>
+                <p>{machine.type}</p>
+                <div className="shop-hash">{machine.hashrate} H/s</div>
+                <strong className="shop-price">{machine.price.toLocaleString('pt-BR')} PC</strong>
+                <button className="primary-button" onClick={() => buyMachine(machine)}>COMPRAR NO SANDBOX</button>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
     )
   }
