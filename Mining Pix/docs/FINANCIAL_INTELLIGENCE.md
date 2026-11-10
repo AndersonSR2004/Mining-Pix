@@ -103,3 +103,5 @@ Tabelas no schema privado, RLS habilitado, sem acesso direto de anon/authenticat
 
 - O fechamento grava um snapshot imutável do total de despesas daquele mês.
 - Após o fechamento, novas despesas retroativas para o período são bloqueadas. Um fluxo formal de ajustes de mês fechado ainda precisa ser desenvolvido; não se deve lançar correções artificialmente em outro período.
+
+- Retry de uma despesa já registrada continua idempotente mesmo depois do fechamento do mês; novas despesas retroativas são bloqueadas.
