@@ -962,30 +962,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">EXPANDA SUA OPERAÇÃO</span>
         <h1>Loja de equipamentos</h1>
-        <p className="page-description">Compras oficiais usam a carteira persistente; o sandbox permanece separado.</p>
+        <p className="page-description">Catálogo oficial conectado à carteira PIX COIN e ao inventário persistente da sua conta.</p>
         <PersistentEquipmentShop />
-        <section className="sandbox-store">
-          <span className="eyebrow">AMBIENTE DE TESTES</span>
-          <h2>Loja demonstrativa (sandbox)</h2>
-          <p className="page-description">Estas compras alteram somente o saldo e o inventário locais deste navegador. Não geram transações persistentes.</p>
-          <article className="wallet-summary">
-            <span>SALDO DEMONSTRATIVO DO SANDBOX</span>
-            <strong>{balance.toLocaleString('pt-BR')} PC</strong>
-          </article>
-          <div className="shop-grid">
-            {shopMachines.map((machine) => (
-              <article className="panel shop-card" key={machine.id}>
-                <div className="machine-icon large">▦</div>
-                <span className="eyebrow">EQUIPAMENTO DE TESTE</span>
-                <h3>{machine.name}</h3>
-                <p>{machine.type}</p>
-                <div className="shop-hash">{machine.hashrate} H/s</div>
-                <strong className="shop-price">{machine.price.toLocaleString('pt-BR')} PC</strong>
-                <button className="primary-button" onClick={() => buyMachine(machine)}>COMPRAR NO SANDBOX</button>
-              </article>
-            ))}
-          </div>
-        </section>
       </section>
     )
   }
@@ -1237,19 +1215,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
-      case 'Jogos': return <Games userId={userId} onGameComplete={(event, won) => {
+      case 'Jogos': return <Games userId={userId} onGameComplete={(event) => {
         setMissionState((value) => recordMissionProgress(value, event))
-        const now = Date.now()
-        if (won) {
-          setBalance((value) => value + 1)
-          setTemporaryHash(activeTemporaryHash + 1)
-          logAction(`Vitória em ${event}: +1 PC e +1 H/s temporário`)
-          setMessage('Vitória! +1 PIX COIN e +1 H/s temporário por 24 horas.')
-        } else {
-          logAction(`Partida concluída em ${event}: sem recompensa de vitória`)
-          setMessage('Partida concluída. A missão foi atualizada; não houve recompensa de vitória.')
-        }
-        if (activeTemporaryHash > 0 || won) setTemporaryHashExpiresAt(now + 24 * 60 * 60 * 1000)
       }} />
       default: return renderDashboard()
     }
