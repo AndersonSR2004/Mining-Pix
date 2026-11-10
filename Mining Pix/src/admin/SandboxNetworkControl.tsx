@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase/client'
 
 type Bot = { id: string; bot_number: number; display_name: string; hashrate: number; pc_balance: number; mc_balance: number; total_pc_earned: number; total_mc_earned: number; active: boolean }
@@ -16,6 +16,7 @@ export default function SandboxNetworkControl() {
   const [rewardMc, setRewardMc] = useState('1')
   const [adjustReason, setAdjustReason] = useState('')
   const [now, setNow] = useState(Date.now())
+  const settlingBlockRef = useRef('')
 
   const load = useCallback(async (id: string) => {
     const { data, error: rpcError } = await supabase.rpc('admin_sandbox_snapshot', { p_session_id: id })
@@ -94,7 +95,9 @@ export default function SandboxNetworkControl() {
   }
 
   useEffect(() => {
-    if (remaining === 0 && snapshot?.open_block && !busy) {
+    const blockId = snapshot?.open_block?.id ?? ''
+    if (remaining === 0 && blockId && !busy && settlingBlockRef.current !== blockId) {
+      settlingBlockRef.current = blockId
       void settle(false)
     }
   }, [remaining, busy, snapshot?.open_block?.id])
