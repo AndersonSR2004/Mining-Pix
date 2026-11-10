@@ -55,6 +55,8 @@ test('finance dashboard is admin-only and exposes policy, forecast, supply and a
 const operations = readFileSync(new URL('../supabase/migrations/20261111040000_financial_admin_operations.sql', import.meta.url), 'utf8')
 const reserveFix = readFileSync(new URL('../supabase/migrations/20261111050000_financial_reserve_idempotency_fix.sql', import.meta.url), 'utf8')
 const snapshotRecords = readFileSync(new URL('../supabase/migrations/20261111070000_financial_snapshot_commitment_schedule.sql', import.meta.url), 'utf8')
+const cumulative = readFileSync(new URL('../supabase/migrations/20261111080000_financial_cumulative_totals.sql', import.meta.url), 'utf8')
+const activityStatus = readFileSync(new URL('../supabase/migrations/20261111090000_activity_telemetry_status.sql', import.meta.url), 'utf8')
 const edge = readFileSync(new URL('../supabase/functions/admin-finance/index.ts', import.meta.url), 'utf8')
 
 test('admin financial operations require backend role and revalidate admin identity', () => {
@@ -91,4 +93,17 @@ test('Finance Center exposes controlled entry forms and separates MC from BRL', 
   assert.match(dashboard, /Compromissos de recompensa por mês/i)
   assert.match(dashboard, /Auditoria financeira/i)
   assert.match(dashboard, /admin-finance/i)
+})
+
+test('financial center includes cumulative totals and truthful telemetry status', () => {
+  assert.match(cumulative, /revenue_accumulated_cents/i)
+  assert.match(cumulative, /expenses_accumulated_cents/i)
+  assert.match(cumulative, /net_operating_result_accumulated_cents/i)
+  assert.match(activityStatus, /Telemetria inicial ativa/i)
+  assert.match(dashboard, /RECEITA LÍQUIDA ACUMULADA/i)
+  assert.match(dashboard, /DESPESAS EFETIVAS ACUMULADAS/i)
+  assert.match(dashboard, /RESULTADO OPERACIONAL REGISTRADO/i)
+  assert.match(dashboard, /Telemetria inicial ativa/i)
+  assert.match(dashboard, /submitCommitmentTransition/i)
+  assert.match(dashboard, /matchingExpenses/i)
 })
