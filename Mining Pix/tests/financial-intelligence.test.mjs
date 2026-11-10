@@ -57,6 +57,8 @@ const reserveFix = readFileSync(new URL('../supabase/migrations/20261111050000_f
 const snapshotRecords = readFileSync(new URL('../supabase/migrations/20261111070000_financial_snapshot_commitment_schedule.sql', import.meta.url), 'utf8')
 const cumulative = readFileSync(new URL('../supabase/migrations/20261111080000_financial_cumulative_totals.sql', import.meta.url), 'utf8')
 const activityStatus = readFileSync(new URL('../supabase/migrations/20261111090000_activity_telemetry_status.sql', import.meta.url), 'utf8')
+const monthClose = readFileSync(new URL('../supabase/migrations/20261111100000_financial_month_close_controls.sql', import.meta.url), 'utf8')
+const monthCloseHistory = readFileSync(new URL('../supabase/migrations/20261111110000_financial_month_close_history.sql', import.meta.url), 'utf8')
 const edge = readFileSync(new URL('../supabase/functions/admin-finance/index.ts', import.meta.url), 'utf8')
 
 test('admin financial operations require backend role and revalidate admin identity', () => {
@@ -106,4 +108,15 @@ test('financial center includes cumulative totals and truthful telemetry status'
   assert.match(dashboard, /Telemetria inicial ativa/i)
   assert.match(dashboard, /submitCommitmentTransition/i)
   assert.match(dashboard, /matchingExpenses/i)
+})
+
+test('reserve target requires three immutable completed expense-month closes', () => {
+  assert.match(monthClose, /financial_expense_month_closings/i)
+  assert.match(monthClose, /only completed months can be closed/i)
+  assert.match(monthClose, /v_expense_months_closed = 3/i)
+  assert.match(monthClose, /reserve_history_complete/i)
+  assert.match(monthCloseHistory, /expense_month_closings/i)
+  assert.match(edge, /close_expense_month/i)
+  assert.match(dashboard, /Fechamento irreversível/i)
+  assert.match(dashboard, /Aguardando fechamento/i)
 })
