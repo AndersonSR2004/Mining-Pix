@@ -63,6 +63,7 @@ const closedMonthGuard = readFileSync(new URL('../supabase/migrations/2026111112
 const closeTotals = readFileSync(new URL('../supabase/migrations/20261111130000_snapshot_expense_total_on_close.sql', import.meta.url), 'utf8')
 const closeHistoryTotals = readFileSync(new URL('../supabase/migrations/20261111140000_expose_closed_expense_totals.sql', import.meta.url), 'utf8')
 const closeMessage = readFileSync(new URL('../supabase/migrations/20261111150000_closed_month_adjustment_message.sql', import.meta.url), 'utf8')
+const expenseRetryFix = readFileSync(new URL('../supabase/migrations/20261111160000_expense_idempotency_closed_month_fix.sql', import.meta.url), 'utf8')
 const edge = readFileSync(new URL('../supabase/functions/admin-finance/index.ts', import.meta.url), 'utf8')
 
 test('admin financial operations require backend role and revalidate admin identity', () => {
@@ -133,4 +134,11 @@ test('closed expense months cannot be silently altered and preserve a close-time
   assert.match(closeHistoryTotals, /expense_total_cents/i)
   assert.match(closeMessage, /separately approved adjustment workflow/i)
   assert.match(dashboard, /Despesas apuradas/i)
+})
+
+test('expense idempotency retries are accepted after close while new backdated expenses are blocked', () => {
+  assert.match(expenseRetryFix, /where idempotency_key=trim\(p_idempotency_key\)/i)
+  assert.match(expenseRetryFix, /return jsonb_build_object\('expense_id',v_existing.id,'duplicate',true\)/i)
+  assert.match(expenseRetryFix, /financial_expense_month_closings/i)
+  assert.match(expenseRetryFix, /direct backdated insertion is blocked/i)
 })
