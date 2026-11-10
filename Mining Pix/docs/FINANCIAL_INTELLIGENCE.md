@@ -46,11 +46,11 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 
 ## Limites da entrega
 
-- Ainda não há interface para registrar despesas, compromissos ou movimentos da reserva.
+- Admin Center já permite registrar despesas efetivamente pagas, compromissos BRL/MC e movimentos contábeis da reserva. Toda operação exige motivo, referência, validação administrativa server-side, idempotência e trilha financeira append-only.
 - Ainda não há gateway de pagamento, integração de anúncios ou importação automática de extratos.
 - Ainda não há fechamento mensal, conciliação com provedores, tratamento automatizado de chargebacks tardios ou motor de alocação.
-- Ainda não há coleta de eventos de atividade integrada ao frontend.
-- Snapshot de oferta PC é manual pelo botão no painel; não há cron.
+- Telemetria inicial já registra sessões autenticadas, início de partida e conclusão de partida. É analítica client-reported, não autoriza recompensas, HASH ou pagamentos.
+- Snapshot de oferta PC é manual pelo botão no painel; não há cron. O primeiro comparativo de 30 dias depende de uma segunda captura após esse intervalo.
 - Nenhuma linha financeira foi criada como dado fictício para preencher gráficos.
 
 ## Próximas etapas
@@ -66,3 +66,16 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 ## Segurança
 
 Tabelas no schema privado, RLS habilitado, sem acesso direto de anon/authenticated/service_role; acesso a dados feito por funções SECURITY DEFINER com validação de `app_metadata.admin=true`. Ledgers de fatos financeiros e eventos são append-only. A tabela de compromissos permite somente transições de estado via backend `service_role`, mantendo termos imutáveis.
+
+
+## Entrega de operações administrativas
+
+- Edge Function `admin-finance` implantada no DEV com JWT obrigatório, origem GitHub Pages permitida e validação de `auth.getUser` + `app_metadata.admin=true`.
+- Registro de despesa efetivamente paga com BRL em centavos, referência, data, motivo e idempotência.
+- Criação de compromissos em BRL ou MC (o compromisso de recompensa é MC-only).
+- Registro de aportes/retiradas contábeis da reserva; retirada não pode exceder saldo disponível.
+- Baixa de compromisso BRL exige despesa paga de valor exatamente correspondente; a mesma despesa não pode liquidar dois compromissos.
+- Eventos administrativos financeiros registrados em trilha append-only.
+- Chaves idempotentes permanecem estáveis no cliente em caso de retry até confirmação.
+- Painel mostra despesas recentes, compromissos, cronograma mensal de obrigações MC e auditoria financeira.
+- Telemetria inicial registra sessão autenticada, início e conclusão de partidas; não participa de cálculos de recompensa.
