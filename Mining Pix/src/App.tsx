@@ -115,23 +115,6 @@ const initialMachines: Machine[] = [
   },
 ]
 
-const shopMachines = [
-  {
-    id: 2,
-    name: 'PIX Miner II',
-    type: 'Equipamento intermediário',
-    hashrate: 250,
-    price: 2500,
-  },
-  {
-    id: 3,
-    name: 'PIX Miner III',
-    type: 'Equipamento avançado',
-    hashrate: 600,
-    price: 5000,
-  },
-]
-
 const battleRewards: BattleReward[] = [
   { id: 'free-1', level: 1, track: 'free', name: 'PIX Miner BP 01', hashrate: 1 },
   { id: 'premium-2', level: 2, track: 'premium', name: 'PIX Miner BP 02', hashrate: 1 },
@@ -334,7 +317,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
 
   const [page, setPage] = useState<Page>('Dashboard')
-  const [balance, setBalance] = useState(saved.balance)
+  const [balance] = useState(saved.balance)
   const [machines, setMachines] = useState<Machine[]>(saved.machines)
   const [inventory, setInventory] = useState<Machine[]>(saved.inventory)
   const [rooms, setRooms] = useState<Room[]>(saved.rooms)
@@ -352,8 +335,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
   const [nextCycleAt] = useState(saved.nextCycleAt)
   const [missionState, setMissionState] = useState(saved.missionState)
-  const [temporaryHash, setTemporaryHash] = useState(saved.temporaryHash)
-  const [temporaryHashExpiresAt, setTemporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
+  const [temporaryHash] = useState(saved.temporaryHash)
+  const [temporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
   const [clockNow, setClockNow] = useState(Date.now())
 
   const [selectedRoomId, setSelectedRoomId] = useState(1)
@@ -434,23 +417,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
 
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
-  }
-
-  function nextMachineId() {
-    return Math.max(Date.now(), ...[...machines, ...inventory].map((item) => item.id + 1))
-  }
-
-  function buyMachine(machine: (typeof shopMachines)[number]) {
-    if (balance < machine.price) {
-      setMessage('Saldo insuficiente para esta compra.')
-      return
-    }
-
-    const newMachine: Machine = { ...machine, id: nextMachineId(), roomId: 0 }
-    setBalance((value) => value - machine.price)
-    setInventory((value) => [...value, newMachine])
-    logAction(`Compra de ${machine.name}: -${machine.price.toLocaleString('pt-BR')} PC`)
-    setMessage(`${machine.name} adquirido e enviado ao inventário!`)
   }
 
   function installMachine(machine: Machine) {
