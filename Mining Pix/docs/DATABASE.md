@@ -193,3 +193,52 @@ A função `get_player_room_summaries()` retorna somente salas ativas do usuári
 - private.get_revenue_period_summary(p_period_start, p_period_end): agrega recebimentos e deduções pela janela de settled_at; somente service_role.
 
 O ledger ainda não recebe eventos de gateway ou rede de anúncios. Não existe fechamento mensal, carry-forward de chargebacks tardios, alocação automática de receita, reserva financeira ou orçamento Pool integrado. A função de resumo não autoriza distribuição. Consulte docs/REVENUE_LEDGER.md e docs/MINING_POOL.md.
+
+
+## 10. Financial Intelligence Center — DEV
+
+### Ledgers privados
+
+- `private.operational_expense_entries`: despesas efetivamente pagas em centavos BRL; append-only, idempotentes e vinculadas a referência, data e administrador.
+- `private.financial_commitments`: obrigações abertas/pagas/canceladas. Obrigações comerciais usam BRL em centavos; compromissos de recompensa usam MC em `numeric(30,8)`, sem conversão.
+- `private.financial_commitment_events`: histórico append-only de criação, baixa e cancelamento.
+- `private.reserve_fund_movements`: aportes/retiradas contábeis em centavos BRL; retirada não excede o saldo.
+- `private.financial_admin_events`: trilha append-only das operações financeiras administrativas.
+- `private.financial_expense_month_closings`: fechamento imutável de meses completos, com total de despesas capturado no fechamento.
+- `private.economy_supply_snapshots`: snapshots manuais de oferta PC, carteiras, equipamentos, hashrate e jogadores.
+- `private.player_activity_events`: telemetria de sessão e gameplay, sem autoridade para conceder recompensas.
+
+### RPCs e Edge Function
+
+- `public.admin_financial_snapshot()`: read model validado por `auth.uid()` e `app_metadata.admin=true`.
+- `public.admin_capture_economy_snapshot()`: captura manual de snapshot PC, somente admin.
+- `public.admin_close_expense_month(...)`: fechamento de mês completo, service-role-only.
+- `public.admin_record_operational_expense(...)`: lançamento idempotente de despesa efetivamente paga; bloqueia novas despesas retroativas em mês fechado.
+- `public.admin_create_financial_commitment(...)`: registra compromisso BRL ou MC separado.
+- `public.admin_record_reserve_movement(...)`: registra aporte/retirada contábil com lock e idempotência.
+- `public.admin_transition_financial_commitment(...)`: baixa de compromisso BRL vinculada a despesa de valor igual ou cancelamento auditado.
+- Edge Function `admin-finance`: JWT obrigatório, origem permitida, validação de usuário/claim admin e service role exclusivamente no backend.
+
+### Regras de reserva e previsão
+
+- Meta da reserva = soma das despesas pagas dos três últimos meses completos.
+- A meta só é exibida como válida após os três meses estarem fechados.
+- Fechamento captura o total do mês, é append-only e bloqueia novas despesas retroativas. Fluxo de ajustes de mês fechado ainda não existe.
+- Previsão de receita para o próximo mês = média simples da receita líquida conciliada dos três últimos meses completos; não é garantia.
+- Alocação de referência aprovada: 30% Pool, 30% reserva, 30% operação/desenvolvimento, 10% administração. Ainda não movimenta fundos automaticamente.
+- Compromissos de recompensa são exibidos por vencimento em MC e nunca convertidos para BRL.
+
+### Telemetria e economia virtual
+
+- `public.record_player_activity_event(...)` grava eventos autenticados para analytics; sessão tem throttle de 15 minutos.
+- Início/conclusão de partidas são eventos client-reported, não prova de vitória elegível, HASH ou recompensa.
+- Inflação monetária inicial é acompanhada por oferta PC, emissão e sinks. Índice de preços requer cesta versionada de itens/serviços; ainda não implementado.
+- Snapshots PC são manuais; comparativo de 30 dias requer uma linha de base com pelo menos 30 dias.
+
+### Segurança e QA
+
+- Tabelas privadas com RLS e sem grants diretos a clientes.
+- Operações administrativas passam pela Edge Function e RPCs service-role-only, com revalidação do administrador no banco.
+- Ledgers e auditoria são append-only; termos de compromissos são imutáveis.
+- QA DEV transacional cobriu despesas, compromissos BRL/MC, baixa vinculada, idempotência, aportes, retirada insuficiente, fechamento de três meses, snapshot de total, bloqueio de lançamento retroativo e retry após fechamento. Todos os testes foram revertidos.
+- Nenhuma receita, despesa, compromisso, movimento de reserva, evento de atividade ou snapshot de teste permanece persistido.
