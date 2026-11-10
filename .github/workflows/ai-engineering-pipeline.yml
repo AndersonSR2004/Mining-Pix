@@ -70,7 +70,7 @@ jobs:
           TEST_STATUS=0
           mapfile -d '' TEST_FILES < <(find tests -type f -name '*.test.mjs' -print0 2>/dev/null)
           if [ "${#TEST_FILES[@]}" -gt 0 ]; then
-            node --experimental-strip-types --test "\${TEST_FILES[@]}"
+            node --experimental-strip-types --test "${TEST_FILES[@]}"
             TEST_STATUS=$?
             echo "- Node test suite: $([ "$TEST_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $TEST_STATUS))" >> "$REPORT"
           else
