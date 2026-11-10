@@ -100,6 +100,7 @@ jobs:
       - name: Run specialist review and create report
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ENABLE_GEMINI_REVIEW: ${{ vars.ENABLE_GEMINI_REVIEW }}
           GEMINI_MODEL: gemini-2.5-flash
           SPECIALIST: ${{ steps.select.outputs.specialist }}
           ROLE_FILE: ${{ steps.select.outputs.role_file }}
@@ -171,12 +172,11 @@ jobs:
           ]
 
           api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-          if not api_key:
+          if not api_key or os.environ.get("ENABLE_GEMINI_REVIEW", "").lower() != "true":
               report += [
                   "## AI analysis not configured",
                   "",
-                  "The scheduled shift and repository tests ran, but the specialist model review was skipped because the repository secret GEMINI_API_KEY is not configured.",
-                  "To activate model-based specialist analysis, add GEMINI_API_KEY under GitHub repository Settings → Secrets and variables → Actions. This may incur separate provider charges.",
+                  "The scheduled shift and configuration validation ran, but model analysis was skipped. Enable it only by setting the repository variable ENABLE_GEMINI_REVIEW=true and configuring GEMINI_API_KEY. Provider usage may incur separate charges.",
                   ""
               ]
           else:
@@ -229,7 +229,7 @@ jobs:
                       ""
                   ]
                   pathlib.Path("specialist-report.md").write_text("\n".join(report), encoding="utf-8")
-                  raise SystemExit("Specialist model request failed; diagnostic report was saved.")
+                  print("Specialist model request failed; diagnostic report was saved. The shift remains non-blocking.")
 
           pathlib.Path("specialist-report.md").write_text("\n".join(report), encoding="utf-8")
           print("Specialist report generated; no repository files were modified.")
