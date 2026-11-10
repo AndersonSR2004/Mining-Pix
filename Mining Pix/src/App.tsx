@@ -996,8 +996,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         </div>
         <div className="panel page-panel">
           <div className="panel-heading"><h2>Níveis e benefícios</h2><span className="equipment-count">JANELA MÓVEL · 30 DIAS</span></div>
-          <div className="admin-table-wrap">
-            <table className="admin-table">
+          <div className="vip-table-wrap">
+            <table className="vip-level-table">
               <thead><tr><th>Nível</th><th>Recargas elegíveis</th><th>XP de missões</th><th>Desconto na tarifa própria*</th><th>Recarga grátis</th><th>Boost HASH</th><th>Energia</th></tr></thead>
               <tbody>
                 {vipProgramLevels.map((level) => (
