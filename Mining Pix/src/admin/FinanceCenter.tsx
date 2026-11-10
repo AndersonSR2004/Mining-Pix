@@ -8,6 +8,7 @@ type ExpenseItem = { id: string; category: string; description: string; amount_c
 type CommitmentItem = { id: string; commitment_type: string; category: string; description: string; amount_cents: number | string | null; amount_mc: number | string | null; due_date: string; status: string; created_at: string }
 type ReserveMovement = { id: string; movement_type: string; signed_amount_cents: number | string; source_reference: string; reason: string; created_at: string }
 type RewardCommitmentMonth = { month: string; amount_mc: number | string }
+type ExpenseMonthClose = { month_start: string; closed_at: string; closed_by: string; reason: string }
 type FinancialAdminEvent = { id: string; actor_user_id: string; event_type: string; entity_type: string; entity_id: string; amount_cents: number | string | null; amount_mc: number | string | null; reason: string; created_at: string }
 type FinanceSnapshot = {
   generated_at: string
@@ -20,7 +21,9 @@ type FinanceSnapshot = {
   revenue_forecast_next_month_cents: number | string
   forecast_method: string
   expenses_last_3_full_months_cents: number | string
-  reserve_target_cents: number | string
+  reserve_target_cents: number | string | null
+  reserve_history_complete: boolean
+  reserve_closed_months_count: number
   reserve_balance_cents: number | string
   reserve_gap_cents: number | string
   reserve_coverage_ratio: number | string | null
@@ -36,6 +39,7 @@ type FinanceSnapshot = {
   recent_commitments: CommitmentItem[]
   recent_reserve_movements: ReserveMovement[]
   reward_commitments_monthly: RewardCommitmentMonth[]
+  expense_month_closings: ExpenseMonthClose[]
   recent_financial_events: FinancialAdminEvent[]
 }
 
@@ -46,6 +50,7 @@ const integer = (value: number | string | null | undefined) =>
 const decimal = (value: number | string | null | undefined, digits = 2) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(Number(value ?? 0))
 const localDate = () => { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
+const previousMonth = () => { const now = new Date(); const first = new Date(now.getFullYear(), now.getMonth() - 1, 1); return first.getFullYear() + '-' + String(first.getMonth() + 1).padStart(2, '0') }
 const amountToCents = (value: string) => {
   const normalized = value.trim().replace(',', '.')
   if (!/^\d{1,12}(\.\d{1,2})?$/.test(normalized)) throw new Error('Informe um valor monetário válido com até duas casas decimais.')
@@ -86,6 +91,10 @@ export default function FinanceCenter() {
   const [reserveSource, setReserveSource] = useState('')
   const [reserveReason, setReserveReason] = useState('')
   const [reserveBusy, setReserveBusy] = useState(false)
+  const [closeMonthValue, setCloseMonthValue] = useState(previousMonth())
+  const [closeMonthReason, setCloseMonthReason] = useState('')
+  const [closeMonthBusy, setCloseMonthBusy] = useState(false)
+  const [closeMonthRequestId, setCloseMonthRequestId] = useState(() => crypto.randomUUID())
   const [selectedCommitmentId, setSelectedCommitmentId] = useState('')
   const [transitionStatus, setTransitionStatus] = useState<'paid' | 'cancelled'>('paid')
   const [transitionExpenseId, setTransitionExpenseId] = useState('')
@@ -159,6 +168,20 @@ export default function FinanceCenter() {
       setCommitmentSource(''); setCommitmentReason(''); setCommitmentRequestId(crypto.randomUUID()); await load()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o compromisso.') }
     finally { setCommitmentBusy(false) }
+  }
+
+  async function submitMonthClose(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setCloseMonthBusy(true); setError(''); setMessage('')
+    try {
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', {
+        body: { action: 'close_expense_month', month: closeMonthValue, idempotency_key: closeMonthRequestId, reason: closeMonthReason.trim() },
+      })
+      if (invokeError) throw invokeError
+      if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o fechamento mensal.')
+      setMessage(result.duplicate ? 'Este mês já estava fechado com a mesma solicitação.' : 'Mês fechado. A meta da reserva será recalculada quando os três últimos meses completos estiverem fechados.')
+      setCloseMonthReason(''); setCloseMonthRequestId(crypto.randomUUID()); await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível fechar o mês.') }
+    finally { setCloseMonthBusy(false) }
   }
 
   async function submitCommitmentTransition(event: FormEvent<HTMLFormElement>) {
@@ -239,7 +262,7 @@ export default function FinanceCenter() {
         <article className="admin-stat"><span>PREVISÃO · PRÓXIMO MÊS</span><strong>{brl(data.revenue_forecast_next_month_cents)}</strong><small>Média simples dos três últimos meses completos</small></article>
         <article className="admin-stat"><span>COMPROMISSOS FINANCEIROS EM ABERTO</span><strong>{brl(data.commitments_open_brl_cents)}</strong><small>{brl(data.commitments_due_30d_brl_cents)} vencem nos próximos 30 dias</small></article>
         <article className="admin-stat"><span>RESERVA FINANCEIRA</span><strong>{brl(data.reserve_balance_cents)}</strong><small>Saldo registrado por movimentos auditáveis</small></article>
-        <article className="admin-stat"><span>META DA RESERVA · 3 MESES</span><strong>{brl(data.reserve_target_cents)}</strong><small>Soma das despesas efetivas dos três últimos meses completos</small></article>
+        <article className="admin-stat"><span>META DA RESERVA · 3 MESES</span><strong>{data.reserve_history_complete ? brl(data.reserve_target_cents) : 'Aguardando fechamento'}</strong><small>Soma das despesas efetivas dos três últimos meses completos, após conciliação mensal</small></article>
         <article className="admin-stat"><span>COMPROMISSOS DE RECOMPENSA</span><strong>{decimal(data.commitments_open_mc, 8)} MC</strong><small>Separados de obrigações em BRL; sem valor de resgate atribuído</small></article>
       </div>
 
@@ -324,13 +347,24 @@ export default function FinanceCenter() {
       </section>
 
       <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">FECHAMENTO CONTÁBIL</span><h2>Conferir e fechar mês de despesas</h2></div><span>{data.reserve_closed_months_count}/3 meses fechados</span></div>
+        <div className="finance-notice"><strong>Fechamento irreversível</strong><span>Feche somente depois de confirmar que todas as despesas efetivamente pagas naquele mês foram registradas. Um mês fechado não pode ser editado ou reaberto por esta interface.</span></div>
+        <form className="finance-reserve-form" onSubmit={(event) => void submitMonthClose(event)}>
+          <label>Mês concluído<input type="month" value={closeMonthValue} max={previousMonth()} onChange={(event) => setCloseMonthValue(event.target.value)} required /></label>
+          <label className="finance-close-reason">Confirmação e justificativa<textarea value={closeMonthReason} onChange={(event) => setCloseMonthReason(event.target.value)} minLength={10} maxLength={500} placeholder="Confirmei as despesas pagas e os documentos do mês..." required /></label>
+          <button className="admin-primary" type="submit" disabled={closeMonthBusy || closeMonthReason.trim().length < 10}>{closeMonthBusy ? 'FECHANDO...' : 'FECHAR MÊS CONTÁBIL'}</button>
+        </form>
+        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Mês</th><th>Fechamento</th><th>Justificativa</th></tr></thead><tbody>{data.expense_month_closings.length === 0 ? <tr><td colSpan={3}>Nenhum mês fechado.</td></tr> : data.expense_month_closings.map((item) => <tr key={item.month_start}><td>{item.month_start.slice(0, 7)}</td><td>{new Date(item.closed_at).toLocaleString('pt-BR')}</td><td>{item.reason}</td></tr>)}</tbody></table></div>
+      </section>
+
+      <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">SOLVÊNCIA E LIQUIDEZ</span><h2>Fundo de garantia</h2></div><span>Meta móvel baseada em despesas reais</span></div>
         <div className="finance-reserve-row">
-          <div><strong>{reserveCoverage === null ? 'Sem histórico suficiente' : `${decimal(reserveCoverage)}% coberto`}</strong><small>Saldo atual: {brl(data.reserve_balance_cents)} · Meta: {brl(data.reserve_target_cents)}</small></div>
-          <strong className="finance-gap">{brl(data.reserve_gap_cents)} <small>para atingir a meta</small></strong>
+          <div><strong>{reserveCoverage === null ? 'Histórico incompleto · ' + data.reserve_closed_months_count + '/3 meses fechados' : `${decimal(reserveCoverage)}% coberto`}</strong><small>Saldo atual: {brl(data.reserve_balance_cents)} · Meta: {data.reserve_history_complete ? brl(data.reserve_target_cents) : 'aguardando fechamento'}</small></div>
+          <strong className="finance-gap">{data.reserve_history_complete ? brl(data.reserve_gap_cents) : '—'} <small>{data.reserve_history_complete ? 'para atingir a meta' : 'meta ainda não validada'}</small></strong>
         </div>
         <div className="finance-progress"><span style={{ width: `${reserveCoverage ?? 0}%` }} /></div>
-        <p className="admin-empty">A meta equivale à soma das despesas operacionais efetivamente pagas nos três últimos meses completos. Aporte e retirada ainda não são automáticos.</p>
+        <p className="admin-empty">A meta equivale à soma das despesas operacionais efetivamente pagas nos três últimos meses completos, mas só é considerada válida depois de fechar os três meses. Aporte e retirada ainda não são automáticos.</p>
       </section>
 
       <div className="finance-chart-grid">
