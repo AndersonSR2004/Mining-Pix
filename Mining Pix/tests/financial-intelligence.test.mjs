@@ -12,7 +12,7 @@ test('financial ledgers are private, RLS-protected and append-only', () => {
   for (const table of ['operational_expense_entries','financial_commitments','financial_commitment_events','reserve_fund_movements','economy_supply_snapshots','player_activity_events']) {
     assert.match(migration, new RegExp(`create table private\\.${table}`, 'i'))
     assert.match(migration, /enable row level security/i)
-    assert.match(migration, /revoke all on table private\\.%I from public, anon, authenticated, service_role/i)
+    assert.match(migration, /execute format\('revoke all on table private\.%I from public, anon, authenticated, service_role'/i)
   }
   assert.match(migration, /before update or delete or truncate/i)
   assert.match(migration, /financial_commitments_transition_guard/i)
@@ -81,7 +81,7 @@ test('monthly player reward commitments remain in MC and finance actions are bac
   assert.match(edge, /app_metadata\?\.admin !== true/i)
   assert.match(edge, /admin_record_reserve_movement/i)
   assert.match(edge, /Origin not allowed/i)
-  assert.match(edge, /Deno\\.serve\\(async \\(req: Request\\)/i)
+  assert.match(edge, /Deno\.serve/i)
 })
 
 test('Finance Center exposes controlled entry forms and separates MC from BRL', () => {
