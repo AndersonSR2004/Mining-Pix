@@ -176,6 +176,47 @@ $$;
 revoke all on function public.purchase_equipment(text, text) from public, anon;
 grant execute on function public.purchase_equipment(text, text) to authenticated;
 
+-- Authoritative daily game attempt accounting and bounded game rewards.
+create table if not exists public.player_game_attempts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  game_id text not null check (game_id in ('flappy_games', 'snake_games', 'coin_catch_games')),
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  won boolean,
+  pc_awarded integer not null default 0 check (pc_awarded in (0, 1)),
+  hash_awarded numeric(10,2) not null default 0 check (hash_awarded in (0, 1)),
+  constraint player_game_attempts_finish_state_check
+    check ((finished_at is null and won is null) or (finished_at is not null and won is not null))
+);
+
+create index if not exists player_game_attempts_user_game_started_idx
+  on public.player_game_attempts(user_id, game_id, started_at desc);
+
+alter table public.player_game_attempts enable row level security;
+revoke all on public.player_game_attempts from public, anon, authenticated;
+grant select on public.player_game_attempts to authenticated;
+create policy player_game_attempts_select_own
+  on public.player_game_attempts for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+create table if not exists public.player_game_hash_boosts (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  active_hashrate numeric(10,2) not null default 0 check (active_hashrate >= 0),
+  expires_at timestamptz,
+  updated_at timestamptz not null default now(),
+  constraint player_game_hash_boosts_expiry_check
+    check ((active_hashrate = 0 and expires_at is null) or (active_hashrate > 0 and expires_at is not null))
+);
+
+alter table public.player_game_hash_boosts enable row level security;
+revoke all on public.player_game_hash_boosts from public, anon, authenticated;
+grant select on public.player_game_hash_boosts to authenticated;
+create policy player_game_hash_boosts_select_own
+  on public.player_game_hash_boosts for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+
 create or replace function public.get_player_mining_summary()
 returns table(total_hashrate numeric, installed_equipment_count bigint, room_count bigint, total_room_capacity bigint)
 language sql stable security invoker set search_path = ''
@@ -416,46 +457,6 @@ begin
   );
 end;
 $$;
-
--- Authoritative daily game attempt accounting and bounded game rewards.
-create table if not exists public.player_game_attempts (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  game_id text not null check (game_id in ('flappy_games', 'snake_games', 'coin_catch_games')),
-  started_at timestamptz not null default now(),
-  finished_at timestamptz,
-  won boolean,
-  pc_awarded integer not null default 0 check (pc_awarded in (0, 1)),
-  hash_awarded numeric(10,2) not null default 0 check (hash_awarded in (0, 1)),
-  constraint player_game_attempts_finish_state_check
-    check ((finished_at is null and won is null) or (finished_at is not null and won is not null))
-);
-
-create index if not exists player_game_attempts_user_game_started_idx
-  on public.player_game_attempts(user_id, game_id, started_at desc);
-
-alter table public.player_game_attempts enable row level security;
-revoke all on public.player_game_attempts from public, anon, authenticated;
-grant select on public.player_game_attempts to authenticated;
-create policy player_game_attempts_select_own
-  on public.player_game_attempts for select to authenticated
-  using ((select auth.uid()) = user_id);
-
-create table if not exists public.player_game_hash_boosts (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  active_hashrate numeric(10,2) not null default 0 check (active_hashrate >= 0),
-  expires_at timestamptz,
-  updated_at timestamptz not null default now(),
-  constraint player_game_hash_boosts_expiry_check
-    check ((active_hashrate = 0 and expires_at is null) or (active_hashrate > 0 and expires_at is not null))
-);
-
-alter table public.player_game_hash_boosts enable row level security;
-revoke all on public.player_game_hash_boosts from public, anon, authenticated;
-grant select on public.player_game_hash_boosts to authenticated;
-create policy player_game_hash_boosts_select_own
-  on public.player_game_hash_boosts for select to authenticated
-  using ((select auth.uid()) = user_id);
 
 create or replace function public.start_player_game_attempt(p_game_id text)
 returns jsonb
