@@ -376,7 +376,7 @@ export default function FinanceCenter() {
           <article className="admin-stat"><span>JOGADORES ATIVOS · 30 DIAS</span><strong>{integer(data.player_activity.unique_players_30d)}</strong><small>Eventos registrados no módulo de atividade</small></article>
           <article className="admin-stat"><span>EVENTOS · 24 HORAS</span><strong>{integer(data.player_activity.events_24h)}</strong><small>Eventos de sessão e gameplay</small></article>
         </div>
-        <div className="finance-notice"><strong>Telemetria ainda não conectada</strong><span>{data.player_activity.telemetry_status} Até a integração, os zeros significam ausência de coleta, não ausência de jogadores ativos. Eventos enviados pelo cliente serão métricas de produto, nunca prova para gerar recompensas.</span></div>
+        <div className="finance-notice"><strong>Telemetria inicial ativa</strong><span>{data.player_activity.telemetry_status} A cobertura atual inclui sessões autenticadas e início/conclusão de partidas. Os zeros indicam ausência de eventos observados na janela, não ausência de jogadores cadastrados. Eventos client-reported são analytics, nunca prova para gerar recompensas.</span></div>
       </section>
 
       <section className="admin-panel">
