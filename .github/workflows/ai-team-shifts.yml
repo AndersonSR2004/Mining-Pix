@@ -7,7 +7,7 @@ on:
   schedule:
     # Six specialist shifts, one every four hours (UTC).
     # Each specialist returns once every 24 hours, leaving 20 hours between shifts.
-    - cron: "0 */4 * * *"
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       specialist:
@@ -50,12 +50,13 @@ jobs:
           HOUR="$(date -u +%H)"
           REQUESTED="${REQUESTED_SPECIALIST:-automatic}"
           case "$HOUR" in
-            00|01|02|03) SLOT="architect";;
-            04|05|06|07) SLOT="developer";;
-            08|09|10|11) SLOT="security";;
-            12|13|14|15) SLOT="finance";;
-            16|17|18|19) SLOT="game-economy";;
-            *) SLOT="qa";;
+            00|12) SLOT="architect";;
+            02|14) SLOT="developer";;
+            04|16) SLOT="security";;
+            06|18) SLOT="finance";;
+            08|20) SLOT="game-economy";;
+            10|22) SLOT="qa";;
+            *) echo "Unexpected scheduled hour: $HOUR"; exit 1;;
           esac
           if [ "$REQUESTED" != "automatic" ]; then SLOT="$REQUESTED"; fi
           case "$SLOT" in
