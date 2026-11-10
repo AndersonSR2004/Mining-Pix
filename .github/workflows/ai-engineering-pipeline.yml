@@ -1,0 +1,115 @@
+name: Mining Pix — Engineering Pipeline
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Run diagnostics or prepare narrowly scoped safe lint fixes"
+        required: true
+        type: choice
+        options: [validate, prepare_safe_fixes]
+        default: validate
+permissions:
+  contents: read
+concurrency:
+  group: mining-pix-engineering-pipeline
+  cancel-in-progress: false
+jobs:
+  engineering:
+    name: Validate and optionally propose safe fixes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/mining-pix-work
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "Mining Pix/package-lock.json"
+      - name: Install locked dependencies
+        working-directory: Mining Pix
+        run: npm ci
+      - name: Prepare safe lint fixes (manual opt-in only)
+        if: inputs.operation == 'prepare_safe_fixes'
+        working-directory: Mining Pix
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d src
+          npx oxlint --fix src
+      - name: Run engineering checks
+        id: validate
+        working-directory: Mining Pix
+        shell: bash
+        run: |
+          set +e
+          REPORT="$GITHUB_WORKSPACE/engineering-report.md"
+          {
+            echo "# Mining Pix — Engineering Pipeline Report"
+            echo
+            echo "- Operation: \${{ inputs.operation }}"
+            echo "- Source branch: codex/mining-pix-work"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo
+            echo "## Checks"
+          } > "$REPORT"
+          npm run lint
+          LINT_STATUS=$?
+          echo "- Oxlint: $([ "$LINT_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $LINT_STATUS))" >> "$REPORT"
+          npm run build
+          BUILD_STATUS=$?
+          echo "- TypeScript/Vite build: $([ "$BUILD_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $BUILD_STATUS))" >> "$REPORT"
+          TEST_STATUS=0
+          mapfile -d '' TEST_FILES < <(find tests -type f -name '*.test.mjs' -print0 2>/dev/null)
+          if [ "\${#TEST_FILES[@]}" -gt 0 ]; then
+            node --experimental-strip-types --test "\${TEST_FILES[@]}"
+            TEST_STATUS=$?
+            echo "- Node test suite: $([ "$TEST_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $TEST_STATUS))" >> "$REPORT"
+          else
+            echo "- Node test suite: NOT CONFIGURED (no tests/*.test.mjs files found)" >> "$REPORT"
+          fi
+          echo >> "$REPORT"
+          if [ "$LINT_STATUS" -eq 0 ] && [ "$BUILD_STATUS" -eq 0 ] && [ "$TEST_STATUS" -eq 0 ]; then
+            echo "## Result" >> "$REPORT"
+            echo "All configured blocking checks passed." >> "$REPORT"
+          else
+            echo "## Result" >> "$REPORT"
+            echo "One or more blocking checks failed. No engineering PR will be opened." >> "$REPORT"
+            exit 1
+          fi
+      - name: Upload engineering report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mining-pix-engineering-report-\${{ github.run_number }}
+          path: engineering-report.md
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Open a review PR for safe lint fixes
+        if: inputs.operation == 'prepare_safe_fixes' && steps.validate.outcome == 'success'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: \${{ secrets.GITHUB_TOKEN }}
+          branch: codex/engineering-safe-fixes
+          base: codex/mining-pix-work
+          delete-branch: false
+          commit-message: "chore: apply safe Oxlint fixes"
+          title: "Engineering: safe automated lint fixes"
+          body: |
+            ## Automated engineering proposal
+            This PR was created by the manually dispatched Engineering Pipeline.
+            - Source: \`codex/mining-pix-work\`
+            - Scope: Oxlint safe autofixes limited to \`Mining Pix/src\`
+            - Validation: lint, build, and any discovered Node test files passed after the fixes.
+            - No main-branch changes, merges, deployments, Supabase operations, or economy/payment changes were performed.
+            **Human review and approval are required. Do not merge automatically.**
+          add-paths: |
+            Mining Pix/src/**
