@@ -55,13 +55,13 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 
 ## Próximas etapas
 
-1. Edge Function administrativa para registrar despesas pagas, compromissos e movimentos de reserva, com idempotência, motivo e auditoria.
-2. Fluxo de baixa de compromissos que cria despesa real associada sem duplicidade.
-3. Telemetria de atividade no cliente e eventos confiáveis do backend, claramente separados.
-4. Índice interno de preços de itens e serviços com cesta versionada para medir inflação de preços da economia virtual.
-5. Integração de provedores de pagamento e publicidade após seleção e validação.
-6. Fechamento mensal, provisões, ajustes tardios, reserva e motor de alocação.
-7. Depois, integração de HASH-hora e orçamento BRL da Mining Pool sem habilitar emissão MC.
+1. Integrar provedores de pagamento e publicidade após seleção e validação.
+2. Implementar conciliação automática, fechamento mensal, provisões e tratamento de chargebacks tardios.
+3. Implementar motor de alocação 30/30/30/10 e aporte automático condicionado à meta da reserva.
+4. Criar cesta versionada de itens/serviços para medir inflação de preços da economia virtual.
+5. Ampliar telemetria com eventos server-side de compras/instalações e métricas de retenção/coortes.
+6. Automatizar snapshots econômicos diários e relatórios recorrentes.
+7. Integrar HASH-hora e orçamento BRL da Mining Pool sem habilitar emissão MC.
 
 ## Segurança
 
@@ -79,3 +79,12 @@ Tabelas no schema privado, RLS habilitado, sem acesso direto de anon/authenticat
 - Chaves idempotentes permanecem estáveis no cliente em caso de retry até confirmação.
 - Painel mostra despesas recentes, compromissos, cronograma mensal de obrigações MC e auditoria financeira.
 - Telemetria inicial registra sessão autenticada, início e conclusão de partidas; não participa de cálculos de recompensa.
+
+
+## Indicadores acumulados e liquidação de compromissos
+
+- Receita líquida acumulada do Revenue Ledger, despesas efetivas acumuladas e resultado operacional registrado (antes de compromissos ainda não pagos).
+- Compromissos MC agrupados por mês de vencimento, sempre sem conversão BRL.
+- Compromissos BRL podem ser baixados como pagos somente quando vinculados a uma despesa efetiva de mesmo valor. Uma despesa não pode liquidar dois compromissos.
+- Compromissos MC não podem ser marcados como pagos enquanto o mecanismo de liquidação MC não estiver habilitado; podem ser cancelados com motivo auditado.
+- Telemetria inicial ativa para sessão autenticada e início/conclusão de partidas. Eventos de cliente não autorizam recompensas, HASH ou emissão.
