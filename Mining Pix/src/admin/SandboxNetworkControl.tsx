@@ -93,6 +93,12 @@ export default function SandboxNetworkControl() {
     } finally { setBusy(false) }
   }
 
+  useEffect(() => {
+    if (remaining === 0 && snapshot?.open_block && !busy) {
+      void settle(false)
+    }
+  }, [remaining, busy, snapshot?.open_block?.id])
+
   async function saveRewards() {
     if (!sessionId || !snapshot?.open_block) return
     setBusy(true); setError(''); setMessage('')
