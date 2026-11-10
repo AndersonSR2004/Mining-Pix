@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
 import FinanceCenter from './FinanceCenter'
+import SandboxNetworkControl from './SandboxNetworkControl'
 
 type AdminTransaction = {
   id: string
@@ -64,7 +65,7 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
-  const [activeSection, setActiveSection] = useState<'operations' | 'finance'>('operations')
+  const [activeSection, setActiveSection] = useState<'operations' | 'finance' | 'sandbox'>('operations')
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
   const [directory, setDirectory] = useState<AdminDirectory | null>(null)
   const [directorySearch, setDirectorySearch] = useState('')
@@ -243,8 +244,9 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
         <nav className="admin-section-nav" aria-label="Seções do Admin Center">
           <button className={activeSection === 'operations' ? 'active' : ''} onClick={() => setActiveSection('operations')}>CENTRO OPERACIONAL</button>
           <button className={activeSection === 'finance' ? 'active' : ''} onClick={() => setActiveSection('finance')}>FINANCIAL INTELLIGENCE</button>
+          <button className={activeSection === 'sandbox' ? 'active' : ''} onClick={() => setActiveSection('sandbox')}>NETWORK CONTROL</button>
         </nav>
-        {activeSection === 'finance' ? <FinanceCenter /> : <>
+        {activeSection === 'finance' ? <FinanceCenter /> : activeSection === 'sandbox' ? <SandboxNetworkControl /> : <>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
