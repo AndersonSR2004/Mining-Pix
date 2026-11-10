@@ -140,11 +140,10 @@ begin
   end if;
 
   if v_item.blessing_min_percent is not null then
-    v_blessing := round(
+    v_blessing := round((
       v_item.blessing_min_percent
-      + random() * (v_item.blessing_max_percent - v_item.blessing_min_percent),
-      2
-    );
+      + random() * (v_item.blessing_max_percent - v_item.blessing_min_percent)
+    )::numeric, 2);
   end if;
 
   v_balance_after := v_wallet.balance - v_item.price_pc;
