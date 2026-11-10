@@ -49,7 +49,7 @@ test('finance dashboard is admin-only and exposes policy, forecast, supply and a
   assert.match(admin, /FinanceCenter/)
   assert.match(admin, /FINANCIAL INTELLIGENCE/)
   assert.match(dashboard, /Aguardando linha de base/)
-  assert.match(dashboard, /Telemetria ainda não conectada/)
+  assert.match(dashboard, /Telemetria inicial ativa/)
 })
 
 const operations = readFileSync(new URL('../supabase/migrations/20261111040000_financial_admin_operations.sql', import.meta.url), 'utf8')
