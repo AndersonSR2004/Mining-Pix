@@ -93,3 +93,13 @@ body{min-width:320px;background:#090d14}
 .finance-allocation-grid span{color:#a4b1bf;font-size:11px;line-height:1.4}
 @media(max-width:850px){.finance-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-chart-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.finance-stat-grid{grid-template-columns:1fr}.finance-actions{width:100%}.finance-actions button{flex:1}.finance-allocation-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-reserve-row,.finance-snapshot-row{align-items:flex-start;flex-direction:column}.finance-bar-row{grid-template-columns:48px minmax(35px,1fr) 74px;gap:7px}}
+
+.finance-entry-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.finance-entry-grid .admin-panel{margin:0;min-width:0}
+.finance-center .admin-note-form select,.finance-reserve-form select,.finance-reserve-form input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #2a3948;border-radius:9px;background:#0b121a;color:#f2f6fb;font:inherit}
+.finance-center .admin-note-form select:focus,.finance-reserve-form select:focus,.finance-reserve-form input:focus{outline:1px solid #63e7a1;border-color:#63e7a1}
+.finance-reserve-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:12px}
+.finance-reserve-form label{display:grid;gap:7px;color:#cbd5df;font-size:12px}
+.finance-reserve-form button{min-height:42px}
+@media(max-width:850px){.finance-entry-grid{grid-template-columns:1fr}.finance-reserve-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.finance-reserve-form{grid-template-columns:1fr}}
