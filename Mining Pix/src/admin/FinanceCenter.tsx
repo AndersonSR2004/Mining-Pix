@@ -7,6 +7,8 @@ type EconomySnapshot = { captured_at: string; pc_supply: number | string; wallet
 type ExpenseItem = { id: string; category: string; description: string; amount_cents: number | string; expense_date: string; paid_at: string; vendor_reference: string | null }
 type CommitmentItem = { id: string; commitment_type: string; category: string; description: string; amount_cents: number | string | null; amount_mc: number | string | null; due_date: string; status: string; created_at: string }
 type ReserveMovement = { id: string; movement_type: string; signed_amount_cents: number | string; source_reference: string; reason: string; created_at: string }
+type RewardCommitmentMonth = { month: string; amount_mc: number | string }
+type FinancialAdminEvent = { id: string; actor_user_id: string; event_type: string; entity_type: string; entity_id: string; amount_cents: number | string | null; amount_mc: number | string | null; reason: string; created_at: string }
 type FinanceSnapshot = {
   generated_at: string
   revenue_months: MonthRevenue[]
@@ -30,6 +32,8 @@ type FinanceSnapshot = {
   recent_expenses: ExpenseItem[]
   recent_commitments: CommitmentItem[]
   recent_reserve_movements: ReserveMovement[]
+  reward_commitments_monthly: RewardCommitmentMonth[]
+  recent_financial_events: FinancialAdminEvent[]
 }
 
 const brl = (value: number | string | null | undefined) =>
@@ -255,6 +259,12 @@ export default function FinanceCenter() {
       </section>
 
       <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">PREVISÃO DE OBRIGAÇÕES</span><h2>Compromissos de recompensa por mês</h2></div><span>Somente MC</span></div>
+        <div className="finance-bars">{data.reward_commitments_monthly.map((item) => <div className="finance-bar-row" key={item.month}><span>{monthLabel(item.month)}</span><div className="finance-bar-track"><i style={{ width: `${Math.min(100, Number(item.amount_mc) / Math.max(1, ...data.reward_commitments_monthly.map((row) => Number(row.amount_mc))) * 100)}%` }} /></div><strong>{decimal(item.amount_mc, 8)} MC</strong></div>)}</div>
+        <p className="admin-empty">Valores registrados como compromissos de recompensa, sem conversão para BRL. Como a emissão MC permanece bloqueada, este indicador não representa pagamento autorizado ou promessa de saque.</p>
+      </section>
+
+      <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">SOLVÊNCIA E LIQUIDEZ</span><h2>Fundo de garantia</h2></div><span>Meta móvel baseada em despesas reais</span></div>
         <div className="finance-reserve-row">
           <div><strong>{reserveCoverage === null ? 'Sem histórico suficiente' : `${decimal(reserveCoverage)}% coberto`}</strong><small>Saldo atual: {brl(data.reserve_balance_cents)} · Meta: {brl(data.reserve_target_cents)}</small></div>
@@ -308,6 +318,11 @@ export default function FinanceCenter() {
           <article className="admin-stat"><span>EVENTOS · 24 HORAS</span><strong>{integer(data.player_activity.events_24h)}</strong><small>Eventos de sessão e gameplay</small></article>
         </div>
         <div className="finance-notice"><strong>Telemetria ainda não conectada</strong><span>{data.player_activity.telemetry_status} Até a integração, os zeros significam ausência de coleta, não ausência de jogadores ativos. Eventos enviados pelo cliente serão métricas de produto, nunca prova para gerar recompensas.</span></div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">CONTROLES E RASTREABILIDADE</span><h2>Auditoria financeira</h2></div><span>Últimos 20 eventos</span></div>
+        {data.recent_financial_events.length === 0 ? <p className="admin-empty">Nenhuma operação financeira administrativa registrada.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Data</th><th>Ação</th><th>Entidade</th><th>Valor</th><th>Motivo</th></tr></thead><tbody>{data.recent_financial_events.map((event) => <tr key={event.id}><td>{new Date(event.created_at).toLocaleString('pt-BR')}</td><td>{event.event_type}</td><td>{event.entity_type} · {event.entity_id.slice(0, 8)}</td><td>{event.amount_mc !== null ? decimal(event.amount_mc, 8) + ' MC' : event.amount_cents !== null ? brl(event.amount_cents) : '—'}</td><td>{event.reason}</td></tr>)}</tbody></table></div>}
       </section>
 
       <p className="admin-generated">Dados consultados em {new Date(data.generated_at).toLocaleString('pt-BR')} · Financial Intelligence Center · Supabase DEV</p>
