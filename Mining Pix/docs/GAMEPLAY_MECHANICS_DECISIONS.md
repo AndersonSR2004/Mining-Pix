@@ -9,7 +9,7 @@
 
 | ID | Decisão | Regra aprovada | Limites |
 |---|---|---|---|
-| D-027 | Lucky Boxes | Uma caixa cosmética gratuita por conta/dia UTC; 70% cosmético comum, 25% incomum, 5% raro. Sem PC, MC, HASH, dinheiro ou itens negociáveis. | Aprovada e implementada no DEV; catálogo e probabilidades publicados em `docs/LUCKY_BOX_POLICY.md`. |
+| D-027 | Lucky Boxes cosméticas | A versão de uma caixa cosmética gratuita por dia UTC foi suspensa; nenhum cosmético foi lançado como recompensa ativa. | Suspensa em 10 nov 2026; substituída pela direção de D-046. |
 | D-028 | Energia por sala | Ao chegar a zero de energia, toda a mineração daquela sala é suspensa, incluindo HASH-base e bônus. A mineração só volta após restauração de energia. | Capacidade, consumo, duração, recarga, aquisição e fontes de energia continuam pendentes. |
 | D-029 | Escopo da forja | O sistema terá montagem, evolução e reciclagem de equipamentos. | Receitas, custos, limites, tempos e resultados não foram definidos. |
 | D-030 | Duplicatas | O jogador escolhe entre manter o equipamento duplicado no inventário ou desmontá-lo para obter peças. | Quantidade de peças, elegibilidade e eventuais custos de desmontagem continuam pendentes. |
@@ -363,7 +363,7 @@ D-034 e D-035 registram a separação conceitual e as faixas propostas pelo usu�
 | ID | Decisão | Regra | Estado |
 |---|---|---|---|
 | D-036 | Catálogo inicial FREE | Dez máquinas T0, Overclock 0%, Benção de Potência sorteada individualmente entre 0% e 20%, HASH-base crescente em passos de 5 H/s. | Aprovada e implementada no DEV |
-| D-037 | Recompensas e limite dos jogos | Regra original: vitória concedia 1 PC e +1 H/s temporário. O componente PC foi revogado por D-039; permanece apenas +1 H/s temporário por vitória. Limite de 30 partidas iniciadas por dia UTC, individualmente para cada jogo. Regras anteriores de níveis, metas, duração e cooldown são preservadas. | Parcialmente substituída por D-039; limite e HASH continuam ativos |
+| D-037 | Recompensas e limite dos jogos | Direção atual: atividades/jogos elegíveis poderão conceder PC, além do bônus temporário de HASH já previsto, respeitando limites e validação antifraude. O limite de 30 partidas iniciadas por dia UTC, individualmente por jogo, permanece. Valores de PC e elegibilidade exata ainda pendentes. | PC reautorizada conceitualmente por D-046; implementação e balanceamento pendentes |
 | D-038 | Ajustes de jogabilidade | Flappy Pix passa a usar animação por requestAnimationFrame e física baseada em delta time; Coin Catch reduz o volume de itens e impõe intervalo mínimo entre lançamentos. | Aprovada e implementada na branch |
 
 ### 13.1 Catálogo T0 inicial
@@ -489,3 +489,21 @@ Regras e salvaguardas propostas:
 Documento de modelagem: `docs/MINING_COIN_VARIABLE_REDEMPTION_MODEL.md`.
 
 Nenhuma conversão, cotação, emissão oficial, saque, pagamento, migration, alteração de saldo, ciclo real da Pool ou mudança de produção foi autorizada por P-045.
+
+
+## 18. Decisão D-046 — PC por progressão e Lucky Boxes por Tier (10 nov 2026)
+
+**Estado: direção de produto aprovada; parâmetros e implementação econômica pendentes.**
+
+- PIX COIN (PC) poderá ser obtida por missões, progressão do Passe de Batalha e atividades/jogos elegíveis. Isso substitui a restrição de PC exclusivamente comprada estabelecida em D-039.
+- Compras comerciais continuam sendo outra possível fonte de PC. PC não se converte em MINING COIN (MC).
+- Jogadores gratuitos poderão acumular PC por atividades e utilizá-la para obter Lucky Boxes; jogadores que desejarem acelerar poderão utilizar o próprio saldo PC já disponível/adquirido.
+- Lucky Boxes deixam de ser caixas cosméticas diárias gratuitas e voltam à direção de recompensas de máquinas por Tier e peças/componentes.
+- Direção de conteúdo já discutida: caixa comum com máquinas básicas/componentes de entrada; rara com máquinas intermediárias/peças raras; épica com máquinas avançadas/componentes especiais.
+- Lucky Boxes não concedem MC, dinheiro ou direito de saque. A distribuição de MC continua exclusiva da Mining Pool.
+- A implementação cosmética diária foi suspensa no DEV. O código de interface foi removido da navegação; tabelas e histórico de DEV são preservados, mas a RPC foi desativada e o catálogo cosmético foi inativado.
+- Ainda precisam ser definidos: custo de cada caixa em PC, fontes e quantidades de PC por missão/passe/jogo, probabilidades por recompensa, catálogo exato de máquinas e peças, regras de duplicatas, limites de aquisição e mecanismos antifraude.
+- O limite de 30 partidas por jogo/dia UTC permanece, mas recompensas de PC não devem ser ativadas até que o servidor valide resultados de forma robusta e os valores sejam balanceados.
+- Esta decisão não altera saldos históricos, não credita PC retroativamente e não autoriza publicação em produção.
+
+**Precedência:** D-046 substitui a regra de PC exclusivamente comprada de D-039 e suspende D-027. As demais regras de D-039 sobre MC, ausência de conversão PC→MC e distribuição de MC pela Mining Pool permanecem vigentes.
