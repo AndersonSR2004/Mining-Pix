@@ -17,6 +17,7 @@ export default function SandboxNetworkControl() {
   const [adjustReason, setAdjustReason] = useState('')
   const [now, setNow] = useState(Date.now())
   const settlingBlockRef = useRef('')
+  const startPromiseRef = useRef<Promise<string> | null>(null)
 
   const load = useCallback(async (id: string) => {
     const { data, error: rpcError } = await supabase.rpc('admin_sandbox_snapshot', { p_session_id: id })
@@ -31,8 +32,8 @@ export default function SandboxNetworkControl() {
 
   useEffect(() => {
     let cancelled = false
-    const start = async () => {
-      try {
+    if (!startPromiseRef.current) {
+      startPromiseRef.current = (async () => {
         const { data, error: rpcError } = await supabase.rpc('admin_sandbox_start_session', {
           p_session_key: crypto.randomUUID(),
           p_reason: 'Nova sessão administrativa do sandbox',
@@ -40,15 +41,17 @@ export default function SandboxNetworkControl() {
         if (rpcError) throw rpcError
         const id = String((data as { session_id?: string }).session_id ?? '')
         if (!id) throw new Error('O servidor não retornou a sessão de sandbox.')
-        if (!cancelled) {
-          setSessionId(id)
-          await load(id)
-        }
-      } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Não foi possível iniciar o sandbox.')
-      }
+        return id
+      })()
     }
-    void start()
+    startPromiseRef.current.then(async id => {
+      if (!cancelled) {
+        setSessionId(id)
+        await load(id)
+      }
+    }).catch(cause => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : 'Não foi possível iniciar o sandbox.')
+    })
     return () => { cancelled = true }
   }, [load])
 
