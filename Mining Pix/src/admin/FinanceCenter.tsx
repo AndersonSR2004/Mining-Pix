@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
 
 type MonthRevenue = { month: string; gross_cents: number | string; deductions_cents: number | string; net_cents: number | string }
 type MonthExpense = { month: string; expense_cents: number | string }
 type EconomySnapshot = { captured_at: string; pc_supply: number | string; wallets_count: number; active_equipment_count: number; installed_hashrate: number | string; players_count: number }
+type ExpenseItem = { id: string; category: string; description: string; amount_cents: number | string; expense_date: string; paid_at: string; vendor_reference: string | null }
+type CommitmentItem = { id: string; commitment_type: string; category: string; description: string; amount_cents: number | string | null; amount_mc: number | string | null; due_date: string; status: string; created_at: string }
+type ReserveMovement = { id: string; movement_type: string; signed_amount_cents: number | string; source_reference: string; reason: string; created_at: string }
 type FinanceSnapshot = {
   generated_at: string
   revenue_months: MonthRevenue[]
@@ -24,6 +27,9 @@ type FinanceSnapshot = {
   supply_latest_snapshot: EconomySnapshot | null
   supply_30d_baseline: { captured_at: string; pc_supply: number | string } | null
   player_activity: { unique_players_7d: number; unique_players_30d: number; events_24h: number; telemetry_status: string }
+  recent_expenses: ExpenseItem[]
+  recent_commitments: CommitmentItem[]
+  recent_reserve_movements: ReserveMovement[]
 }
 
 const brl = (value: number | string | null | undefined) =>
@@ -32,6 +38,13 @@ const integer = (value: number | string | null | undefined) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(Number(value ?? 0))
 const decimal = (value: number | string | null | undefined, digits = 2) =>
   new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(Number(value ?? 0))
+const localDate = () => { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
+const amountToCents = (value: string) => {
+  const normalized = value.trim().replace(',', '.')
+  if (!/^\d{1,12}(\.\d{1,2})?$/.test(normalized)) throw new Error('Informe um valor monetário válido com até duas casas decimais.')
+  const [whole, fraction = ''] = normalized.split('.')
+  return (BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'))).toString()
+}
 const monthLabel = (value: string) => {
   const [year, month] = value.split('-').map(Number)
   return new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit' }).format(new Date(year, month - 1, 1))
@@ -43,6 +56,27 @@ export default function FinanceCenter() {
   const [capturing, setCapturing] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [expenseCategory, setExpenseCategory] = useState('infrastructure')
+  const [expenseDescription, setExpenseDescription] = useState('')
+  const [expenseAmount, setExpenseAmount] = useState('')
+  const [expenseDate, setExpenseDate] = useState(localDate())
+  const [expenseVendor, setExpenseVendor] = useState('')
+  const [expenseSource, setExpenseSource] = useState('')
+  const [expenseReason, setExpenseReason] = useState('')
+  const [expenseBusy, setExpenseBusy] = useState(false)
+  const [commitmentType, setCommitmentType] = useState('operational')
+  const [commitmentCategory, setCommitmentCategory] = useState('infraestrutura')
+  const [commitmentDescription, setCommitmentDescription] = useState('')
+  const [commitmentAmount, setCommitmentAmount] = useState('')
+  const [commitmentDueDate, setCommitmentDueDate] = useState(localDate())
+  const [commitmentSource, setCommitmentSource] = useState('')
+  const [commitmentReason, setCommitmentReason] = useState('')
+  const [commitmentBusy, setCommitmentBusy] = useState(false)
+  const [reserveType, setReserveType] = useState<'contribution' | 'withdrawal'>('contribution')
+  const [reserveAmount, setReserveAmount] = useState('')
+  const [reserveSource, setReserveSource] = useState('')
+  const [reserveReason, setReserveReason] = useState('')
+  const [reserveBusy, setReserveBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -73,6 +107,61 @@ export default function FinanceCenter() {
     setCapturing(false)
   }
 
+  async function submitExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setExpenseBusy(true); setError(''); setMessage('')
+    try {
+      const amount_cents = amountToCents(expenseAmount)
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
+        action: 'record_expense', category: expenseCategory, description: expenseDescription.trim(), amount_cents,
+        expense_date: expenseDate, vendor_reference: expenseVendor.trim() || null, source_reference: expenseSource.trim(),
+        idempotency_key: crypto.randomUUID(), reason: expenseReason.trim(),
+      } })
+      if (invokeError) throw invokeError
+      if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o lançamento da despesa.')
+      setMessage(result.duplicate ? 'Despesa já registrada; nenhuma duplicação foi criada.' : 'Despesa efetiva registrada e auditada.')
+      setExpenseDescription(''); setExpenseAmount(''); setExpenseVendor(''); setExpenseSource(''); setExpenseReason(''); await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar a despesa.') }
+    finally { setExpenseBusy(false) }
+  }
+
+  async function submitCommitment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setCommitmentBusy(true); setError(''); setMessage('')
+    try {
+      const isMc = commitmentType === 'player_reward_mc'
+      let amount_cents: string | null = null; let amount_mc: string | null = null
+      if (isMc) {
+        if (!/^\d{1,22}(\.\d{1,8})?$/.test(commitmentAmount.trim()) || Number(commitmentAmount) <= 0) throw new Error('Informe uma quantidade MC válida, com até oito casas decimais.')
+        amount_mc = commitmentAmount.trim()
+      } else amount_cents = amountToCents(commitmentAmount)
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
+        action: 'create_commitment', commitment_type: commitmentType, category: commitmentCategory.trim(),
+        description: commitmentDescription.trim(), amount_cents, amount_mc, due_date: commitmentDueDate,
+        source_reference: commitmentSource.trim(), idempotency_key: crypto.randomUUID(), reason: commitmentReason.trim(),
+      } })
+      if (invokeError) throw invokeError
+      if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o compromisso.')
+      setMessage('Compromisso registrado e auditado.'); setCommitmentDescription(''); setCommitmentAmount('');
+      setCommitmentSource(''); setCommitmentReason(''); await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o compromisso.') }
+    finally { setCommitmentBusy(false) }
+  }
+
+  async function submitReserveMovement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setReserveBusy(true); setError(''); setMessage('')
+    try {
+      const cents = BigInt(amountToCents(reserveAmount))
+      const signed_amount_cents = (reserveType === 'withdrawal' ? -cents : cents).toString()
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
+        action: 'record_reserve_movement', movement_type: reserveType, signed_amount_cents,
+        source_reference: reserveSource.trim(), idempotency_key: crypto.randomUUID(), reason: reserveReason.trim(),
+      } })
+      if (invokeError) throw invokeError
+      if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o movimento da reserva.')
+      setMessage('Movimento contábil da reserva registrado. Nenhuma transferência bancária foi executada.')
+      setReserveAmount(''); setReserveSource(''); setReserveReason(''); await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o movimento da reserva.') }
+    finally { setReserveBusy(false) }
+  }
   if (loading && !data) return <section className="admin-panel">Carregando Financial Intelligence Center...</section>
   if (error && !data) return <section className="admin-error" role="alert">Não foi possível carregar os indicadores financeiros: {error}</section>
   if (!data) return null
