@@ -113,13 +113,13 @@ export default function SandboxNetworkControl() {
       const { error: rpcError } = await supabase.rpc('admin_sandbox_set_rewards', {
         p_session_id: sessionId,
         p_block_id: snapshot.open_block.id,
-        p_reward_pc: Number(rewardPc),
+        p_reward_pc: 0,
         p_reward_mc: Number(rewardMc),
         p_reason: adjustReason.trim(),
         p_request_id: crypto.randomUUID(),
       })
       if (rpcError) throw rpcError
-      setMessage('Recompensa do próximo fechamento atualizada e auditada.')
+      setMessage('Orçamento de MINING COIN atualizado e auditado. PIX COIN permanece em zero.')
       await load(sessionId)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Falha ao alterar a recompensa.')
