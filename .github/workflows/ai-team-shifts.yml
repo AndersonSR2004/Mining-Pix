@@ -43,7 +43,6 @@ jobs:
         shell: bash
         env:
           REQUESTED_SPECIALIST: ${{ inputs.specialist || 'automatic' }}
-          UTC_HOUR: ${{ github.event.schedule && '' || '' }}
         run: |
           HOUR="$(date -u +%H)"
           REQUESTED="${REQUESTED_SPECIALIST:-automatic}"
