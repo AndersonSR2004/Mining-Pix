@@ -59,6 +59,10 @@ const cumulative = readFileSync(new URL('../supabase/migrations/20261111080000_f
 const activityStatus = readFileSync(new URL('../supabase/migrations/20261111090000_activity_telemetry_status.sql', import.meta.url), 'utf8')
 const monthClose = readFileSync(new URL('../supabase/migrations/20261111100000_financial_month_close_controls.sql', import.meta.url), 'utf8')
 const monthCloseHistory = readFileSync(new URL('../supabase/migrations/20261111110000_financial_month_close_history.sql', import.meta.url), 'utf8')
+const closedMonthGuard = readFileSync(new URL('../supabase/migrations/20261111120000_prevent_expenses_in_closed_months.sql', import.meta.url), 'utf8')
+const closeTotals = readFileSync(new URL('../supabase/migrations/20261111130000_snapshot_expense_total_on_close.sql', import.meta.url), 'utf8')
+const closeHistoryTotals = readFileSync(new URL('../supabase/migrations/20261111140000_expose_closed_expense_totals.sql', import.meta.url), 'utf8')
+const closeMessage = readFileSync(new URL('../supabase/migrations/20261111150000_closed_month_adjustment_message.sql', import.meta.url), 'utf8')
 const edge = readFileSync(new URL('../supabase/functions/admin-finance/index.ts', import.meta.url), 'utf8')
 
 test('admin financial operations require backend role and revalidate admin identity', () => {
@@ -119,4 +123,14 @@ test('reserve target requires three immutable completed expense-month closes', (
   assert.match(edge, /close_expense_month/i)
   assert.match(dashboard, /Fechamento irreversível/i)
   assert.match(dashboard, /Aguardando fechamento/i)
+})
+
+test('closed expense months cannot be silently altered and preserve a close-time total', () => {
+  assert.match(closedMonthGuard, /financial_expense_month_closings/i)
+  assert.match(closedMonthGuard, /direct backdated insertion is blocked/i)
+  assert.match(closeTotals, /expense_total_cents/i)
+  assert.match(closeTotals, /sum\(amount_cents\)/i)
+  assert.match(closeHistoryTotals, /expense_total_cents/i)
+  assert.match(closeMessage, /separately approved adjustment workflow/i)
+  assert.match(dashboard, /Despesas apuradas/i)
 })
