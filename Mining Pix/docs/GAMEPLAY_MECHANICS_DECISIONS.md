@@ -311,3 +311,73 @@ Executar cenários com:
 ## 11. Estado da implementação
 
 Esta atualização altera somente a documentação de decisões na branch de trabalho. Nenhum código, migration, catálogo, saldo, inventário, regra de energia, ciclo de Pool ou emissão de MC foi alterado. A branch `main` e o PR não foram mesclados ou modificados por esta atualização.
+
+
+## 12. Overclock e Benção de Potência — D-034 e D-035
+
+O usuário definiu dois atributos distintos para cada máquina. Esta definição complementa e especifica D-031 a D-033.
+
+| ID | Decisão | Regra aprovada | Limites |
+|---|---|---|---|
+| D-034 | Overclock por Tier | Bônus fixo e prefixado conforme o Tier, aplicado individualmente à potência-base da máquina. O atributo é estrutural do Tier, não um sorteio. | Valores de trabalho: T1 = 0%; T2 = 10%; T3 = 15%; T4 = 20%; T5 = 25%. Confirmar na simulação final antes da implementação. |
+| D-035 | Benção de Potência | Atributo aleatório individual de cada unidade, sorteado na obtenção da máquina e aplicado somente ao HASH-base daquela máquina. | T1: 0–20%; T2: 0–30%; T3: 0–40%; T4: 0–50%; T5: 0–100%. Distribuição probabilística dentro da faixa ainda pendente. |
+
+### 12.1 Fórmula de trabalho
+
+A combinação recomendada para simulação é aditiva, sem composição exponencial:
+
+`HASH_{máquina} = HASH_{base} × (1 + Overclock + Benção)`
+
+Os percentuais são convertidos em frações no cálculo. O HASH da sala é a soma do HASH efetivo de cada máquina instalada e elegível. Os bônus não são somados entre máquinas para formar um multiplicador global.
+
+Exemplo: máquina T5 de 100 H/s, Overclock de 25% e Benção de 80%:
+
+`100 × (1 + 0,25 + 0,80) = 205 H/s`
+
+### 12.2 Simulação normalizada por máquina de 100 H/s
+
+Para estimar valores médios, assume-se provisoriamente que a Benção tenha distribuição uniforme entre o mínimo e o máximo de cada Tier. Essa hipótese não foi aprovada como distribuição final.
+
+| Tier | Overclock | Faixa da Benção | Benção média hipotética | HASH médio | HASH máximo |
+|---|---:|---:|---:|---:|---:|
+| T1 | 0% | 0–20% | 10% | 110 H/s | 120 H/s |
+| T2 | 10% | 0–30% | 15% | 125 H/s | 140 H/s |
+| T3 | 15% | 0–40% | 20% | 135 H/s | 155 H/s |
+| T4 | 20% | 0–50% | 25% | 145 H/s | 170 H/s |
+| T5 | 25% | 0–100% | 50% | 175 H/s | 225 H/s |
+
+### 12.3 Exemplos de salas homogêneas
+
+Para máquinas de 100 H/s cada, todas com o mesmo Tier:
+
+| Composição | HASH-base | HASH esperado com Benção uniforme | HASH máximo teórico |
+|---|---:|---:|---:|
+| 4 × T1 | 400 | 440 | 480 |
+| 4 × T2 | 400 | 500 | 560 |
+| 4 × T3 | 400 | 540 | 620 |
+| 4 × T4 | 400 | 580 | 680 |
+| 4 × T5 | 400 | 700 | 900 |
+
+O valor esperado é uma média estatística de longo prazo, não uma garantia para uma sala específica. O máximo teórico pressupõe que todas as máquinas tirem o valor máximo da faixa simultaneamente; não representa um resultado provável.
+
+### 12.4 Regras de integridade recomendadas
+
+- O Overclock deve ser determinado pelo Tier e não ser rerrolável.
+- A Benção deve ser sorteada no backend quando a unidade é criada/obtida, persistida no registro daquela unidade e permanecer estável.
+- Reinstalar, mover entre salas, relogar ou repetir uma requisição não pode gerar novo sorteio.
+- A Benção não pode ultrapassar o limite do Tier, mesmo em operações de forja ou evolução; qualquer regra de evolução futura deve definir explicitamente como o atributo é preservado ou recalculado.
+- O jogador deve visualizar separadamente Overclock e Benção, além do HASH-base e do HASH final.
+- O cálculo de HASH-hora elegível deve ocorrer no backend.
+- A distribuição da Benção (uniforme, ponderada ou por raridade) continua pendente. Não assumir que cada valor da faixa terá a mesma chance no lançamento.
+- O efeito sobre a participação relativa na Mining Pool deve ser simulado, pois D-016 distribui o orçamento proporcionalmente ao HASH elegível.
+
+### 12.5 Riscos e pontos de atenção
+
+- T5 pode alcançar 2,25 vezes a potência-base. Isso cria diferenciação forte e pode concentrar HASH em jogadores com unidades T5 de alta Benção.
+- Se a aquisição aleatória for paga direta ou indiretamente, é necessária análise jurídica e de proteção ao consumidor antes de lançamento, com odds claras e auditáveis.
+- A faixa ampla do T5 não deve ser confundida com probabilidade uniforme nem com garantia de obter 100%.
+- Não definir preço, chance de obtenção por fonte, reroll pago, taxa de forja ou conversão de atributos nesta etapa.
+
+### 12.6 Estado
+
+D-034 e D-035 registram a separação conceitual e as faixas propostas pelo usuário. A tabela de Overclock foi aceita como referência de trabalho, mas os parâmetros econômicos finais e a distribuição de probabilidade da Benção ainda precisam passar pelas simulações gerais. Nenhum código, migration, catálogo, inventário, saldo ou ciclo de Pool foi alterado.
