@@ -116,3 +116,27 @@ Do not call the proposed relationship an exchange rate until the PC sale price a
 ## PIX BLOCK cadence clarification — approved target, operations pending
 
 The user's latest specification sets the official block interval to 600 seconds (10 minutes), superseding the earlier daily Pool cycle interval as the reward-block cadence. The database guard enforces a minimum 600-second duration before official settlement. The automatic trusted operator/scheduler that opens and settles each official block every 600 seconds is not yet deployed, and official MC distribution remains disabled pending the funding and conversion policy. Sandbox uses the same 600-second interval with a 100 MC test budget.
+
+
+## VIP — decisão D-047: qualificação por janela móvel (10 nov 2026)
+
+**Estado: modelo de qualificação aprovado; benefícios e parâmetros econômicos continuam pendentes de simulação.**
+
+- O Mining Pix não oferecerá VIP vitalício.
+- A qualificação VIP será baseada em uma janela móvel dos 30 dias imediatamente anteriores à avaliação, e não em mês-calendário fixo.
+- As recargas elegíveis serão acumuladas por jogador dentro dessa janela. O nível aplicável será o maior cujo limite de qualificação tenha sido alcançado.
+- A concessão será automática após a confirmação da recarga elegível; o jogador não precisará escolher ou ativar manualmente o VIP.
+- Recargas estornadas, contestadas, canceladas ou revertidas não contarão para a qualificação. Se uma reversão ou a saída de uma recarga da janela reduzir o acumulado abaixo do limite, o nível será recalculado e poderá diminuir.
+- O acumulado não será vitalício nem transportado para além da janela de 30 dias.
+- Os limites monetários por nível, a lista final de benefícios, as regras de renovação operacional, a nomenclatura dos níveis e o tratamento contábil das recargas ainda exigem validação e aprovação próprias.
+
+**Salvaguardas econômicas obrigatórias antes da implementação:**
+
+1. A qualificação comercial por recarga não transforma o valor bruto recebido em caixa livre. O ledger deverá separar valor bruto, liquidação, taxas, tributos, estornos/chargebacks e caixa efetivamente disponível.
+2. O valor de recargas usado para qualificar VIP não pode ser contado duas vezes como receita quando o jogador consumir PIX COIN em itens ou serviços.
+3. Bônus de HASH VIP devem ser simulados como redistribuição da participação proporcional na Pool, sem aumentar o orçamento financiado.
+4. Descontos futuros de saque só poderão incidir sobre eventual tarifa de serviço da plataforma, nunca sobre custos externos, tributos ou tarifas de terceiros sem cobertura explícita.
+5. Imunidade a anúncios, energia adicional e multiplicadores de pontos devem ter seus custos, impactos de atividade e fontes de recompensa mensurados. Nenhum benefício poderá emitir MC fora da Mining Pool.
+6. Nenhum benefício VIP, desconto de saque, conversão, emissão de MC ou pagamento real é ativado por esta decisão.
+
+**Precedência:** D-047 aprova exclusivamente a janela móvel de 30 dias e a não oferta de VIP vitalício. Ela não aprova automaticamente os limites R$30/R$40/R$45/R$50/R$60 nem os benefícios anteriormente propostos.
