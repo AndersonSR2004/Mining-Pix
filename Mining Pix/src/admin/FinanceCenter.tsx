@@ -8,7 +8,7 @@ type ExpenseItem = { id: string; category: string; description: string; amount_c
 type CommitmentItem = { id: string; commitment_type: string; category: string; description: string; amount_cents: number | string | null; amount_mc: number | string | null; due_date: string; status: string; created_at: string }
 type ReserveMovement = { id: string; movement_type: string; signed_amount_cents: number | string; source_reference: string; reason: string; created_at: string }
 type RewardCommitmentMonth = { month: string; amount_mc: number | string }
-type ExpenseMonthClose = { month_start: string; closed_at: string; closed_by: string; reason: string }
+type ExpenseMonthClose = { month_start: string; closed_at: string; closed_by: string; reason: string; expense_total_cents: number | string }
 type FinancialAdminEvent = { id: string; actor_user_id: string; event_type: string; entity_type: string; entity_id: string; amount_cents: number | string | null; amount_mc: number | string | null; reason: string; created_at: string }
 type FinanceSnapshot = {
   generated_at: string
@@ -354,7 +354,7 @@ export default function FinanceCenter() {
           <label className="finance-close-reason">Confirmação e justificativa<textarea value={closeMonthReason} onChange={(event) => setCloseMonthReason(event.target.value)} minLength={10} maxLength={500} placeholder="Confirmei as despesas pagas e os documentos do mês..." required /></label>
           <button className="admin-primary" type="submit" disabled={closeMonthBusy || closeMonthReason.trim().length < 10}>{closeMonthBusy ? 'FECHANDO...' : 'FECHAR MÊS CONTÁBIL'}</button>
         </form>
-        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Mês</th><th>Fechamento</th><th>Justificativa</th></tr></thead><tbody>{data.expense_month_closings.length === 0 ? <tr><td colSpan={3}>Nenhum mês fechado.</td></tr> : data.expense_month_closings.map((item) => <tr key={item.month_start}><td>{item.month_start.slice(0, 7)}</td><td>{new Date(item.closed_at).toLocaleString('pt-BR')}</td><td>{item.reason}</td></tr>)}</tbody></table></div>
+        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Mês</th><th>Fechamento</th><th>Despesas apuradas</th><th>Justificativa</th></tr></thead><tbody>{data.expense_month_closings.length === 0 ? <tr><td colSpan={4}>Nenhum mês fechado.</td></tr> : data.expense_month_closings.map((item) => <tr key={item.month_start}><td>{item.month_start.slice(0, 7)}</td><td>{new Date(item.closed_at).toLocaleString('pt-BR')}</td><td>{brl(item.expense_total_cents)}</td><td>{item.reason}</td></tr>)}</tbody></table></div>
       </section>
 
       <section className="admin-panel">
