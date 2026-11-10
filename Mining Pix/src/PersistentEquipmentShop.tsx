@@ -8,12 +8,17 @@ type CatalogItem = {
   equipment_type: string
   hashrate: number
   price_pc: number
+  tier: number | null
+  overclock_percent: number
+  blessing_min_percent: number | null
+  blessing_max_percent: number | null
 }
 
 type OwnedEquipment = {
   id: string
   catalog_sku: string
   purchase_price_pc: number
+  blessing_percent: number
   acquired_at: string
   status: 'inventory' | 'installed' | 'retired'
   room_id: string | null
@@ -21,6 +26,8 @@ type OwnedEquipment = {
     name: string
     equipment_type: string
     hashrate: number
+    tier: number | null
+    overclock_percent: number
   } | null
 }
 
@@ -30,6 +37,7 @@ type PurchaseResult = {
   sku: string
   price_pc: number
   balance_after: number
+  blessing_percent: number
 }
 
 function formatPc(value: number | string) {
@@ -51,11 +59,11 @@ export default function PersistentEquipmentShop() {
     setError('')
     const [catalogResult, equipmentResult, walletResult] = await Promise.all([
       supabase.from('equipment_catalog')
-        .select('sku,name,description,equipment_type,hashrate,price_pc')
+        .select('sku,name,description,equipment_type,hashrate,price_pc,tier,overclock_percent,blessing_min_percent,blessing_max_percent')
         .eq('active', true)
         .order('display_order', { ascending: true }),
       supabase.from('player_equipment')
-        .select('id,catalog_sku,purchase_price_pc,acquired_at,status,room_id,equipment_catalog(name,equipment_type,hashrate)')
+        .select('id,catalog_sku,purchase_price_pc,blessing_percent,acquired_at,status,room_id,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)')
         .order('acquired_at', { ascending: false }),
       supabase.from('wallets').select('balance').maybeSingle(),
     ])
@@ -108,9 +116,9 @@ export default function PersistentEquipmentShop() {
     <section className="persistent-store">
       <div className="persistent-store-heading">
         <div>
-          <span className="eyebrow">ECONOMIA CONECTADA</span>
-          <h2>Loja persistente</h2>
-          <p>Compras vinculadas à sua conta e registradas no PostgreSQL.</p>
+          <span className="eyebrow">ECONOMIA CONECTADA · PROGRESSÃO FREE</span>
+          <h2>Loja de máquinas</h2>
+          <p>Comece com máquinas T0 acessíveis. Cada unidade recebe sua própria Benção de Potência no momento da compra.</p>
         </div>
         <button className="secondary-button" onClick={() => void refresh()} disabled={loading || pendingSku !== null}>
           ATUALIZAR
@@ -135,10 +143,11 @@ export default function PersistentEquipmentShop() {
           {catalog.map((item) => (
             <article className="panel shop-card" key={item.sku}>
               <div className="machine-icon large">▦</div>
-              <span className="eyebrow">CATÁLOGO OFICIAL</span>
+              <span className="eyebrow">{item.tier === 0 ? 'INICIAL · TIER 0' : item.tier ? `TIER ${item.tier}` : 'CATÁLOGO OFICIAL'}</span>
               <h3>{item.name}</h3>
               <p>{item.description}</p>
-              <div className="shop-hash">{Number(item.hashrate).toLocaleString('pt-BR')} H/s</div>
+              <div className="shop-hash">{Number(item.hashrate).toLocaleString('pt-BR')} H/s base</div>
+              <small className="shop-attributes">Overclock: +{Number(item.overclock_percent).toFixed(0)}% · Benção sorteada: {item.blessing_min_percent === null ? 'não definida' : `0–${Number(item.blessing_max_percent).toFixed(0)}%`}</small>
               <strong className="shop-price">{formatPc(item.price_pc)} PC</strong>
               <button
                 className="primary-button"
@@ -167,7 +176,8 @@ export default function PersistentEquipmentShop() {
             <div className="machine-info">
               <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
               <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento adquirido'}</span>
-              <small>{Number(item.equipment_catalog?.hashrate ?? 0).toLocaleString('pt-BR')} H/s · {formatPc(item.purchase_price_pc)} PC</small>
+              <small>{Number(item.equipment_catalog?.hashrate ?? 0).toLocaleString('pt-BR')} H/s base · {formatPc(item.purchase_price_pc)} PC</small>
+              <small>Benção de Potência: +{Number(item.blessing_percent ?? 0).toFixed(2)}% · Overclock: +{Number(item.equipment_catalog?.overclock_percent ?? 0).toFixed(0)}%</small>
               <small>{item.status === 'installed' ? 'Instalado na infraestrutura' : item.status === 'retired' ? 'Desativado' : 'Disponível para instalação'}</small>
             </div>
             <span className="equipment-count">ADQUIRIDO</span>
@@ -175,7 +185,7 @@ export default function PersistentEquipmentShop() {
         ))}
       </div>
       <p className="persistent-store-footnote">
-        A instalação, desinstalação e o cálculo de hashrate persistente são gerenciados na tela Equipamentos. A loja sandbox continua independente.
+        A Benção é sorteada uma única vez no backend na compra e fica vinculada à unidade. O HASH efetivo é calculado pelo servidor; a loja demonstrativa permanece separada.
       </p>
     </section>
   )
