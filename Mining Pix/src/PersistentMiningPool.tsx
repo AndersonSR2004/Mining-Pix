@@ -32,6 +32,7 @@ export default function PersistentMiningPool() {
   const [loading, setLoading] = useState(true)
   const [miningCoinBalance, setMiningCoinBalance] = useState<number | string | null>(null)
   const [error, setError] = useState('')
+  const [now, setNow] = useState(Date.now())
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -48,9 +49,14 @@ export default function PersistentMiningPool() {
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const cycle = data?.current_cycle ?? null
   const history = data?.history ?? []
+  const blockRemaining = cycle ? Math.max(0, Math.ceil((new Date(cycle.opened_at).getTime() + 600000 - now) / 1000)) : 0
 
   return (
     <section className="persistent-pool panel page-panel">
@@ -81,14 +87,15 @@ export default function PersistentMiningPool() {
       </div>
 
       <div className="pool-footer">
-        <span>Status do ciclo</span>
-        <strong>{loading ? 'CONSULTANDO...' : cycle ? 'CICLO ABERTO' : 'AGUARDANDO PRÓXIMO CICLO'}</strong>
+        <span>Status do PIX BLOCK</span>
+        <strong>{loading ? 'CONSULTANDO...' : cycle ? 'BLOCO EM MINERAÇÃO' : 'AGUARDANDO PRÓXIMO BLOCO'}</strong>
       </div>
+      {cycle && <div className="pool-footer"><span>Tempo de bloco · 600 segundos</span><strong>{blockRemaining > 0 ? `${Math.floor(blockRemaining / 60)}m ${blockRemaining % 60}s restantes` : 'TEMPO CONCLUÍDO · AGUARDANDO LIQUIDAÇÃO'}</strong></div>}
       <div className="pool-footer"><span>Seu saldo de MINING COIN</span><strong>{loading || miningCoinBalance === null ? 'CONSULTANDO...' : `${number(miningCoinBalance)} MC`}</strong></div>
       {cycle && (
         <>
           <div className="pool-footer"><span>Orçamento de MINING COIN do ciclo</span><strong>{number(cycle.budget_mc)} MC</strong></div>
-          <div className="pool-footer"><span>Identificador</span><strong>{cycle.cycle_key}</strong></div>
+          <div className="pool-footer"><span>Identificador do bloco</span><strong>{cycle.cycle_key}</strong></div>
         </>
       )}
 
