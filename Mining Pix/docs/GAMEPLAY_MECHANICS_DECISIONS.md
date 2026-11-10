@@ -476,3 +476,14 @@ O HASH efetivo é somado por sala e considerado no resumo da infraestrutura e na
 **Estado: pendente de simulação e aprovação econômica.**
 
 O usuário propôs a referência nominal R$ 1 = 1 MC = 100 PC. Não representa atualmente preço de resgate, garantia de paridade, conversibilidade, lastro ou valor de mercado. Avaliar custos de pagamento, impostos, estornos, liquidez, reserva, ritmo de emissão da Pool, passivos e cenários de saque antes de adotar a referência como política comercial ou financeira.
+
+
+## 16. Decisão D-041 — cadência oficial do PIX BLOCK (10 nov 2026)
+
+**Estado: aprovada como regra de produto; automação operacional pendente.**
+
+- O intervalo oficial de cada PIX BLOCK é de 600 segundos (10 minutos), substituindo a cadência diária anteriormente definida para o ciclo de recompensa.
+- A recompensa de MC de cada bloco deve ser distribuída proporcionalmente ao HASH elegível daquele bloco.
+- O banco exige pelo menos 600 segundos antes da liquidação oficial.
+- A abertura e liquidação automática por operador confiável a cada 600 segundos ainda não está implantada; a emissão/distribuição real de MC permanece desativada até aprovação da política de funding/conversão.
+- O sandbox já opera com blocos de 600 segundos e orçamento padrão de 100 MC, sem PC.
