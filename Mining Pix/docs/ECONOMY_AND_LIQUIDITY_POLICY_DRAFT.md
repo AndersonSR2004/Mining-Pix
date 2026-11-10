@@ -15,7 +15,7 @@ The design should encourage voluntary, healthy liquidity retention through usefu
 - No PC-to-MC conversion.
 - Lucky Boxes do not award PC, MC, cash, or withdrawable prizes.
 - Missions, events, tournaments and advertisements do not issue MC in the initial model.
-- The Mining Pool is daily and proportionate to eligible HASH-hours, subject to the approved accounting and safety rules.
+- The official PIX BLOCK target interval is 600 seconds (10 minutes); MC reward is distributed proportionally to each player's eligible HASH for that block. Financial snapshots and treasury reconciliation may still be daily, but they are not the block reward interval.
 - No withdrawals, redemption, or cash valuation are active.
 - A 30% pool allocation is based on eligible net revenue after fees, taxes, refunds and chargebacks, with the approved reserve and operating allocations kept separate.
 
@@ -111,3 +111,8 @@ If the project later promises 1 MC = R$ 1, every outstanding redeemable MC becom
 At a 600-second cadence there are 144 blocks/day. A production reward of 100 MC/block would create 14,400 MC/day. At a guaranteed R$1 redemption value, that is R$14,400/day (approximately R$432,000 per 30-day month) of gross redemption exposure, before fees and operating costs. If the Pool is capped at 30% of eligible net revenue, this rate would require at least R$48,000/day (R$1.44 million per 30-day month) of eligible net revenue merely to fund the Pool at that level. This is an illustrative stress calculation, not an approved production reward. The 100 MC/block value currently applies only to sandbox testing.
 
 Do not call the proposed relationship an exchange rate until the PC sale price and MC redemption value are independently defined. 100 PC = R$1 can be a retail price reference for PC packs; 1 MC = R$1 is a redemption promise and needs separate backing, liquidity and legal approval.
+
+
+## PIX BLOCK cadence clarification — approved target, operations pending
+
+The user's latest specification sets the official block interval to 600 seconds (10 minutes), superseding the earlier daily Pool cycle interval as the reward-block cadence. The database guard enforces a minimum 600-second duration before official settlement. The automatic trusted operator/scheduler that opens and settles each official block every 600 seconds is not yet deployed, and official MC distribution remains disabled pending the funding and conversion policy. Sandbox uses the same 600-second interval with a 100 MC test budget.
