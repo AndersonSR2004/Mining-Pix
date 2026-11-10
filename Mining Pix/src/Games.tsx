@@ -166,7 +166,7 @@ export default function Games({ userId, onGameComplete }: Props) {
       setActiveHash(Number(result.active_hashrate ?? 0))
       setBoostExpiresAt(result.expires_at ?? null)
       setRewardMessage(won
-        ? 'Vitória confirmada: +1 PIX COIN e +1 H/s temporário por 24 horas.'
+        ? 'Vitória confirmada: +1 H/s temporário por 24 horas. PIX COIN é exclusiva de compras.'
         : 'Partida registrada. Sem recompensa de vitória.')
       setRewardError('')
     }
@@ -402,7 +402,7 @@ export default function Games({ userId, onGameComplete }: Props) {
         </article>
         <aside className="game-info">
           <div className="game-info-card"><span className="eyebrow">PROGRESSÃO</span><h2>Nível {current.level} · {target} objetivos</h2><p>Você tem 45 segundos para atingir a meta. A cada três vitórias, avança um nível e a meta aumenta em cinco objetivos.</p><small>COOLDOWN APÓS CADA PARTIDA: {cooldownFor(current.level)} SEGUNDOS</small></div>
-          <div className="game-info-card"><span className="eyebrow">RECOMPENSAS</span><h2>Vitória vale progresso</h2><p>Cada vitória confirmada concede 1 PIX COIN e +1 H/s temporário por 24 horas. O HASH ativo atual é {activeHash} H/s.</p><small>PARTIDAS DISPONÍVEIS HOJE: {Math.max(0, 30 - dailyUsed[mode])}/30 · {boostExpiresAt ? `BÔNUS ATÉ ${new Date(boostExpiresAt).toLocaleString('pt-BR')}` : 'SEM HASH TEMPORÁRIO ATIVO'}</small></div>
+          <div className="game-info-card"><span className="eyebrow">RECOMPENSAS</span><h2>Vitória vale progresso</h2><p>Cada vitória confirmada concede somente +1 H/s temporário por 24 horas. PIX COIN é obtida exclusivamente por compras. O HASH ativo atual é {activeHash} H/s.</p><small>PARTIDAS DISPONÍVEIS HOJE: {Math.max(0, 30 - dailyUsed[mode])}/30 · {boostExpiresAt ? `BÔNUS ATÉ ${new Date(boostExpiresAt).toLocaleString('pt-BR')}` : 'SEM HASH TEMPORÁRIO ATIVO'}</small></div>
           <div className="game-info-card"><span className="eyebrow">CONTROLES</span><h2>{mode === 'flappy' ? 'Desvie dos obstáculos' : mode === 'snake' ? 'Guie a cobrinha' : 'Capture as moedas'}</h2><p>{mode === 'flappy' ? 'Clique ou pressione espaço para manter o pássaro no ar.' : mode === 'snake' ? 'Use as setas ou WASD para mudar a direção.' : 'Use ← → ou A/D para mover a cesta e pegar moedas que caem.'}</p></div>
           <div className="game-disclaimer">Limite diário e recompensas são registrados no servidor por jogo. Níveis, recordes e cooldowns continuam salvos neste navegador. A validação do resultado de vitória ainda depende do cliente e não deve ser considerada proteção antifraude completa.</div>
         </aside>
