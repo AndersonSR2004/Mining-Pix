@@ -35,7 +35,7 @@ export default function Games({ userId, onGameComplete }: Props) {
   const [status, setStatus] = useState<GameStatus>('ready')
   const [score, setScore] = useState(0)
   const [seconds, setSeconds] = useState(DURATION)
-  const [frame, setFrame] = useState(0)
+  const [, setFrame] = useState(0)
   const [progress, setProgress] = useState<Progress>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem(progressStorageKey) || '{}')
