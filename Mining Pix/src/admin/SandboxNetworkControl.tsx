@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase/client'
 
 type Bot = { id: string; bot_number: number; display_name: string; hashrate: number; pc_balance: number; mc_balance: number; total_pc_earned: number; total_mc_earned: number; active: boolean }
-type Block = { id: string; block_number: number; status: string; opened_at: string; duration_seconds: number; reward_pc: number; reward_mc: number; total_hashrate: number; participant_count: number; accelerated: boolean }
+type Block = { id: string; block_number: number; status: string; opened_at: string; duration_seconds: number; reward_pc: number; reward_mc: number; total_hashrate: number; participant_count: number; accelerated: boolean; closed_at: string | null }
 type Snapshot = { session: { id: string; status: string; created_at: string }; bots: Bot[]; blocks: Block[]; network_hashrate: number; open_block: Block | null }
 const fmt = (v: unknown, digits = 2) => Number(v ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: digits })
 
