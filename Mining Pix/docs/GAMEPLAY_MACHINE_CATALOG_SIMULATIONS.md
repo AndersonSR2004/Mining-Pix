@@ -185,3 +185,72 @@ Não propor limite artificial de participação individual na Pool neste momento
 ## 10. Próxima etapa
 
 A próxima etapa é construir uma matriz quantitativa de balanceamento com variáveis ajustáveis e cenários 30/90/365 dias. Ela deverá usar dados agregados reais do DEV quando disponíveis e deixar hipóteses claramente identificadas. Só depois da revisão dessa matriz serão submetidos à aprovação os preços PC, HASH por máquina, curva de progressão e eventuais ajustes de capacidade VIP.
+
+
+## 8. Catálogo inicial T0 — simulação de onboarding
+
+O catálogo T0 foi aprovado e implementado como linha de entrada FREE. A extensão de preço para as máquinas 8–10 segue o incremento linear de 100 PC inferido da sequência informada.
+
+| Máquina | Preço PC | HASH-base | HASH médio com Benção uniforme 0–20% | HASH máximo |
+|---|---:|---:|---:|---:|
+| PIX Starter 01 | 100 | 10 | 11 | 12 |
+| PIX Starter 02 | 200 | 15 | 16,5 | 18 |
+| PIX Starter 03 | 300 | 20 | 22 | 24 |
+| PIX Starter 04 | 400 | 25 | 27,5 | 30 |
+| PIX Starter 05 | 500 | 30 | 33 | 36 |
+| PIX Starter 06 | 600 | 35 | 38,5 | 42 |
+| PIX Starter 07 | 700 | 40 | 44 | 48 |
+| PIX Starter 08 | 800* | 45 | 49,5 | 54 |
+| PIX Starter 09 | 900* | 50 | 55 | 60 |
+| PIX Starter 10 | 1.000* | 55 | 60,5 | 66 |
+| **Total** | **5.500** | **325** | **357,5** | **390** |
+
+<small>*Preços das máquinas 8–10 extrapolados pelo padrão linear de +100 PC, não especificados individualmente.</small>
+
+### 8.1 Progressão acumulada
+
+| Marco | Custo acumulado | HASH-base acumulado | HASH esperado com Benção | HASH máximo |
+|---|---:|---:|---:|---:|
+| 3 primeiras | 600 PC | 45 H/s | 49,5 H/s | 54 H/s |
+| 5 primeiras | 1.500 PC | 100 H/s | 110 H/s | 120 H/s |
+| 7 primeiras | 2.800 PC | 175 H/s | 192,5 H/s | 210 H/s |
+| 10 máquinas | 5.500 PC | 325 H/s | 357,5 H/s | 390 H/s |
+
+A média assume Benção contínua uniforme no intervalo 0–20%. O máximo supõe que todas as unidades atinjam 20% simultaneamente; não é resultado esperado.
+
+### 8.2 Relação com as recompensas dos jogos
+
+Com três jogos e limite de 30 partidas iniciadas por jogo, o teto teórico é 90 vitórias e 90 PC por dia, se todas as partidas forem vencidas. Assim:
+- Primeira máquina (100 PC): pouco mais de um dia no teto teórico.
+- Sete primeiras máquinas (2.800 PC): cerca de 32 dias no teto teórico.
+- Dez máquinas (5.500 PC): cerca de 62 dias no teto teórico.
+- Com taxa de vitória média de 50%, a geração teórica cai para 45 PC/dia e dez máquinas exigiriam aproximadamente 123 dias, sem considerar outros sinks.
+
+Esses prazos são limites aritméticos, não previsões de comportamento real. Partidas perdidas consomem tentativas do limite diário, e o jogador pode gastar PC em outras categorias.
+
+### 8.3 HASH temporário dos jogos
+
+O máximo teórico de 90 vitórias diárias também pode gerar até 90 H/s temporários acumulados durante 24 horas. Esse bônus pode representar:
+- 27,7% dos 325 H/s-base de uma sala FREE com as dez máquinas;
+- aproximadamente 25,2% do HASH esperado de 357,5 H/s da mesma sala;
+- uma contribuição relevante para a participação proporcional na Mining Pool enquanto ativo.
+
+O bônus temporário é intencionalmente separado do equipamento: não ocupa slot, não recebe Benção e expira conforme a regra de 24 horas. Concluir uma partida enquanto o bônus ainda está ativo renova sua validade, conforme regra anterior.
+
+### 8.4 Recomendações de monitoramento
+
+- Acompanhar PC criado por vitórias, PC gasto em equipamentos e saldo médio/mediano por jogador.
+- Medir taxa de vitória e distribuição real de vitórias por jogo, não apenas partidas iniciadas.
+- Acompanhar HASH temporário como parcela do HASH total da rede e participação na Pool.
+- Simular concentração e Gini/HHI antes de habilitar ciclos de MC.
+- Revisar a Benção T0 e o bônus temporário se o HASH de jogos dominar a potência dos equipamentos de entrada.
+- Manter a validação de vitória como risco aberto: o backend limita tentativas e evita créditos duplicados, mas o resultado ainda é reportado pelo cliente.
+
+## 9. QA da implementação inicial
+
+- Catálogo DEV verificado: dez SKUs T0 ativos, preços 100–1.000 PC, HASH-base 10–55 H/s, Overclock 0%, Benção 0–20%.
+- Compra de teste: Benção permaneceu dentro de 0–20%; retry idempotente retornou o mesmo valor.
+- Instalação de teste: HASH efetivo retornado pelo resumo permaneceu entre 10 e 12 H/s para PIX Starter 01.
+- Teste de jogo: vitória de teste concedeu 1 PC e 1 H/s temporário; 30 partidas foram aceitas e a 31ª rejeitada no mesmo jogo/dia.
+- Todos os testes transacionais foram executados em rollback. Carteira, equipamentos, tentativas e boosts de teste permaneceram sem registros após os testes.
+- GitHub CI e Dependency Audit passaram no commit `efc780d3ebfcff3596089682a44d8c4877f74916`. CodeQL e publicação Preview ainda estavam em andamento na última verificação.
