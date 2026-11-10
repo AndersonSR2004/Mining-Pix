@@ -9,7 +9,6 @@ import {
   PAID_LUCKY_BOX_PRICE,
   recordMissionProgress,
   refreshMissionState,
-  REWARDED_AD_PC_REWARD,
 } from '../src/lib/missions.ts'
 
 test('daily and weekly periods use local dates and Monday week starts', () => {
@@ -113,10 +112,12 @@ test('weekly milestones are 10, 20, 30, 40 and 50 daily missions; nine daily mis
   assert.ok(MISSIONS.every((mission) => mission.rewardXp > 0))
 })
 
-test('paid lucky box price and rewarded ad reward are explicit game parameters', () => {
+test('paid lucky box price is explicit and rewarded ads do not promise PIX COIN', () => {
   assert.equal(PAID_LUCKY_BOX_PRICE, 100)
-  assert.equal(REWARDED_AD_PC_REWARD, 10)
   assert.equal(DAILY_REWARDED_AD_LIMIT, 5)
+  const rewardedAdMission = MISSIONS.find((mission) => mission.id === 'daily-rewarded-ad')
+  assert.ok(rewardedAdMission)
+  assert.doesNotMatch(rewardedAdMission.description, /PIX COIN|PC/i)
 })
 
 
