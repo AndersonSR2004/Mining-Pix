@@ -9,7 +9,7 @@
 
 | ID | Decisão | Regra aprovada | Limites |
 |---|---|---|---|
-| D-027 | Lucky Box I | Probabilidades: Tier 3 = 10%; Tier 2 = 20%; Tier 1 = 35%; peças de forja = 35%. Preço proposto: 100 PC. | O preço e a tabela ficam sujeitos à validação econômica, jurídica e de proteção ao consumidor antes do lançamento. |
+| D-027 | Lucky Boxes | Uma caixa cosmética gratuita por conta/dia UTC; 70% cosmético comum, 25% incomum, 5% raro. Sem PC, MC, HASH, dinheiro ou itens negociáveis. | Aprovada e implementada no DEV; catálogo e probabilidades publicados em `docs/LUCKY_BOX_POLICY.md`. |
 | D-028 | Energia por sala | Ao chegar a zero de energia, toda a mineração daquela sala é suspensa, incluindo HASH-base e bônus. A mineração só volta após restauração de energia. | Capacidade, consumo, duração, recarga, aquisição e fontes de energia continuam pendentes. |
 | D-029 | Escopo da forja | O sistema terá montagem, evolução e reciclagem de equipamentos. | Receitas, custos, limites, tempos e resultados não foram definidos. |
 | D-030 | Duplicatas | O jogador escolhe entre manter o equipamento duplicado no inventário ou desmontá-lo para obter peças. | Quantidade de peças, elegibilidade e eventuais custos de desmontagem continuam pendentes. |
@@ -174,7 +174,7 @@ Não selecionar um modelo nesta etapa. Para escolher, medir PC comprado, PC gast
 1. Quantificar o catálogo T1–T5 e a relação HASH-base, incluindo o benchmark T2/T1.
 2. Modelar energia por sala: capacidade, consumo por equipamento, duração, restauração e cenários de sala inativa.
 3. Simular HASH-base e bônus por sala, incluindo concentração e distribuição proporcional da Pool.
-4. Avaliar probabilidades das três Lucky Boxes com custos/valores de oportunidade e impacto na oferta de máquinas.
+4. Monitorar distribuição e duplicatas dos cosméticos gratuitos, sem impacto sobre HASH ou moedas.
 5. Modelar receitas e sinks da forja e o fluxo de duplicatas.
 6. Comparar alternativas de destinação do PC por categoria e apresentar uma proposta de política.
 7. Submeter os parâmetros finais para aprovação antes de qualquer implementação.
