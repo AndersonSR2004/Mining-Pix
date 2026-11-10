@@ -540,3 +540,30 @@ Também será possível comprar níveis individualmente com PC para acelerar a p
 - O Passe não deve conceder HASH permanente ou vantagens competitivas ilimitadas sem simulação de concentração da Mining Pool.
 
 Esta decisão aprova a direção do produto e a separação XP/PC/MC; não autoriza implementação ou publicação em produção.
+
+## Decisão D-047 — qualificação VIP por recargas em janela móvel (10 nov 2026)
+
+**Estado: regra de qualificação aprovada; integração de pagamentos, ledger de recargas e aplicação automática dos benefícios ainda pendentes.**
+
+- A elegibilidade é calculada sobre os 30 dias imediatamente anteriores ao instante de avaliação, e não pelo mês-calendário.
+- O jogador recebe automaticamente o maior nível cujo limite de recargas elegíveis acumuladas tenha sido atingido.
+- Limites de referência aprovados: VIP I R$ 30; VIP II R$ 40; VIP III R$ 45; VIP IV R$ 50; VIP V R$ 60.
+- Recargas só contam após confirmação de liquidação. Recargas canceladas, estornadas, reembolsadas ou contestadas deixam de contar.
+- Quando uma recarga sai da janela móvel, deixa de compor o acumulado. Não existe VIP vitalício nem carryover fora da janela.
+- O sistema deverá recalcular a elegibilidade automaticamente após confirmação/estorno e periodicamente, mantendo histórico auditável.
+- O cliente nunca poderá declarar uma recarga como confirmada nem atribuir a si próprio um nível VIP.
+
+### Benefícios definidos para balanceamento e implementação
+
+| Nível | XP de missões | Desconto da tarifa própria de saque* | Recarga grátis/dia | Boost HASH | Energia |
+|---|---:|---:|---:|---:|---|
+| VIP I | 2x | 50% | 1 | 10% | — |
+| VIP II | 2,5x | 60% | 1 | 15% | — |
+| VIP III | 3x | 70% | 1 | 20% | — |
+| VIP IV | 4x | 75% | 1 | 25% | — |
+| VIP V | 5x | 80% | 1 | 30% | Permanente enquanto VIP V estiver ativo |
+
+\* O desconto só pode incidir sobre eventual tarifa própria da plataforma, nunca sobre custos de terceiros, tributos ou tarifas bancárias externas. A existência de saque permanece desativada até aprovação legal, financeira e operacional.
+
+**Restrições de implementação:** multiplicadores de XP aplicam-se somente ao XP de missões, não a pontos de jogos, PC, MC ou HASH. O boost HASH redistribui participação dentro do orçamento já financiado da Mining Pool; não cria orçamento ou MC. Energia permanente do VIP V e a política de redução automática de salas/equipamentos exigem tratamento técnico que preserve o histórico e não interrompa indevidamente máquinas instaladas. Nenhum benefício poderá ser comunicado como retorno financeiro, ROI ou renda garantida.
+
