@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './Games.css'
+import { supabase } from './lib/supabase/client'
 
 type GameMode = 'flappy' | 'snake' | 'coin'
 type GameStatus = 'ready' | 'running' | 'over'
@@ -85,9 +86,17 @@ export default function Games({ userId, onGameComplete }: Props) {
     })
   }
 
+  function recordGameActivity(eventType: 'game_started' | 'game_completed') {
+    void supabase.rpc('record_player_activity_event', {
+      p_event_type: eventType,
+      p_idempotency_key: crypto.randomUUID(),
+    })
+  }
+
   function finishGame(won: boolean) {
     if (completedRef.current) return
     completedRef.current = true
+    recordGameActivity('game_completed')
     setStatus('over')
     updateBest(scoreRef.current)
     const cooldown = cooldownFor(current.level)
@@ -110,6 +119,7 @@ export default function Games({ userId, onGameComplete }: Props) {
   function startGame() {
     if (remainingCooldown > 0 || status === 'running') return
     completedRef.current = false
+    recordGameActivity('game_started')
     scoreRef.current = 0
     setScore(0)
     setSeconds(DURATION)
