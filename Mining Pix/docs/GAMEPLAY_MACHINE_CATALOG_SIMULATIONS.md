@@ -253,4 +253,4 @@ O bônus temporário é intencionalmente separado do equipamento: não ocupa slo
 - Instalação de teste: HASH efetivo retornado pelo resumo permaneceu entre 10 e 12 H/s para PIX Starter 01.
 - Teste de jogo: vitória de teste concedeu 1 PC e 1 H/s temporário; 30 partidas foram aceitas e a 31ª rejeitada no mesmo jogo/dia.
 - Todos os testes transacionais foram executados em rollback. Carteira, equipamentos, tentativas e boosts de teste permaneceram sem registros após os testes.
-- GitHub CI e Dependency Audit passaram no commit `efc780d3ebfcff3596089682a44d8c4877f74916`. CodeQL e publicação Preview ainda estavam em andamento na última verificação.
+- GitHub CI, Dependency Audit, CodeQL e publicação Preview passaram no commit `efc780d3ebfcff3596089682a44d8c4877f74916`.
