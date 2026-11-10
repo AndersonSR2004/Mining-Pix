@@ -238,7 +238,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className="admin-primary admin-refresh" onClick={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} disabled={loading || directoryLoading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
-        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Controles habilitados: notas internas auditadas e bloqueio/desbloqueio de contas por 30 dias. Toda alteração exige motivo e confirmação; não altera a economia.</span></div>
+        <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>O Admin Center reúne controles de jogadores e Financial Intelligence Center. Lançamentos financeiros exigem motivo, referência e autorização server-side; o painel não executa transferências bancárias, emissão de MINING COIN ou saques.</span></div>
 
         <nav className="admin-section-nav" aria-label="Seções do Admin Center">
           <button className={activeSection === 'operations' ? 'active' : ''} onClick={() => setActiveSection('operations')}>CENTRO OPERACIONAL</button>
