@@ -12,7 +12,6 @@ export default function SandboxNetworkControl() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const [reason, setReason] = useState('Sessão de teste administrativo')
   const [rewardPc, setRewardPc] = useState('100')
   const [rewardMc, setRewardMc] = useState('1')
   const [adjustReason, setAdjustReason] = useState('')
