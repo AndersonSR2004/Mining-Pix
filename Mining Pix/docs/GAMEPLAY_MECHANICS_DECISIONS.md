@@ -381,3 +381,80 @@ O valor esperado é uma média estatística de longo prazo, não uma garantia pa
 ### 12.6 Estado
 
 D-034 e D-035 registram a separação conceitual e as faixas propostas pelo usuário. A tabela de Overclock foi aceita como referência de trabalho, mas os parâmetros econômicos finais e a distribuição de probabilidade da Benção ainda precisam passar pelas simulações gerais. Nenhum código, migration, catálogo, inventário, saldo ou ciclo de Pool foi alterado.
+
+
+## 13. Máquinas iniciais T0 e recompensas de jogos — D-036 a D-038
+
+| ID | Decisão | Regra | Estado |
+|---|---|---|---|
+| D-036 | Catálogo inicial FREE | Dez máquinas T0, Overclock 0%, Benção de Potência sorteada individualmente entre 0% e 20%, HASH-base crescente em passos de 5 H/s. | Aprovada e implementada no DEV |
+| D-037 | Recompensas e limite dos jogos | Cada vitória concede 1 PC e +1 H/s temporário por 24 horas; limite de 30 partidas iniciadas por dia UTC, individualmente para cada jogo. Regras anteriores de níveis, metas, duração e cooldown são preservadas. | Aprovada e implementada no DEV |
+| D-038 | Ajustes de jogabilidade | Flappy Pix passa a usar animação por requestAnimationFrame e física baseada em delta time; Coin Catch reduz o volume de itens e impõe intervalo mínimo entre lançamentos. | Aprovada e implementada na branch |
+
+### 13.1 Catálogo T0 inicial
+
+| Máquina | Tier | HASH-base | Preço PC | Overclock | Benção |
+|---|---:|---:|---:|---:|---:|
+| PIX Starter 01 | 0 | 10 H/s | 100 | 0% | 0–20% |
+| PIX Starter 02 | 0 | 15 H/s | 200 | 0% | 0–20% |
+| PIX Starter 03 | 0 | 20 H/s | 300 | 0% | 0–20% |
+| PIX Starter 04 | 0 | 25 H/s | 400 | 0% | 0–20% |
+| PIX Starter 05 | 0 | 30 H/s | 500 | 0% | 0–20% |
+| PIX Starter 06 | 0 | 35 H/s | 600 | 0% | 0–20% |
+| PIX Starter 07 | 0 | 40 H/s | 700 | 0% | 0–20% |
+| PIX Starter 08 | 0 | 45 H/s | 800 | 0% | 0–20% |
+| PIX Starter 09 | 0 | 50 H/s | 900 | 0% | 0–20% |
+| PIX Starter 10 | 0 | 55 H/s | 1.000 | 0% | 0–20% |
+
+A sequência de preços até a sétima máquina foi explicitamente descrita pelo usuário. A extensão para 800, 900 e 1.000 PC nas máquinas 8–10 foi inferida pela continuidade do incremento de 100 PC, para completar o catálogo de dez unidades. O HASH foi estendido em incrementos de 5 H/s, conforme a sequência informada.
+
+A Benção é gerada no backend no momento da compra, com duas casas decimais e distribuição pseudoaleatória uniforme contínua no intervalo de 0% a 20%. Essa distribuição uniforme é a regra técnica inicial implementada; caso o sistema passe a envolver compras com dinheiro real ou caixas pagas, a aleatoriedade, transparência e conformidade deverão passar por revisão específica. A Benção fica persistida na unidade e não é rerrolada em reinstalações.
+
+As máquinas antigas PIX Miner II e PIX Miner III permanecem ativas com seus preços e potências anteriores. Seu mapeamento formal para Tier e seus limites de Overclock/Benção continuam pendentes; por isso, o cálculo atual mantém Overclock e Benção em zero para essas unidades legadas até deliberação própria.
+
+### 13.2 Fórmula efetiva
+
+O backend calcula individualmente:
+
+`HASH_{efetivo}=HASH_{base} × (1 + Overclock/100 + Benção/100)`
+
+O HASH efetivo é somado por sala e considerado no resumo da infraestrutura e na distribuição proporcional da Mining Pool. O HASH temporário concedido pelos jogos também entra no HASH global enquanto estiver ativo. Energia por sala ainda não está implementada; quando vier a ser implementada, deverá suspender a contribuição da sala conforme D-028.
+
+### 13.3 Jogos: recompensas e limites
+
+- Cada jogo possui contador diário independente: Flappy Pix, Pix Snake e Coin Catch.
+- O limite de 30 partidas conta partidas iniciadas, inclusive derrotas e partidas abandonadas, com reinício às 00:00 UTC.
+- O limite é validado pelo PostgreSQL; limpar armazenamento local ou alterar o relógio do navegador não aumenta o limite.
+- A vitória confirmada credita +1 PIX COIN à carteira persistente e +1 H/s temporário por 24 horas.
+- Vitórias sucessivas durante a validade acumulam HASH temporário; quando expira, uma nova vitória reinicia o bônus em +1 H/s.
+- A conclusão de qualquer partida renova por 24 horas a validade do HASH temporário que ainda estiver ativo, preservando a regra anterior.
+- Derrotas não concedem PC nem novo HASH.
+- Cooldowns e progressão continuam: metas de 10, 15, 20, 25... objetivos, 45 segundos por partida, três vitórias para subir de nível e cooldowns de 10/20/30/60 segundos.
+- O contador diário e os créditos de PC/HASH são persistidos no backend; XP e progresso de missões continuam separados.
+
+**Limite de integridade conhecido:** o servidor registra início, conclusão, idempotência e limite diário, mas o resultado de vitória ainda é reportado pelo cliente. A duração mínima e a unicidade do attempt reduzem abuso trivial, porém não constituem prova antifraude de que a partida foi realmente vencida. Antes de vincular recompensas a valor financeiro, será necessário implementar validação de gameplay mais robusta ou tornar a recompensa explicitamente promocional e limitada.
+
+### 13.4 Ajustes de jogabilidade
+
+**Flappy Pix**
+- Substituído o timer de 30 ms por requestAnimationFrame.
+- Física passa a usar delta time, gravidade e impulso em unidades por segundo.
+- Renderização do canvas é desenhada diretamente no loop, evitando re-renderizações React a cada frame.
+- Velocidade de deslocamento dos obstáculos ajustada para movimento contínuo.
+
+**Coin Catch**
+- Intervalo mínimo de 1.300 ms entre lançamentos.
+- Evita lançar novo item quando há outro nas primeiras três linhas.
+- Probabilidade de lançamento reduzida para 65% quando o intervalo mínimo é alcançado.
+- A velocidade de queda e os controles existentes permanecem.
+
+### 13.5 Implementação e salvaguardas
+
+- Migration: `20261112000000_starter_machines_and_game_rewards.sql`.
+- Novas colunas do catálogo: Tier, Overclock e faixa de Benção.
+- Cada equipamento possui `blessing_percent` próprio.
+- Tabelas `player_game_attempts` e `player_game_hash_boosts` possuem RLS e políticas de leitura por proprietário; escritas ocorrem por RPCs autenticadas.
+- RPCs: `start_player_game_attempt`, `finish_player_game_attempt` e `get_player_game_status`.
+- Compra de máquina sorteia e persiste a Benção no backend; o cliente não escolhe o atributo.
+- `get_player_mining_summary`, `get_player_room_summaries`, `get_pool_dashboard` e `settle_pool_cycle` passam a usar HASH efetivo com Overclock/Benção e HASH temporário ativo.
+- Nenhum saldo existente foi convertido, nenhuma carteira MC foi creditada e nenhum ciclo da Pool foi aberto ou liquidado nesta atualização.
