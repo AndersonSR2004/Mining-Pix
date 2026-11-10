@@ -140,3 +140,43 @@ The user's latest specification sets the official block interval to 600 seconds 
 6. Nenhum benefício VIP, desconto de saque, conversão, emissão de MC ou pagamento real é ativado por esta decisão.
 
 **Precedência:** D-047 aprova exclusivamente a janela móvel de 30 dias e a não oferta de VIP vitalício. Ela não aprova automaticamente os limites R$30/R$40/R$45/R$50/R$60 nem os benefícios anteriormente propostos.
+
+
+## Política VIP e Passe — esclarecimentos de design (10 nov 2026)
+
+### D-047 — interpretação da vantagem VIP
+O VIP é uma camada de monetização e conveniência para jogadores que voluntariamente contribuem financeiramente para sustentar o jogo. O produto não deve ser desenhado como bolsa de valores, investimento ou promessa de enriquecimento. Benefícios podem ser relevantes, inclusive um bônus proposto de até 30% no HASH, desde que:
+- sejam apresentados como vantagens de jogo, não como retorno financeiro, juros, renda ou recuperação garantida da contribuição;
+- a contribuição financeira e a qualificação VIP sejam transparentes;
+- a distribuição da Pool permaneça proporcional ao HASH elegível e limitada ao orçamento efetivamente financiado;
+- o bônus altere a participação relativa na Pool, não crie orçamento ou MC adicional;
+- não exista prioridade de saque ou garantia de valor de resgate para VIPs.
+
+O usuário esclareceu que a vantagem de HASH é intencionalmente vinculada à liquidez que o jogador contribui ao ecossistema. Os percentuais e a tabela de qualificação continuam sujeitos a simulação de sustentabilidade, concentração e divulgação adequada.
+
+### D-048 — XP e Passe de Batalha
+- Os multiplicadores VIP aplicam-se ao XP de missões, não a pontos genéricos, PC ou MC.
+- XP mais alto acelera a progressão do Passe e pode antecipar a reivindicação de recompensas. O custo econômico dessas recompensas deve ser incluído no orçamento da temporada.
+- O Passe poderá ser comprado em PC nas modalidades gratuito, Premium e Full. Full libera a trilha Premium e todos os níveis da temporada; níveis individuais também poderão ser comprados em PC.
+- Nenhuma dessas compras emite MC. PC gasta em passe/níveis é sink de moeda interna e não é nova receita BRL.
+- PC obtida como recompensa do Passe é faucet e deve ser limitada/orçada por temporada; evitar que uma compra de Passe devolva, em PC, valor igual ou superior ao seu custo de forma que crie arbitragem ou emissão líquida descontrolada.
+- Preços, composição de recompensas, XP por missão, limites de compra e orçamento de PC ainda não foram aprovados.
+
+### Proposta P-049 — alteração da alocação financeira
+O usuário levantou uma alternativa à distribuição anterior D-019:
+- 25% da Receita Líquida Elegível (RLE) para a Mining Pool;
+- 35% para o Fundo de Garantia/Reserva;
+- 30% para operação e desenvolvimento;
+- 10% para administração.
+
+**Estado: proposta para simulação, não aprovada como política financeira final.** Ela deslocaria 5 pontos percentuais da Pool para a reserva, aumentando a retenção de liquidez em 10 pontos percentuais em relação à alocação anterior de 30% Pool / 30% reserva. Os 30% de operação/desenvolvimento e 10% de administração permaneceriam iguais.
+
+A simulação deve comparar pelo menos:
+1. Política anterior: 30% Pool / 30% reserva / 30% operação e desenvolvimento / 10% administração.
+2. Alternativa: 25% Pool / 35% reserva / 30% operação e desenvolvimento / 10% administração.
+
+A comparação precisa considerar receita líquida após taxas, tributos, reembolsos e chargebacks; sazonalidade e queda de vendas; custos fixos e variáveis; passivos e compromissos futuros; concentração de HASH; e meses de cobertura da reserva. A reserva deve ter piso, política de uso, critérios de recomposição e trilha de auditoria. Percentuais são alocações de orçamento, não prova de que há caixa disponível: nenhum compromisso pode exceder caixa liquidado e livre.
+
+A reserva não deve ser tratada como receita nem como lucro. Seu uso para financiar Pool, operação ou resgates exige regra aprovada, autorização e lançamento contábil específico. Não prometer proteção absoluta contra insolvência ou "garantia" de retorno.
+
+**Salvaguarda de contabilização:** a compra de PC gera entrada financeira no momento de liquidação, sujeita ao tratamento contábil apropriado. O gasto posterior de PC no VIP, Passe, Full Pass, níveis ou máquinas não gera uma segunda receita em BRL. O valor nominal de PC em circulação não equivale a caixa, reserva ou liquidez sacável.
