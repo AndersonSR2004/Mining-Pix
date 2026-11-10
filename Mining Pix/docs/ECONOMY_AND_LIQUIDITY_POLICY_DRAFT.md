@@ -180,3 +180,22 @@ A comparação precisa considerar receita líquida após taxas, tributos, reembo
 A reserva não deve ser tratada como receita nem como lucro. Seu uso para financiar Pool, operação ou resgates exige regra aprovada, autorização e lançamento contábil específico. Não prometer proteção absoluta contra insolvência ou "garantia" de retorno.
 
 **Salvaguarda de contabilização:** a compra de PC gera entrada financeira no momento de liquidação, sujeita ao tratamento contábil apropriado. O gasto posterior de PC no VIP, Passe, Full Pass, níveis ou máquinas não gera uma segunda receita em BRL. O valor nominal de PC em circulação não equivale a caixa, reserva ou liquidez sacável.
+
+## Proposta P-049 — alocação alternativa da Receita Líquida Elegível (10 nov 2026)
+
+**Estado: aprovada exclusivamente para simulação; não substitui a política histórica D-019 nem está ativa para lançamentos financeiros.**
+
+Distribuição proposta sobre a Receita Líquida Elegível (RLE), depois de taxas, tributos, reembolsos e chargebacks:
+
+| Destinação | Percentual |
+|---|---:|
+| Mining Pool | 25% |
+| Fundo de Garantia | 35% |
+| Operação e desenvolvimento | 30% |
+| Administração | 10% |
+| **Total** | **100%** |
+
+Em comparação com a referência histórica D-019 (30% Pool, 30% reserva, 30% operação/desenvolvimento e 10% administração), P-049 desloca cinco pontos percentuais da Pool para o Fundo de Garantia. A cada R$ 10.000,00 de RLE hipotética, a simulação resulta em R$ 2.500,00 para Pool, R$ 3.500,00 para Fundo de Garantia, R$ 3.000,00 para operação/desenvolvimento e R$ 1.000,00 para administração.
+
+O painel administrativo pode calcular cenários P-049 sem gravar lançamentos, alterar a política ativa, transferir BRL ou emitir MC. A política ativa só poderá ser alterada após revisão de fluxo de caixa, cobertura e regras de uso/recomposição do Fundo de Garantia, concentração de recompensas, cenários de estresse e aprovação expressa posterior. A reserva não deve ser tratada como caixa livre nem como garantia suficiente, isoladamente, contra insolvência.
+
