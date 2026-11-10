@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
 
-export default function AdminPowerTools() {
+export default function AdminPowerTools({ onComplete }: { onComplete?: () => void }) {
   const [target, setTarget] = useState('')
   const [amount, setAmount] = useState('')
   const [pcReason, setPcReason] = useState('')
@@ -23,7 +23,7 @@ export default function AdminPowerTools() {
       if (rpcError) throw rpcError
       const result = data as { balance_after: number; duplicate: boolean }
       setMessage(`Ajuste de PC registrado. Novo saldo: ${Number(result.balance_after).toLocaleString('pt-BR')} PC.${result.duplicate ? ' Solicitação idempotente.' : ''}`)
-      setAmount(''); setPcReason('')
+      setAmount(''); setPcReason(''); onComplete?.()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha no ajuste de PC.') }
     finally { setBusy(false) }
   }
@@ -40,7 +40,7 @@ export default function AdminPowerTools() {
       if (rpcError) throw rpcError
       const result = data as { name?: string; sku: string; blessing_percent: number; duplicate?: boolean }
       setMessage(`Máquina ${result.name ?? result.sku} concedida ao inventário do jogador. Benção: ${Number(result.blessing_percent).toFixed(2)}%.`)
-      setSku(''); setMachineReason('')
+      setSku(''); setMachineReason(''); onComplete?.()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Falha ao conceder máquina.') }
     finally { setBusy(false) }
   }
