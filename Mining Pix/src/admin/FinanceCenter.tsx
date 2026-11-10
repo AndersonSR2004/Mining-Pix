@@ -64,6 +64,7 @@ export default function FinanceCenter() {
   const [expenseSource, setExpenseSource] = useState('')
   const [expenseReason, setExpenseReason] = useState('')
   const [expenseBusy, setExpenseBusy] = useState(false)
+  const [expenseRequestId, setExpenseRequestId] = useState(() => crypto.randomUUID())
   const [commitmentType, setCommitmentType] = useState('operational')
   const [commitmentCategory, setCommitmentCategory] = useState('infraestrutura')
   const [commitmentDescription, setCommitmentDescription] = useState('')
@@ -72,11 +73,13 @@ export default function FinanceCenter() {
   const [commitmentSource, setCommitmentSource] = useState('')
   const [commitmentReason, setCommitmentReason] = useState('')
   const [commitmentBusy, setCommitmentBusy] = useState(false)
+  const [commitmentRequestId, setCommitmentRequestId] = useState(() => crypto.randomUUID())
   const [reserveType, setReserveType] = useState<'contribution' | 'withdrawal'>('contribution')
   const [reserveAmount, setReserveAmount] = useState('')
   const [reserveSource, setReserveSource] = useState('')
   const [reserveReason, setReserveReason] = useState('')
   const [reserveBusy, setReserveBusy] = useState(false)
+  const [reserveRequestId, setReserveRequestId] = useState(() => crypto.randomUUID())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -114,12 +117,12 @@ export default function FinanceCenter() {
       const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
         action: 'record_expense', category: expenseCategory, description: expenseDescription.trim(), amount_cents,
         expense_date: expenseDate, vendor_reference: expenseVendor.trim() || null, source_reference: expenseSource.trim(),
-        idempotency_key: crypto.randomUUID(), reason: expenseReason.trim(),
+        idempotency_key: expenseRequestId, reason: expenseReason.trim(),
       } })
       if (invokeError) throw invokeError
       if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o lançamento da despesa.')
       setMessage(result.duplicate ? 'Despesa já registrada; nenhuma duplicação foi criada.' : 'Despesa efetiva registrada e auditada.')
-      setExpenseDescription(''); setExpenseAmount(''); setExpenseVendor(''); setExpenseSource(''); setExpenseReason(''); await load()
+      setExpenseDescription(''); setExpenseAmount(''); setExpenseVendor(''); setExpenseSource(''); setExpenseReason(''); setExpenseRequestId(crypto.randomUUID()); await load()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar a despesa.') }
     finally { setExpenseBusy(false) }
   }
@@ -136,12 +139,12 @@ export default function FinanceCenter() {
       const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
         action: 'create_commitment', commitment_type: commitmentType, category: commitmentCategory.trim(),
         description: commitmentDescription.trim(), amount_cents, amount_mc, due_date: commitmentDueDate,
-        source_reference: commitmentSource.trim(), idempotency_key: crypto.randomUUID(), reason: commitmentReason.trim(),
+        source_reference: commitmentSource.trim(), idempotency_key: commitmentRequestId, reason: commitmentReason.trim(),
       } })
       if (invokeError) throw invokeError
       if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o compromisso.')
       setMessage('Compromisso registrado e auditado.'); setCommitmentDescription(''); setCommitmentAmount('');
-      setCommitmentSource(''); setCommitmentReason(''); await load()
+      setCommitmentSource(''); setCommitmentReason(''); setCommitmentRequestId(crypto.randomUUID()); await load()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o compromisso.') }
     finally { setCommitmentBusy(false) }
   }
@@ -153,12 +156,12 @@ export default function FinanceCenter() {
       const signed_amount_cents = (reserveType === 'withdrawal' ? -cents : cents).toString()
       const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', { body: {
         action: 'record_reserve_movement', movement_type: reserveType, signed_amount_cents,
-        source_reference: reserveSource.trim(), idempotency_key: crypto.randomUUID(), reason: reserveReason.trim(),
+        source_reference: reserveSource.trim(), idempotency_key: reserveRequestId, reason: reserveReason.trim(),
       } })
       if (invokeError) throw invokeError
       if (result?.status !== 'succeeded') throw new Error('O backend não confirmou o movimento da reserva.')
       setMessage('Movimento contábil da reserva registrado. Nenhuma transferência bancária foi executada.')
-      setReserveAmount(''); setReserveSource(''); setReserveReason(''); await load()
+      setReserveAmount(''); setReserveSource(''); setReserveReason(''); setReserveRequestId(crypto.randomUUID()); await load()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o movimento da reserva.') }
     finally { setReserveBusy(false) }
   }
