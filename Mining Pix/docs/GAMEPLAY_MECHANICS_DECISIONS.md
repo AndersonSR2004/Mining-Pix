@@ -220,3 +220,94 @@ Não selecionar um modelo nesta etapa. Para escolher, medir PC comprado, PC gast
 - Propostas ainda não aprovadas claramente separadas das decisões.
 - Alternativas de destinação de PC documentadas sem escolha prematura.
 - Nenhuma migration, alteração de catálogo, saldo, inventário, emissão MC, ciclo Pool ou mudança em produção realizada.
+
+
+## 10. Bônus individual por máquina e adicional de Tier — D-031 a D-033
+
+As escolhas do usuário nesta rodada foram registradas da seguinte forma:
+
+| ID | Decisão | Regra aprovada | Limites |
+|---|---|---|---|
+| D-031 | Modelo de bônus | O bônus é individual por máquina e incide somente sobre a potência-base daquela unidade. Os bônus das máquinas são somados para formar o HASH total da sala; não existe soma de percentuais aplicada diretamente ao HASH global. | A fórmula final de combinação e arredondamento precisa ser validada antes da implementação. |
+| D-032 | Limites dos atributos | A faixa possível do atributo individual de bônus é determinada pelo Tier da máquina. | Limites mínimo/máximo, distribuição probabilística e raridades de cada Tier permanecem pendentes. |
+| D-033 | Bônus adicional | Além do atributo individual, haverá um bônus adicional associado ao Tier da máquina, também aplicado individualmente à potência-base da unidade. | Percentuais por Tier e forma exata de combinação permanecem pendentes. |
+
+As três decisões aprovam a estrutura conceitual, não os números. Não foi aprovado atributo aleatório uniforme de 0–100%, nem qualquer percentual fixo para o bônus adicional.
+
+### 10.1 Modelo matemático de trabalho
+
+Para cada máquina instalada (i):
+
+`HASH_i = HASHbase_i × (1 + A_i + T_i)`
+
+Onde:
+- `HASHbase_i` é a potência nominal da máquina;
+- `A_i` é o atributo individual sorteado/atribuído dentro dos limites do Tier;
+- `T_i` é o bônus adicional definido pelo Tier.
+
+O HASH da sala energizada é a soma das potências efetivas das máquinas instaladas e elegíveis:
+
+`HASH_sala = Σ HASH_i`
+
+Esta fórmula aditiva é uma hipótese de trabalho para simulação, não uma regra matemática definitivamente aprovada. Uma alternativa multiplicativa (`HASHbase × (1 + A) × (1 + T)`) aumenta mais a potência e deverá ser comparada antes de escolher a fórmula final. Bônus não devem ser compostos entre máquinas nem aplicados como multiplicador global da sala.
+
+### 10.2 Simulação normalizada — exemplo ilustrativo, não balanceamento aprovado
+
+Para demonstrar o comportamento, considere quatro máquinas idênticas de 100 H/s. Os valores abaixo são exemplos hipotéticos de atributos e bônus adicional, não parâmetros propostos para lançamento:
+
+| Máquina | HASH-base | Atributo individual hipotético | Adicional de Tier hipotético | HASH efetivo aditivo |
+|---|---:|---:|---:|---:|
+| A | 100 | 5% | 5% | 110 |
+| B | 100 | 10% | 5% | 115 |
+| C | 100 | 15% | 5% | 120 |
+| D | 100 | 20% | 5% | 125 |
+| **Total** | **400** | — | — | **470 H/s** |
+
+Nesse exemplo, a sala recebe +70 H/s, ou +17,5% sobre a base. Não recebe +100% por simplesmente somar quatro atributos de 25%, porque cada percentual atua apenas na respectiva máquina.
+
+### 10.3 Comparação entre fórmulas
+
+Usando os mesmos exemplos ilustrativos:
+- Fórmula aditiva: `100 × (1 + 20% + 5%) = 125 H/s`.
+- Fórmula multiplicativa: `100 × 1,20 × 1,05 = 126 H/s`.
+
+A diferença por unidade parece pequena nesse exemplo, mas cresce quando os dois bônus aumentam. A fórmula aditiva é mais simples de explicar, auditar e balancear; por isso é a referência inicial recomendada para simulação. A decisão final continua pendente.
+
+### 10.4 Implicações para progressão e distribuição da Pool
+
+- Atributos individuais criam diferenciação entre máquinas do mesmo Tier, sem fazer a sala escalar exponencialmente com o número de equipamentos.
+- O adicional de Tier preserva uma identidade de progressão entre categorias, mesmo quando duas máquinas têm atributos individuais diferentes.
+- Se o atributo individual for sorteado, deve ser gerado no backend na criação/obtenção do item, persistido no registro do equipamento e permanecer estável durante a vida útil da unidade, salvo regra explícita futura.
+- O atributo não deve ser rerrolado gratuitamente por reinstalação, troca de sala, reconexão ou retry.
+- A raridade deve ser separada do Tier: Tier determina a faixa e o adicional estrutural; raridade, se aprovada depois, poderá definir a distribuição dentro da faixa, sem ultrapassar seus limites.
+- O HASH efetivo validado pelo backend alimentará o HASH-hora elegível. O cliente apenas apresenta os valores.
+- A Pool permanece proporcional ao HASH elegível (D-016); portanto, qualquer bônus altera participação relativa, não o orçamento total da Pool.
+
+### 10.5 Simulações necessárias antes de fixar parâmetros
+
+Executar cenários com:
+1. Máquinas no limite inferior, mediano e superior do atributo permitido em cada Tier.
+2. Bônus adicional de Tier desligado, moderado e alto.
+3. Fórmula aditiva versus multiplicativa.
+4. Salas com 1, 4, 10, 20 e 40 máquinas, respeitando as capacidades reais de cada plano.
+5. Composições homogêneas e mistas de Tiers.
+6. Atributos sorteados independentemente e cenários de concentração adversa (jogadores com muitas máquinas no topo da faixa).
+7. Energia disponível em 100%, 75%, 50% e 0% do tempo; com energia zero, HASH da sala é zero conforme D-028.
+8. Distribuição proporcional da Pool antes/depois dos bônus, incluindo percentis, Gini e HHI, sem assumir que o orçamento aumenta.
+9. Sensibilidade a novas máquinas obtidas por loja, Lucky Boxes, passe e eventos, para medir concentração e pressão sobre a emissão simulada de MC.
+
+### 10.6 Pendências de balanceamento
+
+- Faixas mínimas/máximas de atributo por Tier.
+- Distribuição de probabilidade do atributo dentro de cada faixa.
+- Bônus adicional por Tier.
+- Fórmula aditiva ou multiplicativa.
+- Se o atributo será sorteado ao obter a máquina ou escolhido por outro mecanismo.
+- Política para atributos de máquinas antigas quando houver rebalanceamento.
+- Relação formal entre os SKUs persistentes atuais e os Tiers.
+- Compatibilidade com energia, forja, evolução, duplicatas e Lucky Boxes.
+- Controles contra reroll, duplicação, manipulação de inventário e alterações indevidas.
+
+## 11. Estado da implementação
+
+Esta atualização altera somente a documentação de decisões na branch de trabalho. Nenhum código, migration, catálogo, saldo, inventário, regra de energia, ciclo de Pool ou emissão de MC foi alterado. A branch `main` e o PR não foram mesclados ou modificados por esta atualização.
