@@ -50,6 +50,12 @@ export default function Games({ userId, onGameComplete }: Props) {
     } catch { return emptyProgress }
   })
   const [now, setNow] = useState(Date.now())
+  const [dailyUsed, setDailyUsed] = useState<Record<GameMode, number>>({ flappy: 0, snake: 0, coin: 0 })
+  const [activeHash, setActiveHash] = useState(0)
+  const [boostExpiresAt, setBoostExpiresAt] = useState<string | null>(null)
+  const [rewardMessage, setRewardMessage] = useState('')
+  const [rewardError, setRewardError] = useState('')
+  const [starting, setStarting] = useState(false)
   const [best, setBest] = useState<Record<GameMode, number>>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem(bestStorageKey) || '{}')
@@ -58,6 +64,8 @@ export default function Games({ userId, onGameComplete }: Props) {
   })
   const scoreRef = useRef(0)
   const completedRef = useRef(false)
+  const attemptRef = useRef<string | null>(null)
+  const lastCoinSpawnAtRef = useRef(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const flappyRef = useRef({ y: HEIGHT / 2, velocity: 0, pipes: [] as Pipe[] })
   const snakeRef = useRef<Point[]>([{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }])
@@ -70,12 +78,28 @@ export default function Games({ userId, onGameComplete }: Props) {
   const current = progress[mode]
   const target = targetFor(current.level)
   const remainingCooldown = Math.max(0, Math.ceil((current.cooldownUntil - now) / 1000))
-  const canStart = remainingCooldown === 0 && status !== 'running'
+  const canStart = remainingCooldown === 0 && status !== 'running' && !starting && dailyUsed[mode] < 30
 
   useEffect(() => { localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }, [progress])
   useEffect(() => {
     const clock = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(clock)
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    void supabase.rpc('get_player_game_status').then(({ data, error }) => {
+      if (!mounted || error || !data) return
+      const result = data as { daily_used?: Record<string, number>; active_hashrate?: number; expires_at?: string | null }
+      setDailyUsed({
+        flappy: Number(result.daily_used?.flappy_games ?? 0),
+        snake: Number(result.daily_used?.snake_games ?? 0),
+        coin: Number(result.daily_used?.coin_catch_games ?? 0),
+      })
+      setActiveHash(Number(result.active_hashrate ?? 0))
+      setBoostExpiresAt(result.expires_at ?? null)
+    })
+    return () => { mounted = false }
   }, [])
 
   function updateBest(value: number) {
@@ -93,7 +117,7 @@ export default function Games({ userId, onGameComplete }: Props) {
     })
   }
 
-  function finishGame(won: boolean) {
+  async function finishGame(won: boolean) {
     if (completedRef.current) return
     completedRef.current = true
     recordGameActivity('game_completed')
@@ -113,11 +137,62 @@ export default function Games({ userId, onGameComplete }: Props) {
         },
       }
     })
+
+    const attemptId = attemptRef.current
+    attemptRef.current = null
+    if (!attemptId) {
+      setRewardError('Não foi possível localizar a partida no servidor. Nenhuma recompensa foi creditada.')
+      onGameComplete(events[mode], won)
+      return
+    }
+
+    const { data, error } = await supabase.rpc('finish_player_game_attempt', {
+      p_attempt_id: attemptId,
+      p_won: won,
+    })
+    if (error) {
+      setRewardError(error.message.includes('expirou')
+        ? 'A partida expirou no servidor. Nenhuma recompensa foi creditada.'
+        : 'Não foi possível confirmar a partida no servidor. Nenhuma recompensa foi creditada.')
+    } else if (data) {
+      const result = data as {
+        pc_awarded?: number
+        hash_awarded?: number
+        active_hashrate?: number
+        expires_at?: string | null
+        daily_used?: number
+      }
+      setDailyUsed((old) => ({ ...old, [mode]: Number(result.daily_used ?? old[mode]) }))
+      setActiveHash(Number(result.active_hashrate ?? 0))
+      setBoostExpiresAt(result.expires_at ?? null)
+      setRewardMessage(won
+        ? 'Vitória confirmada: +1 PIX COIN e +1 H/s temporário por 24 horas.'
+        : 'Partida registrada. Sem recompensa de vitória.')
+      setRewardError('')
+    }
     onGameComplete(events[mode], won)
   }
 
-  function startGame() {
-    if (remainingCooldown > 0 || status === 'running') return
+  async function startGame() {
+    if (remainingCooldown > 0 || status === 'running' || starting || dailyUsed[mode] >= 30) return
+    setStarting(true)
+    setRewardError('')
+    setRewardMessage('')
+    const { data, error } = await supabase.rpc('start_player_game_attempt', {
+      p_game_id: events[mode],
+    })
+    if (error || !data) {
+      setRewardError(error?.message.includes('Limite diário')
+        ? 'Você atingiu o limite de 30 partidas diárias deste jogo.'
+        : error?.message ?? 'Não foi possível iniciar a partida.')
+      setStarting(false)
+      return
+    }
+
+    const result = data as { attempt_id: string; daily_used: number }
+    attemptRef.current = result.attempt_id
+    setDailyUsed((old) => ({ ...old, [mode]: Number(result.daily_used ?? old[mode] + 1) }))
+    setStarting(false)
     completedRef.current = false
     recordGameActivity('game_started')
     scoreRef.current = 0
@@ -130,7 +205,11 @@ export default function Games({ userId, onGameComplete }: Props) {
       nextDirectionRef.current = { x: 1, y: 0 }
       foodRef.current = { x: 14, y: 8 }
     }
-    if (mode === 'coin') { catcherRef.current = 5; fallingRef.current = [] }
+    if (mode === 'coin') {
+      catcherRef.current = 5
+      fallingRef.current = []
+      lastCoinSpawnAtRef.current = Date.now()
+    }
     setStatus('running')
   }
 
@@ -144,7 +223,7 @@ export default function Games({ userId, onGameComplete }: Props) {
   function flap() {
     if (mode !== 'flappy') return
     if (status !== 'running') { if (status === 'ready') startGame(); return }
-    flappyRef.current.velocity = -5.8
+    flappyRef.current.velocity = -320
   }
 
   useEffect(() => {
@@ -161,23 +240,68 @@ export default function Games({ userId, onGameComplete }: Props) {
   useEffect(() => {
     if (status !== 'running') return
     if (mode === 'flappy') {
-      const timer = window.setInterval(() => {
+      const canvas = canvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (!canvas || !ctx) return
+      let animationFrame = 0
+      let previousTime = 0
+      const draw = () => {
         const game = flappyRef.current
-        game.velocity += 0.32
-        game.y += game.velocity
-        game.pipes = game.pipes.map((pipe) => ({ ...pipe, x: pipe.x - 3.2 }))
-        if (!game.pipes.length || game.pipes[game.pipes.length - 1].x < WIDTH - 250) game.pipes.push({ x: WIDTH + 20, gapY: 105 + Math.random() * 150, scored: false })
+        const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT)
+        gradient.addColorStop(0, '#10283a')
+        gradient.addColorStop(1, '#14251f')
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, WIDTH, HEIGHT)
         for (const pipe of game.pipes) {
-          if (!pipe.scored && pipe.x + 58 < 130) { pipe.scored = true; addPoint() }
-          const overlap = 130 + 18 > pipe.x && 130 - 18 < pipe.x + 58
-          const outside = game.y - 18 < pipe.gapY - 66 || game.y + 18 > pipe.gapY + 66
-          if (overlap && outside) { finishGame(false); return }
+          ctx.fillStyle = '#39b878'
+          ctx.fillRect(pipe.x, 0, 58, pipe.gapY - 72)
+          ctx.fillRect(pipe.x, pipe.gapY + 72, 58, HEIGHT)
+        }
+        ctx.fillStyle = '#f5c451'
+        ctx.beginPath()
+        ctx.arc(130, game.y, 18, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#e8edf5'
+        ctx.font = 'bold 22px Inter, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(String(scoreRef.current), WIDTH / 2, 38)
+      }
+      const tick = (time: number) => {
+        if (!previousTime) previousTime = time
+        const delta = Math.min((time - previousTime) / 1000, 0.05)
+        previousTime = time
+        const game = flappyRef.current
+        game.velocity += 900 * delta
+        game.y += game.velocity * delta
+        game.pipes = game.pipes.map((pipe) => ({ ...pipe, x: pipe.x - 210 * delta }))
+        if (!game.pipes.length || game.pipes[game.pipes.length - 1].x < WIDTH - 270) {
+          game.pipes.push({ x: WIDTH + 20, gapY: 112 + Math.random() * 136, scored: false })
+        }
+        for (const pipe of game.pipes) {
+          if (!pipe.scored && pipe.x + 58 < 130) {
+            pipe.scored = true
+            addPoint()
+          }
+          const overlap = 148 > pipe.x && 112 < pipe.x + 58
+          const outside = game.y - 18 < pipe.gapY - 72 || game.y + 18 > pipe.gapY + 72
+          if (overlap && outside) {
+            draw()
+            finishGame(false)
+            return
+          }
         }
         game.pipes = game.pipes.filter((pipe) => pipe.x > -58)
-        if (game.y - 18 < 0 || game.y + 18 > HEIGHT) finishGame(false)
-        setFrame((v) => v + 1)
-      }, 30)
-      return () => window.clearInterval(timer)
+        if (game.y - 18 < 0 || game.y + 18 > HEIGHT) {
+          draw()
+          finishGame(false)
+          return
+        }
+        draw()
+        animationFrame = window.requestAnimationFrame(tick)
+      }
+      draw()
+      animationFrame = window.requestAnimationFrame(tick)
+      return () => window.cancelAnimationFrame(animationFrame)
     }
     if (mode === 'snake') {
       const timer = window.setInterval(() => {
@@ -203,7 +327,12 @@ export default function Games({ userId, onGameComplete }: Props) {
     }
     const timer = window.setInterval(() => {
       fallingRef.current = fallingRef.current.map((coin) => ({ ...coin, y: coin.y + 1 })).filter((coin) => coin.y < 10)
-      if (Math.random() < 0.42) fallingRef.current.push({ x: Math.floor(Math.random() * 10), y: 0 })
+      const nowMs = Date.now()
+      const coinNearTop = fallingRef.current.some((coin) => coin.y <= 2)
+      if (!coinNearTop && nowMs - lastCoinSpawnAtRef.current >= 1300 && Math.random() < 0.65) {
+        fallingRef.current.push({ x: Math.floor(Math.random() * 10), y: 0 })
+        lastCoinSpawnAtRef.current = nowMs
+      }
       const caught = fallingRef.current.filter((coin) => coin.y >= 9 && coin.x === catcherRef.current).length
       fallingRef.current = fallingRef.current.filter((coin) => !(coin.y >= 9 && coin.x === catcherRef.current))
       for (let i = 0; i < caught; i++) addPoint()
@@ -233,22 +362,7 @@ export default function Games({ userId, onGameComplete }: Props) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [mode, status])
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || mode !== 'flappy') return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const game = flappyRef.current
-    const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT)
-    gradient.addColorStop(0, '#10283a'); gradient.addColorStop(1, '#14251f')
-    ctx.fillStyle = gradient; ctx.fillRect(0, 0, WIDTH, HEIGHT)
-    for (const pipe of game.pipes) {
-      ctx.fillStyle = '#39b878'
-      ctx.fillRect(pipe.x, 0, 58, pipe.gapY - 66); ctx.fillRect(pipe.x, pipe.gapY + 66, 58, HEIGHT)
-    }
-    ctx.fillStyle = '#f5c451'; ctx.beginPath(); ctx.arc(130, game.y, 18, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = '#e8edf5'; ctx.font = 'bold 22px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(score), WIDTH / 2, 38)
-  }, [mode, status, score, seconds, frame])
+
   const snakeCells = new Set(snakeRef.current.map((part) => part.y * 20 + part.x))
   const coinCells = new Set(fallingRef.current.map((coin) => coin.y * 10 + coin.x))
   const progressPct = Math.min(100, score / target * 100)
@@ -257,7 +371,7 @@ export default function Games({ userId, onGameComplete }: Props) {
     <section className="games-page">
       <div className="games-heading">
         <div><span className="eyebrow">ARCADE DO MINING PIX</span><h1>Central de Jogos</h1><p>Complete objetivos no tempo limite, vença e avance de nível.</p></div>
-        <span className="games-status">● JOGOS OFFLINE · SANDBOX</span>
+        <span className="games-status">● RECOMPENSAS PERSISTENTES · LIMITE DIÁRIO</span>
       </div>
       <div className="games-tabs">
         {(['flappy', 'snake', 'coin'] as GameMode[]).map((key) => <button key={key} className={mode === key ? 'selected' : ''} onClick={() => { if (status !== 'running') { setMode(key); setStatus('ready'); setScore(0); scoreRef.current = 0 } }}>{labels[key]}</button>)}
@@ -267,24 +381,26 @@ export default function Games({ userId, onGameComplete }: Props) {
           <div className="game-stage-top"><span>{labels[mode]}</span><span>TEMPO <strong>{seconds}s</strong> · PONTOS <strong>{score}/{target}</strong></span></div>
           {mode === 'flappy' && <div className="flappy-wrap" onClick={flap}>
             <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} aria-label="Jogo Flappy Pix" />
-            {status !== 'running' && <div className="game-overlay"><strong>{status === 'over' ? (score >= target ? 'VITÓRIA!' : 'FIM DE JOGO') : 'PRONTO PARA VOAR?'}</strong><span>{status === 'over' ? 'Aguarde o cooldown para outra partida.' : 'Clique ou pressione espaço para começar e voar.'}</span><button disabled={!canStart} onClick={(e) => { e.stopPropagation(); startGame() }}>{remainingCooldown ? `AGUARDE ${remainingCooldown}s` : status === 'over' ? 'NOVA PARTIDA' : 'INICIAR PARTIDA'}</button></div>}
+            {status !== 'running' && <div className="game-overlay"><strong>{status === 'over' ? (score >= target ? 'VITÓRIA!' : 'FIM DE JOGO') : 'PRONTO PARA VOAR?'}</strong><span>{status === 'over' ? 'Aguarde o cooldown para outra partida.' : 'Clique ou pressione espaço para começar e voar.'}</span><button disabled={!canStart} onClick={(e) => { e.stopPropagation(); startGame() }}>{dailyUsed[mode] >= 30 ? 'LIMITE DIÁRIO' : starting ? 'INICIANDO...' : remainingCooldown ? `AGUARDE ${remainingCooldown}s` : status === 'over' ? 'NOVA PARTIDA' : 'INICIAR PARTIDA'}</button></div>}
           </div>}
           {mode === 'snake' && <div className="snake-board" role="application" aria-label="Jogo da cobrinha">
             {Array.from({ length: 220 }, (_, i) => <span key={i} className={snakeCells.has(i) ? 'snake-cell body' : foodRef.current.y * 20 + foodRef.current.x === i ? 'snake-cell food' : 'snake-cell'} />)}
-            {status !== 'running' && <div className="game-overlay"><strong>{status === 'over' ? (score >= target ? 'VITÓRIA!' : 'FIM DE JOGO') : 'PIX SNAKE'}</strong><span>Use setas ou WASD. Colete {target} alimentos em 45 segundos.</span><button disabled={!canStart} onClick={startGame}>{remainingCooldown ? `AGUARDE ${remainingCooldown}s` : 'INICIAR PARTIDA'}</button></div>}
+            {status !== 'running' && <div className="game-overlay"><strong>{status === 'over' ? (score >= target ? 'VITÓRIA!' : 'FIM DE JOGO') : 'PIX SNAKE'}</strong><span>Use setas ou WASD. Colete {target} alimentos em 45 segundos.</span><button disabled={!canStart} onClick={startGame}>{dailyUsed[mode] >= 30 ? 'LIMITE DIÁRIO' : starting ? 'INICIANDO...' : remainingCooldown ? `AGUARDE ${remainingCooldown}s` : 'INICIAR PARTIDA'}</button></div>}
           </div>}
           {mode === 'coin' && <div className="coin-board" role="application" aria-label="Coin Catch">
             {Array.from({ length: 100 }, (_, i) => <span key={i} className={i === 90 + catcherRef.current ? 'coin-catcher' : coinCells.has(i) ? 'coin-falling' : 'coin-cell'}>{i === 90 + catcherRef.current ? '▰' : coinCells.has(i) ? '●' : ''}</span>)}
             {status !== 'running' && <div className="game-overlay"><strong>{status === 'over' ? (score >= target ? 'VITÓRIA!' : 'FIM DE JOGO') : 'COIN CATCH'}</strong><span>Mova a cesta com ← → ou A/D e capture {target} moedas.</span><button disabled={!canStart} onClick={startGame}>{remainingCooldown ? `AGUARDE ${remainingCooldown}s` : 'INICIAR PARTIDA'}</button></div>}
           </div>}
-          <div className="game-controls"><span>RECORDE: <strong>{best[mode]}</strong></span><span>NÍVEL {current.level} · VITÓRIAS {current.wins}/3</span></div>
+          <div className="game-controls"><span>RECORDE: <strong>{best[mode]}</strong></span><span>NÍVEL {current.level} · VITÓRIAS {current.wins}/3</span><span>PARTIDAS HOJE: <strong>{dailyUsed[mode]}/30</strong></span></div>
+          {rewardMessage && <div className="game-reward-message" role="status">{rewardMessage}</div>}
+          {rewardError && <div className="game-reward-error" role="alert">{rewardError}</div>}
           <div className="game-progress"><div style={{ width: `${progressPct}%` }} /></div>
         </article>
         <aside className="game-info">
           <div className="game-info-card"><span className="eyebrow">PROGRESSÃO</span><h2>Nível {current.level} · {target} objetivos</h2><p>Você tem 45 segundos para atingir a meta. A cada três vitórias, avança um nível e a meta aumenta em cinco objetivos.</p><small>COOLDOWN APÓS CADA PARTIDA: {cooldownFor(current.level)} SEGUNDOS</small></div>
-          <div className="game-info-card"><span className="eyebrow">RECOMPENSAS</span><h2>Vitória vale progresso</h2><p>Cada vitória concede 1 PIX COIN e +1 H/s temporário por 24 horas. Concluir uma partida renova a duração do HASH ativo.</p><small>DERROTA NÃO CONCEDE PIX COIN OU HASH</small></div>
+          <div className="game-info-card"><span className="eyebrow">RECOMPENSAS</span><h2>Vitória vale progresso</h2><p>Cada vitória confirmada concede 1 PIX COIN e +1 H/s temporário por 24 horas. O HASH ativo atual é {activeHash} H/s.</p><small>PARTIDAS DISPONÍVEIS HOJE: {Math.max(0, 30 - dailyUsed[mode])}/30 · {boostExpiresAt ? `BÔNUS ATÉ ${new Date(boostExpiresAt).toLocaleString('pt-BR')}` : 'SEM HASH TEMPORÁRIO ATIVO'}</small></div>
           <div className="game-info-card"><span className="eyebrow">CONTROLES</span><h2>{mode === 'flappy' ? 'Desvie dos obstáculos' : mode === 'snake' ? 'Guie a cobrinha' : 'Capture as moedas'}</h2><p>{mode === 'flappy' ? 'Clique ou pressione espaço para manter o pássaro no ar.' : mode === 'snake' ? 'Use as setas ou WASD para mudar a direção.' : 'Use ← → ou A/D para mover a cesta e pegar moedas que caem.'}</p></div>
-          <div className="game-disclaimer">Níveis, recordes e cooldowns ficam salvos neste navegador. Ambiente de demonstração: sem pagamentos reais.</div>
+          <div className="game-disclaimer">Limite diário e recompensas são registrados no servidor por jogo. Níveis, recordes e cooldowns continuam salvos neste navegador. A validação do resultado de vitória ainda depende do cliente e não deve ser considerada proteção antifraude completa.</div>
         </aside>
       </div>
     </section>
