@@ -84,12 +84,12 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
   if (mode === 'summary') return (
     <section className="persistent-facility persistent-facility-summary">
       <div className="persistent-facility-heading">
-        <div><span className="eyebrow">DADOS DO POSTGRESQL</span><h2>Mineração persistente</h2><p>Hashrate calculado no backend a partir dos equipamentos instalados.</p></div>
+        <div><span className="eyebrow">DADOS DO POSTGRESQL</span><h2>Mineração persistente</h2><p>Hashrate efetivo calculado no backend, incluindo Overclock, Benção individual e bônus temporários ativos.</p></div>
         <button className="secondary-button" onClick={() => void refresh()} disabled={loading}>ATUALIZAR</button>
       </div>
       {error && <div className="persistent-store-error" role="alert">{error}</div>}
       <div className="stats">
-        <article className="stat-card"><span>HASHRATE PERSISTENTE</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
+        <article className="stat-card"><span>HASHRATE EFETIVO TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
         <article className="stat-card"><span>EQUIPAMENTOS INSTALADOS</span><h2>{loading || !summary ? '—' : summary.installed_equipment_count}</h2></article>
         <article className="stat-card"><span>SALAS E ESPAÇOS</span><h2>{loading || !summary ? '—' : <>{summary.room_count} <small>/ {summary.total_room_capacity} espaços</small></>}</h2></article>
       </div>
@@ -105,7 +105,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
       {error && <div className="persistent-store-error" role="alert">{error}</div>}
       {notice && <div className="persistent-store-notice" role="status">{notice}</div>}
       <div className="stats">
-        <article className="stat-card"><span>HASHRATE PERSISTENTE</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
+        <article className="stat-card"><span>HASHRATE EFETIVO TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
         <article className="stat-card"><span>EQUIPAMENTOS INSTALADOS</span><h2>{loading || !summary ? '—' : summary.installed_equipment_count}</h2></article>
         <article className="stat-card"><span>ESPAÇOS DISPONÍVEIS</span><h2>{loading || !summary ? '—' : Math.max(0, summary.total_room_capacity - summary.installed_equipment_count)}</h2></article>
       </div>
