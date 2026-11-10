@@ -10,7 +10,7 @@ The design should encourage voluntary, healthy liquidity retention through usefu
 
 ## Existing approved boundaries
 
-- PIX COIN (PC) is purchased and consumed inside the game; it is not withdrawable.
+- PIX COIN (PC) is acquired exclusively through purchases and consumed inside the game; it is not withdrawable. No gameplay, block, bot, mission, event, advertisement or Lucky Box reward issues PC. Explicit administrator balance adjustments are exceptional DEV/test operations, not an earning channel.
 - MINING COIN (MC) is a distinct reward ledger intended to be funded initially only by the Mining Pool.
 - No PC-to-MC conversion.
 - Lucky Boxes do not award PC, MC, cash, or withdrawable prizes.
@@ -28,6 +28,7 @@ Track separately:
 - PC sinks: equipment, VIP, Premium Pass, Lucky Boxes, boosts and consumables.
 - MC issuance: settled Mining Pool cycles only in the initial design.
 - MC outflows: future approved redemptions only; do not count gameplay spending as an MC sink unless the currency's role is formally changed.
+- PC purchases: record gross BRL collected, processor fees, taxes, refunds/chargebacks, and net proceeds separately. A displayed PC/BRL price is a sale price, not a redemption promise.
 - Outstanding player liabilities: eligible MC balances and approved pending obligations.
 - Treasury/reserve liquidity: cash actually settled and available, not forecast revenue or unsold PC.
 
@@ -99,4 +100,14 @@ A design passes only if ledgers reconcile, reward budgets cannot exceed funded b
 
 ## Decisions intentionally left open
 
-No withdrawal fee, minimum withdrawal, maximum withdrawal, payout cadence, event prize budget, Lucky Box odds, machine price, HASH output, PC distribution rate, or MC conversion value is fixed here. These require a separate balancing meeting and documented approval.
+No withdrawal fee, minimum withdrawal, maximum withdrawal, payout cadence, event prize budget, Lucky Box odds, machine price, HASH output, PC/BRL sale price, or MC conversion/redemption value is fixed here. These require a separate balancing meeting and documented approval.
+
+## Proposed nominal currency reference — pending decision
+
+The user proposed the nominal relationship R$ 1 = 1 MC = 100 PC. This is not approved as a redemption peg or accounting guarantee. The safer initial posture is to price PC packs transparently in BRL (for example, a chosen number of PC per BRL after payment costs) while leaving MC without a promised BRL value until a fully funded, legally reviewed redemption policy is approved. Do not enable PC-to-MC conversion.
+
+If the project later promises 1 MC = R$ 1, every outstanding redeemable MC becomes a BRL-denominated liability at that rate. The official Pool budget must be funded from settled net revenue and cash reserves; issuance must never exceed the cash actually allocated to rewards. A 30% revenue share is not by itself proof that any arbitrary fixed MC reward per block is affordable.
+
+At a 600-second cadence there are 144 blocks/day. A production reward of 100 MC/block would create 14,400 MC/day. At a guaranteed R$1 redemption value, that is R$14,400/day (approximately R$432,000 per 30-day month) of gross redemption exposure, before fees and operating costs. If the Pool is capped at 30% of eligible net revenue, this rate would require at least R$48,000/day (R$1.44 million per 30-day month) of eligible net revenue merely to fund the Pool at that level. This is an illustrative stress calculation, not an approved production reward. The 100 MC/block value currently applies only to sandbox testing.
+
+Do not call the proposed relationship an exchange rate until the PC sale price and MC redemption value are independently defined. 100 PC = R$1 can be a retail price reference for PC packs; 1 MC = R$1 is a redemption promise and needs separate backing, liquidity and legal approval.
