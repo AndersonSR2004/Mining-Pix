@@ -99,3 +99,7 @@ Tabelas no schema privado, RLS habilitado, sem acesso direto de anon/authenticat
 - Meses fechados são imutáveis e não podem ser reabertos pela interface.
 - A meta da reserva só é calculada quando os três meses completos imediatamente anteriores estiverem fechados. Caso contrário, o painel mostra “Aguardando fechamento” e não apresenta uma meta artificialmente baixa.
 - QA transacional fechou três meses com despesas de teste, confirmou soma de R$ 60,00 e retry idempotente; todo o teste foi revertido, sem deixar registros no DEV.
+
+
+- O fechamento grava um snapshot imutável do total de despesas daquele mês.
+- Após o fechamento, novas despesas retroativas para o período são bloqueadas. Um fluxo formal de ajustes de mês fechado ainda precisa ser desenvolvido; não se deve lançar correções artificialmente em outro período.
