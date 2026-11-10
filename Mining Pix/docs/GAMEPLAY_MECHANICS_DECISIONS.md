@@ -425,12 +425,12 @@ O HASH efetivo é somado por sala e considerado no resumo da infraestrutura e na
 - Cada jogo possui contador diário independente: Flappy Pix, Pix Snake e Coin Catch.
 - O limite de 30 partidas conta partidas iniciadas, inclusive derrotas e partidas abandonadas, com reinício às 00:00 UTC.
 - O limite é validado pelo PostgreSQL; limpar armazenamento local ou alterar o relógio do navegador não aumenta o limite.
-- A vitória confirmada credita +1 PIX COIN à carteira persistente e +1 H/s temporário por 24 horas.
+- Regra original D-037: vitória concedia +1 PIX COIN e +1 H/s temporário. Substituída pela decisão posterior D-039: vitórias concedem somente +1 H/s temporário por 24 horas; PC é exclusivamente comprada.
 - Vitórias sucessivas durante a validade acumulam HASH temporário; quando expira, uma nova vitória reinicia o bônus em +1 H/s.
 - A conclusão de qualquer partida renova por 24 horas a validade do HASH temporário que ainda estiver ativo, preservando a regra anterior.
 - Derrotas não concedem PC nem novo HASH.
 - Cooldowns e progressão continuam: metas de 10, 15, 20, 25... objetivos, 45 segundos por partida, três vitórias para subir de nível e cooldowns de 10/20/30/60 segundos.
-- O contador diário e os créditos de PC/HASH são persistidos no backend; XP e progresso de missões continuam separados.
+- O contador diário e o bônus temporário de HASH são persistidos no backend; XP e progresso de missões continuam separados. O backend retorna pc_awarded=0 para novas partidas.
 
 **Limite de integridade conhecido:** o servidor registra início, conclusão, idempotência e limite diário, mas o resultado de vitória ainda é reportado pelo cliente. A duração mínima e a unicidade do attempt reduzem abuso trivial, porém não constituem prova antifraude de que a partida foi realmente vencida. Antes de vincular recompensas a valor financeiro, será necessário implementar validação de gameplay mais robusta ou tornar a recompensa explicitamente promocional e limitada.
 
@@ -458,3 +458,21 @@ O HASH efetivo é somado por sala e considerado no resumo da infraestrutura e na
 - Compra de máquina sorteia e persiste a Benção no backend; o cliente não escolhe o atributo.
 - `get_player_mining_summary`, `get_player_room_summaries`, `get_pool_dashboard` e `settle_pool_cycle` passam a usar HASH efetivo com Overclock/Benção e HASH temporário ativo.
 - Nenhum saldo existente foi convertido, nenhuma carteira MC foi creditada e nenhum ciclo da Pool foi aberto ou liquidado nesta atualização.
+
+
+## 14. Decisão D-039 — moedas e recompensas de bloco (10 nov 2026)
+
+**Estado: aprovada e aplicada no DEV.**
+
+- PIX COIN (PC) é moeda de compra: adquirida exclusivamente por compras. Não é emitida por blocos, vitórias de jogos, bots, missões, Lucky Boxes ou eventos.
+- MINING COIN (MC) é a única recompensa de mineração, distribuída pela Mining Pool conforme HASH elegível.
+- Vitórias em jogos mantêm o bônus temporário de +1 H/s por 24 horas, sem PC.
+- PIX BLOCK sandbox: 100 MC por ciclo de 600 segundos como orçamento padrão; PC = 0. O administrador ainda pode alterar o orçamento MC no sandbox para testes, com auditoria.
+- Dados históricos incorretos de PC no sandbox foram zerados; históricos de MC e eventos de auditoria foram preservados.
+- Não há conversão PC→MC.
+
+## 15. Proposta P-040 — referência nominal de moedas
+
+**Estado: pendente de simulação e aprovação econômica.**
+
+O usuário propôs a referência nominal R$ 1 = 1 MC = 100 PC. Não representa atualmente preço de resgate, garantia de paridade, conversibilidade, lastro ou valor de mercado. Avaliar custos de pagamento, impostos, estornos, liquidez, reserva, ritmo de emissão da Pool, passivos e cenários de saque antes de adotar a referência como política comercial ou financeira.
