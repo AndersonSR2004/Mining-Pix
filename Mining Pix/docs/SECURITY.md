@@ -191,3 +191,24 @@ O advisor sinaliza funções `SECURITY DEFINER` acessíveis a `authenticated` e 
 - MFA da conta admin deve ser confirmada antes de produção.
 - Rate limiting server-side e política de sessão/revogação ainda precisam ser implementados/revistos.
 - XP de jogos, missões e recompensas do Passe não devem ser persistidos até validação server-side de cada evento.
+
+
+## 14. Sandbox administrativo — RLS habilitada (DEV)
+
+Migration `20261110182731_secure_sandbox_tables_enable_rls.sql` habilita RLS em:
+- `private.sandbox_sessions`
+- `private.sandbox_miners`
+- `private.sandbox_blocks`
+- `private.sandbox_allocations`
+- `private.sandbox_admin_events`
+
+Não foram criadas policies para `anon` ou `authenticated`; essas tabelas não possuem grants diretos para esses papéis e o schema `private` não concede USAGE a eles. O papel `service_role` mantém os privilégios operacionais necessários.
+
+As RPCs administrativas de sandbox são `SECURITY DEFINER`, pertencem a `postgres` e chamam `private.assert_sandbox_admin()`, que exige `auth.uid()` e confirma `auth.users.raw_app_meta_data.admin=true`. O dono da função pode operar nas tabelas com RLS habilitada; o chamador comum não recebe acesso direto.
+
+Verificação pós-migration no Supabase DEV:
+- RLS habilitada nas cinco tabelas.
+- Nenhuma policy criada nessas tabelas.
+- Nenhum grant direto a `anon` ou `authenticated`.
+- `authenticated_private_usage=false` e `anon_private_usage=false`.
+- Sem alteração de dados, saldos, ciclos ou recompensas.
