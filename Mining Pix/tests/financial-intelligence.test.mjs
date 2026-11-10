@@ -50,3 +50,44 @@ test('finance dashboard is admin-only and exposes policy, forecast, supply and a
   assert.match(dashboard, /Aguardando linha de base/)
   assert.match(dashboard, /Telemetria ainda não conectada/)
 })
+
+const operations = readFileSync(new URL('../supabase/migrations/20261111040000_financial_admin_operations.sql', import.meta.url), 'utf8')
+const reserveFix = readFileSync(new URL('../supabase/migrations/20261111050000_financial_reserve_idempotency_fix.sql', import.meta.url), 'utf8')
+const snapshotRecords = readFileSync(new URL('../supabase/migrations/20261111070000_financial_snapshot_commitment_schedule.sql', import.meta.url), 'utf8')
+const edge = readFileSync(new URL('../supabase/functions/admin-finance/index.ts', import.meta.url), 'utf8')
+
+test('admin financial operations require backend role and revalidate admin identity', () => {
+  assert.match(operations, /request\.jwt\.claim\.role.*service_role/i)
+  assert.match(operations, /raw_app_meta_data->>'admin'='true'/i)
+  assert.match(operations, /admin_record_operational_expense/i)
+  assert.match(operations, /admin_create_financial_commitment/i)
+  assert.match(operations, /admin_record_reserve_movement/i)
+  assert.match(operations, /admin_transition_financial_commitment/i)
+  assert.match(operations, /financial_admin_events/i)
+})
+
+test('reserve withdrawals cannot exceed balance and retries remain idempotent', () => {
+  assert.match(reserveFix, /pg_advisory_xact_lock/i)
+  assert.match(reserveFix, /idempotency_key=trim\(p_idempotency_key\)/i)
+  assert.match(reserveFix, /v_balance < abs\(p_signed_amount_cents\)/i)
+  assert.match(reserveFix, /financial_commitments_paid_expense_unique_idx/i)
+})
+
+test('monthly player reward commitments remain in MC and finance actions are backend authenticated', () => {
+  assert.match(snapshotRecords, /reward_commitments_monthly/i)
+  assert.match(snapshotRecords, /recent_financial_events/i)
+  assert.match(edge, /auth\.getUser\(token\)/i)
+  assert.match(edge, /app_metadata\?\.admin !== true/i)
+  assert.match(edge, /admin_record_reserve_movement/i)
+  assert.match(edge, /Origin not allowed/i)
+  assert.match(edge, /verify_jwt/i) === false
+})
+
+test('Finance Center exposes controlled entry forms and separates MC from BRL', () => {
+  assert.match(dashboard, /Registrar despesa efetiva/i)
+  assert.match(dashboard, /Registrar compromisso/i)
+  assert.match(dashboard, /Registrar movimento contábil/i)
+  assert.match(dashboard, /Compromissos de recompensa por mês/i)
+  assert.match(dashboard, /Auditoria financeira/i)
+  assert.match(dashboard, /admin-finance/i)
+})
