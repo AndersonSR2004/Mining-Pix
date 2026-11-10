@@ -46,7 +46,7 @@ test('finance dashboard is admin-only and exposes policy, forecast, supply and a
   for (const text of ['revenue_forecast_next_month_cents','allocation_policy','net_issuance_vs_supply_percent','unique_players_7d','unique_players_30d']) {
     assert.match(snapshotFix, new RegExp(text))
   }
-  assert.match(admin, /FinancialCenter/)
+  assert.match(admin, /FinanceCenter/)
   assert.match(admin, /FINANCIAL INTELLIGENCE/)
   assert.match(dashboard, /Aguardando linha de base/)
   assert.match(dashboard, /Telemetria ainda não conectada/)
