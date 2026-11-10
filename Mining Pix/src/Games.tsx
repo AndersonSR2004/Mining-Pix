@@ -281,6 +281,10 @@ export default function Games({ userId, onGameComplete }: Props) {
           if (!pipe.scored && pipe.x + 58 < 130) {
             pipe.scored = true
             addPoint()
+            if (completedRef.current) {
+              draw()
+              return
+            }
           }
           const overlap = 148 > pipe.x && 112 < pipe.x + 58
           const outside = game.y - 18 < pipe.gapY - 72 || game.y + 18 > pipe.gapY + 72
