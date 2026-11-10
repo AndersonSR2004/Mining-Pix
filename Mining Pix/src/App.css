@@ -397,6 +397,48 @@ nav a.active {
   margin-top: 20px;
 }
 
+.finance-notice {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0;
+  padding: 15px 17px;
+  border: 1px solid #34495a;
+  border-radius: 10px;
+  background: #111c27;
+  color: #9eafbf;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.finance-notice strong { color: #e6edf3; font-size: 13px; }
+
+.vip-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 14px;
+}
+.vip-level-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.vip-level-table th,
+.vip-level-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.vip-level-table th {
+  color: #8c9bad;
+  font-size: 9px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+.vip-level-table td { color: #d5dee7; }
+.vip-level-table td:first-child { color: #67d99b; font-weight: 800; }
+
+
 .page-action {
   max-width: 400px;
   margin-top: 22px;
