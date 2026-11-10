@@ -108,6 +108,20 @@ Deno.serve(async (req: Request) => {
       return json({ ...data, status: 'succeeded', currency: 'BRL' }, 201)
     }
 
+    if (body?.action === 'close_expense_month') {
+      if (typeof body.month !== 'string' || !/^\\d{4}-\\d{2}$/.test(body.month)) return json({ error: 'Invalid month' }, 400)
+      if (typeof body.reason !== 'string' || body.reason.trim().length < 10 || body.reason.length > 500) return json({ error: 'Month close reason must contain at least 10 characters' }, 400)
+      if (typeof body.idempotency_key !== 'string' || body.idempotency_key.trim().length < 1 || body.idempotency_key.length > 160) return json({ error: 'Invalid idempotency key' }, 400)
+      const { data, error } = await admin.rpc('admin_close_expense_month', {
+        p_actor_user_id: actorId,
+        p_month_start: body.month + '-01',
+        p_idempotency_key: body.idempotency_key,
+        p_reason: body.reason.trim(),
+      })
+      if (error) return json({ error: 'Could not close expense month', detail: error.message }, 400)
+      return json({ ...data, status: 'succeeded' }, 201)
+    }
+
     if (body?.action === 'transition_commitment') {
       if (!uuidPattern.test(String(body.commitment_id ?? ''))) return json({ error: 'Invalid commitment identifier' }, 400)
       if (body.new_status !== 'paid' && body.new_status !== 'cancelled') return json({ error: 'Invalid commitment status' }, 400)
