@@ -7,7 +7,7 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 ## Regras aprovadas
 
 - Receita elegível: somente recebida, liquidada e conciliada no Revenue Ledger BRL.
-- Reserva: meta mínima = soma das despesas operacionais efetivamente pagas nos três últimos meses completos.
+- Reserva: meta mínima = soma das despesas operacionais efetivamente pagas nos três últimos meses completos. Os três meses precisam estar formalmente fechados pelo administrador; sem os três fechamentos, a meta aparece como pendente para evitar subestimar despesas não lançadas.
 - Alocação de referência: 30% Mining Pool, 30% reserva, 30% operação/desenvolvimento e 10% administração.
 - Ao atingir a meta da reserva, aportes ficam suspensos até revisão formal; não há redirecionamento automático.
 - Compromissos de jogadores são exibidos em MC separadamente de obrigações em BRL. Não atribuir cotação, valor de resgate ou passivo em reais a MC sem política aprovada.
@@ -20,7 +20,8 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 - `private.financial_commitment_events`: trilha de eventos dos compromissos, append-only.
 - `private.reserve_fund_movements`: movimentos da reserva, BRL em centavos, append-only.
 - `private.economy_supply_snapshots`: snapshots da oferta de PC, carteiras, equipamentos e hashrate.
-- `private.player_activity_events`: eventos de atividade por jogador; coleta ainda não integrada ao cliente.
+- `private.player_activity_events`: eventos de atividade por jogador; coleta inicial de sessão e gameplay conectada ao cliente.
+- `private.financial_expense_month_closings`: fechamento mensal imutável, necessário para validar a janela de três meses da reserva.
 - `public.admin_financial_snapshot()`: read model admin-only.
 - `public.admin_capture_economy_snapshot()`: captura admin-only de snapshot da oferta PC.
 
@@ -51,6 +52,7 @@ Módulo de controle gerencial do Mining Pix integrado ao Admin Center. Consolida
 - Ainda não há fechamento mensal, conciliação com provedores, tratamento automatizado de chargebacks tardios ou motor de alocação.
 - Telemetria inicial já registra sessões autenticadas, início de partida e conclusão de partida. É analítica client-reported, não autoriza recompensas, HASH ou pagamentos.
 - Snapshot de oferta PC é manual pelo botão no painel; não há cron. O primeiro comparativo de 30 dias depende de uma segunda captura após esse intervalo.
+- A meta da reserva permanece pendente até que os três meses completos estejam fechados após conferência das despesas. Fechamentos são irreversíveis pela interface e auditados.
 - Nenhuma linha financeira foi criada como dado fictício para preencher gráficos.
 
 ## Próximas etapas
@@ -88,3 +90,12 @@ Tabelas no schema privado, RLS habilitado, sem acesso direto de anon/authenticat
 - Compromissos BRL podem ser baixados como pagos somente quando vinculados a uma despesa efetiva de mesmo valor. Uma despesa não pode liquidar dois compromissos.
 - Compromissos MC não podem ser marcados como pagos enquanto o mecanismo de liquidação MC não estiver habilitado; podem ser cancelados com motivo auditado.
 - Telemetria inicial ativa para sessão autenticada e início/conclusão de partidas. Eventos de cliente não autorizam recompensas, HASH ou emissão.
+
+
+## Fechamento mensal de despesas
+
+- O administrador fecha cada mês completo somente depois de conferir que todas as despesas efetivamente pagas foram registradas.
+- Fechamento exige motivo de pelo menos 10 caracteres, validação admin server-side e chave idempotente.
+- Meses fechados são imutáveis e não podem ser reabertos pela interface.
+- A meta da reserva só é calculada quando os três meses completos imediatamente anteriores estiverem fechados. Caso contrário, o painel mostra “Aguardando fechamento” e não apresenta uma meta artificialmente baixa.
+- QA transacional fechou três meses com despesas de teste, confirmou soma de R$ 60,00 e retry idempotente; todo o teste foi revertido, sem deixar registros no DEV.
