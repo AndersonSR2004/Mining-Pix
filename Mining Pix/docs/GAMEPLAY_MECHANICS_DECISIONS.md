@@ -388,7 +388,7 @@ D-034 e D-035 registram a separação conceitual e as faixas propostas pelo usu�
 | ID | Decisão | Regra | Estado |
 |---|---|---|---|
 | D-036 | Catálogo inicial FREE | Dez máquinas T0, Overclock 0%, Benção de Potência sorteada individualmente entre 0% e 20%, HASH-base crescente em passos de 5 H/s. | Aprovada e implementada no DEV |
-| D-037 | Recompensas e limite dos jogos | Cada vitória concede 1 PC e +1 H/s temporário por 24 horas; limite de 30 partidas iniciadas por dia UTC, individualmente para cada jogo. Regras anteriores de níveis, metas, duração e cooldown são preservadas. | Aprovada e implementada no DEV |
+| D-037 | Recompensas e limite dos jogos | Regra original: vitória concedia 1 PC e +1 H/s temporário. O componente PC foi revogado por D-039; permanece apenas +1 H/s temporário por vitória. Limite de 30 partidas iniciadas por dia UTC, individualmente para cada jogo. Regras anteriores de níveis, metas, duração e cooldown são preservadas. | Parcialmente substituída por D-039; limite e HASH continuam ativos |
 | D-038 | Ajustes de jogabilidade | Flappy Pix passa a usar animação por requestAnimationFrame e física baseada em delta time; Coin Catch reduz o volume de itens e impõe intervalo mínimo entre lançamentos. | Aprovada e implementada na branch |
 
 ### 13.1 Catálogo T0 inicial
