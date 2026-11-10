@@ -60,63 +60,38 @@ Como a Mining Pool distribui 100% do orçamento proporcionalmente ao HASH elegí
 
 Não comunicar bônus como rendimento garantido.
 
-## 3. Lucky Boxes
+## 3. Lucky Boxes — política revisada e aprovada
 
-### 3.1 Lucky Box I — D-027 aprovada
+A política anterior de caixas pagas foi substituída. Nenhuma Lucky Box pode ser comprada com PIX COIN ou dinheiro.
 
-| Recompensa | Probabilidade |
-|---|---:|
-| Máquina T3 | 10% |
-| Máquina T2 | 20% |
-| Máquina T1 | 35% |
-| Peças de forja | 35% |
-| **Total** | **100%** |
+### 3.1 Caixa diária gratuita
 
-Preço apresentado na proposta: 100 PC. O preço não deve ser tratado como definitivo até a simulação.
+- Uma abertura por conta a cada dia UTC.
+- Recompensas exclusivamente cosméticas, sem HASH, moedas, valor de saque ou vantagem competitiva.
+- Itens não negociáveis, não transferíveis e sem conversão.
+- Probabilidades públicas, fixas e versionadas.
+- Sorteio e registro no backend, com idempotência e proteção contra concorrência.
+- Nenhum pagamento, PC, MC ou outra contraprestação é exigido para abrir a caixa.
 
-### 3.2 Lucky Boxes II e III — propostas não aprovadas
+### 3.2 Catálogo e probabilidades iniciais
 
-**Lucky Box II — proposta de 500 PC**
+| Recompensa | Categoria | Probabilidade |
+|---|---|---:|
+| Moldura Neon | Cosmético comum | 40% |
+| Drone Pixel | Cosmético comum | 30% |
+| Banner Aurora | Cosmético incomum | 15% |
+| Insígnia Dourada | Cosmético incomum | 10% |
+| Emblema Fundador | Cosmético raro | 5% |
+| **Total** | | **100%** |
 
-| Recompensa | Probabilidade proposta |
-|---|---:|
-| Máquina T4 | 7% |
-| Máquina T3 | 15% |
-| Máquina T2 | 20% |
-| Máquina T1 | 30% |
-| Peças | 28% |
-| **Total** | **100%** |
+### 3.3 Regras de integridade
 
-**Lucky Box III — proposta de 1.000 PC**
-
-| Recompensa | Probabilidade proposta |
-|---|---:|
-| Máquina T5 | 4% |
-| Máquina T4 | 10% |
-| Máquina T3 | 15% |
-| Máquina T2 | 20% |
-| Máquina T1 | 30% |
-| Peças | 21% |
-| **Total** | **100%** |
-
-### 3.3 Leitura probabilística inicial
-
-Com as distribuições propostas:
-- Box I: 65% de chance de máquina e 35% de peças; Tier médio condicional entre máquinas ≈ 1,62.
-- Box II: 72% de chance de máquina e 28% de peças; Tier médio condicional entre máquinas ≈ 1,99.
-- Box III: 79% de chance de máquina e 21% de peças; Tier médio condicional entre máquinas ≈ 2,22.
-
-O Tier médio é uma média condicional entre os resultados que são máquinas, não o valor econômico esperado da caixa. Não é possível concluir se uma caixa é vantajosa sem conhecer HASH-base, utilidade, preço de referência dos equipamentos, custos de forja e valor de oportunidade das peças.
-
-### 3.4 Regras de integridade já exigidas por D-011
-
-- Nenhuma caixa concede PIX COIN, MINING COIN, dinheiro ou prêmio sacável.
-- Sorteio exclusivamente no backend, com aleatoriedade adequada e trilha auditável.
-- Probabilidades públicas e versionadas; uma versão não pode ser alterada retroativamente para caixas já abertas.
-- Cada abertura precisa de idempotência e registro único para evitar cobrança duplicada ou múltiplos prêmios.
-- Equipamentos premiados entram no inventário, sem instalação automática.
-- Verificar capacidade de inventário e tratamento de falhas antes de debitar PC.
-- Revisão jurídica e de proteção ao consumidor no Brasil antes de disponibilizar caixas pagas.
+- Uma única reivindicação por usuário e data UTC, inclusive diante de retries e chamadas concorrentes.
+- O servidor determina o resultado; o cliente não envia nem escolhe o prêmio.
+- O histórico da recompensa é persistente e consultável pelo próprio jogador.
+- Nenhuma caixa contém PC, MC, dinheiro, equipamento, HASH, peças de forja ou item resgatável.
+- Não há compra, aceleração, venda, troca ou transferência de caixas e cosméticos.
+- Qualquer ampliação do catálogo deve manter a natureza puramente cosmética e publicar previamente os pesos e a versão.
 
 ## 4. Forja — desenho funcional aprovado, regras econômicas pendentes
 
