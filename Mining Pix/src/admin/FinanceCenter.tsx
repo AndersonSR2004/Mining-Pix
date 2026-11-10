@@ -405,7 +405,7 @@ export default function FinanceCenter() {
       <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">P-049 · APROVADA PARA SIMULAÇÃO</span><h2>Nova distribuição proposta da RLE</h2></div><span>Modo simulação</span></div>
         <p className="admin-empty">A proposta destina 25% à Pool, 35% ao Fundo de Garantia, 30% à operação e desenvolvimento e 10% à administração. Não altera a política ativa, não registra lançamentos e não movimenta dinheiro ou MC.</p>
-        <label htmlFor="p049-scenario-revenue" className="admin-field-label">Receita Líquida Elegível hipotética (R$)</label>
+        <label htmlFor="p049-scenario-revenue" style={{ display: 'block', color: '#aebdca', fontSize: 13, fontWeight: 600 }}>Receita Líquida Elegível hipotética (R$)</label>
         <input
           id="p049-scenario-revenue"
           type="number"
@@ -415,8 +415,7 @@ export default function FinanceCenter() {
           inputMode="decimal"
           value={scenarioRevenueInput}
           onChange={(event) => setScenarioRevenueInput(event.target.value)}
-          className="admin-input"
-          style={{ maxWidth: 260, marginTop: 8, marginBottom: 18 }}
+          style={{ display: 'block', width: '100%', maxWidth: 260, padding: '11px 12px', marginTop: 8, marginBottom: 18, border: '1px solid #334454', borderRadius: 8, background: '#101923', color: '#f3f6f8', fontSize: 14 }}
         />
         <div className="finance-allocation-grid">
           <article><strong>{brl(scenarioPoolCents)}</strong><span>25% · Mining Pool</span></article>
