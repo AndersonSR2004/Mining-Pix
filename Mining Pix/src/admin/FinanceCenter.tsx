@@ -360,7 +360,7 @@ export default function FinanceCenter() {
       <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">SOLVÊNCIA E LIQUIDEZ</span><h2>Fundo de garantia</h2></div><span>Meta móvel baseada em despesas reais</span></div>
         <div className="finance-reserve-row">
-          <div><strong>{reserveCoverage === null ? 'Histórico incompleto · ' + data.reserve_closed_months_count + '/3 meses fechados' : `${decimal(reserveCoverage)}% coberto`}</strong><small>Saldo atual: {brl(data.reserve_balance_cents)} · Meta: {data.reserve_history_complete ? brl(data.reserve_target_cents) : 'aguardando fechamento'}</small></div>
+          <div><strong>{!data.reserve_history_complete ? 'Histórico incompleto · ' + data.reserve_closed_months_count + '/3 meses fechados' : reserveCoverage === null ? 'Meta zerada · 3/3 meses fechados' : `${decimal(reserveCoverage)}% coberto`}</strong><small>Saldo atual: {brl(data.reserve_balance_cents)} · Meta: {data.reserve_history_complete ? brl(data.reserve_target_cents) : 'aguardando fechamento'}</small></div>
           <strong className="finance-gap">{data.reserve_history_complete ? brl(data.reserve_gap_cents) : '—'} <small>{data.reserve_history_complete ? 'para atingir a meta' : 'meta ainda não validada'}</small></strong>
         </div>
         <div className="finance-progress"><span style={{ width: `${reserveCoverage ?? 0}%` }} /></div>
