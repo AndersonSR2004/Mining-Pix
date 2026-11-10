@@ -150,7 +150,7 @@ export default function SandboxNetworkControl() {
               </div>
             </div>
           </div>
-          <div className="admin-panel-heading"><div><span className="admin-eyebrow">MINERADORES FICTÍCIOS</span><h2>10 bots da sessão</h2></div><span>PC e MC simulados</span></div>
+          <div className="admin-panel-heading"><div><span className="admin-eyebrow">MINERADORES FICTÍCIOS</span><h2>10 bots da sessão</h2></div><span>Somente MC simulada</span></div>
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Bot</th><th>HASH</th><th>Saldo MC</th><th>MC recebido</th></tr></thead><tbody>
             {snapshot.bots.map(bot => <tr key={bot.id}><td><strong>{bot.display_name}</strong></td><td>{fmt(bot.hashrate)} H/s</td><td>{fmt(bot.mc_balance, 8)}</td><td>{fmt(bot.total_mc_earned, 8)}</td></tr>)}
           </tbody></table></div>
