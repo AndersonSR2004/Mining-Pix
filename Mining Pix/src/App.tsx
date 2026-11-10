@@ -100,6 +100,14 @@ const vipPlans = [
   { tier: 3 as VipTier, name: 'VIP 3', rooms: 4, spaces: 40 },
 ]
 
+const vipProgramLevels = [
+  { tier: 'VIP I', threshold: 'R$ 30', xp: '2x', fee: '50%', recharge: '1/dia', hash: '10%', energy: '—' },
+  { tier: 'VIP II', threshold: 'R$ 40', xp: '2,5x', fee: '60%', recharge: '1/dia', hash: '15%', energy: '—' },
+  { tier: 'VIP III', threshold: 'R$ 45', xp: '3x', fee: '70%', recharge: '1/dia', hash: '20%', energy: '—' },
+  { tier: 'VIP IV', threshold: 'R$ 50', xp: '4x', fee: '75%', recharge: '1/dia', hash: '25%', energy: '—' },
+  { tier: 'VIP V', threshold: 'R$ 60', xp: '5x', fee: '80%', recharge: '1/dia', hash: '30%', energy: 'Permanente enquanto ativo' },
+]
+
 const initialRooms: Room[] = [
   { id: 1, name: 'Sala Principal', capacity: ROOM_CAPACITY },
 ]
@@ -975,35 +983,59 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     )
   }
 
-  // VIP
+  // VIP — official benefit table plus an explicitly local room simulator.
   function renderVip() {
     return (
       <section className="page-content">
-        <span className="eyebrow">PROGRESSÃO PREMIUM</span>
+        <span className="eyebrow">PROGRAMA DE BENEFÍCIOS</span>
         <h1>VIP e benefícios</h1>
-        <p className="page-description">A ativação abaixo é demonstrativa.</p>
-        <article className="wallet-summary">
-          <span>SEU PLANO ATUAL</span>
-          <strong>{currentPlan.name}</strong>
-          <small>{currentPlan.rooms} salas · {currentPlan.spaces} espaços</small>
-        </article>
-        <div className="shop-grid">
-          {vipPlans.map((plan) => {
-            const active = vipTier === plan.tier
-            return (
-              <article className="panel shop-card" key={plan.tier} style={{ border: active ? '1px solid #37d67a' : undefined }}>
-                <span className="eyebrow">{plan.tier === 0 ? 'PLANO GRATUITO' : 'PLANO PREMIUM'}</span>
-                <h2>{plan.name}</h2>
-                <div className="shop-hash">{plan.rooms} salas</div>
-                <p>{plan.spaces} espaços totais</p>
-                <p>10 equipamentos por sala</p>
-                {active ? <span className="status">● PLANO ATUAL</span> : (
-                  <button className="primary-button" onClick={() => activateVip(plan.tier)}>TESTAR ESTE PLANO</button>
-                )}
-              </article>
-            )
-          })}
+        <p className="page-description">A qualificação será calculada automaticamente pelas recargas elegíveis confirmadas nos 30 dias imediatamente anteriores. Estornos, reembolsos e recargas fora da janela deixam de contar.</p>
+        <div className="finance-notice">
+          <strong>Qualificação real ainda não está conectada.</strong>
+          <span>Esta tabela apresenta as regras aprovadas. O nível da conta só será atualizado após a integração segura do ledger de recargas confirmadas e do mecanismo de expiração/rebaixamento. Não há ativação manual nem cobrança nesta tela.</span>
         </div>
+        <div className="panel page-panel">
+          <div className="panel-heading"><h2>Níveis e benefícios</h2><span className="equipment-count">JANELA MÓVEL · 30 DIAS</span></div>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead><tr><th>Nível</th><th>Recargas elegíveis</th><th>XP de missões</th><th>Desconto na tarifa própria*</th><th>Recarga grátis</th><th>Boost HASH</th><th>Energia</th></tr></thead>
+              <tbody>
+                {vipProgramLevels.map((level) => (
+                  <tr key={level.tier}>
+                    <td><strong>{level.tier}</strong></td><td>{level.threshold}</td><td>{level.xp}</td><td>{level.fee}</td><td>{level.recharge}</td><td>{level.hash}</td><td>{level.energy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="admin-empty">*Desconto aplicável somente a eventual tarifa própria da plataforma, nunca a custos externos ou tributos. Multiplicadores de XP incidem somente sobre XP de missões. Boost HASH redistribui participação na Pool; não cria orçamento ou MC. Saques e pagamentos reais permanecem desativados.</p>
+        </div>
+        <article className="panel page-panel">
+          <div className="panel-heading"><h2>Simulador local de capacidade de salas</h2><span className="equipment-count">NÃO É VIP REAL</span></div>
+          <p className="page-description">Este controle legado altera somente o estado demonstrativo salvo neste navegador. Não compra VIP, não registra recarga e não altera a qualificação da conta no servidor.</p>
+          <article className="wallet-summary">
+            <span>PLANO DO SIMULADOR LOCAL</span>
+            <strong>{currentPlan.name}</strong>
+            <small>{currentPlan.rooms} salas · {currentPlan.spaces} espaços</small>
+          </article>
+          <div className="shop-grid">
+            {vipPlans.map((plan) => {
+              const active = vipTier === plan.tier
+              return (
+                <article className="panel shop-card" key={plan.tier} style={{ border: active ? '1px solid #37d67a' : undefined }}>
+                  <span className="eyebrow">{plan.tier === 0 ? 'SIMULAÇÃO GRATUITA' : 'SIMULAÇÃO DE CAPACIDADE'}</span>
+                  <h2>{plan.name}</h2>
+                  <div className="shop-hash">{plan.rooms} salas</div>
+                  <p>{plan.spaces} espaços totais</p>
+                  <p>10 equipamentos por sala</p>
+                  {active ? <span className="status">● ATUAL NO SIMULADOR</span> : (
+                    <button className="primary-button" onClick={() => activateVip(plan.tier)}>TESTAR CAPACIDADE LOCAL</button>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        </article>
       </section>
     )
   }
@@ -1085,7 +1117,15 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         <span className="eyebrow">TEMPORADA DE TESTES</span>
         <h1>Passe de Batalha</h1>
         <PersistentProgressPanel userId={userId} />
-        <p className="page-description">Avance de nível, acumule XP e desbloqueie equipamentos nas duas trilhas.</p>
+        <p className="page-description">Avance de nível, acumule XP e desbloqueie recompensas nas duas trilhas.</p>
+        <div className="finance-notice">
+          <strong>Modelo de acesso aprovado: Free, Premium e Full.</strong>
+          <span>Free mantém a trilha gratuita. Premium libera a trilha Premium e a progressão continua por XP. Full inclui Premium e desbloqueia imediatamente os níveis da temporada. Também será possível comprar níveis individuais com PC sem recomprar o Premium. Nenhuma modalidade concede MC.</span>
+        </div>
+        <div className="panel page-panel">
+          <div className="panel-heading"><h2>Configuração da temporada</h2><span className="equipment-count">AGUARDANDO BALANCEAMENTO</span></div>
+          <p className="page-description">Preços em PC, quantidade de níveis, calendário, XP por nível e catálogo final de recompensas ainda precisam ser simulados e publicados. Por isso, compras Premium, Full e de níveis permanecem desativadas; esta tela não debita PC.</p>
+        </div>
 
         <article className="panel page-panel">
           <div className="panel-heading">
