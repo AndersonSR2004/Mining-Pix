@@ -4,7 +4,7 @@
 **Registrada em:** 10 nov 2026  
 **Branch:** `codex/mining-pix-work`  
 **Status:** direção escolhida pelo usuário; modelagem conceitual em validação; parâmetros e regras operacionais pendentes.  
-**Implementação:** documentação בלבד. Nenhuma conversão, cotação, emissão oficial, saque, pagamento, migration ou alteração de saldo foi habilitada.
+**Implementação:** somente documentação. Nenhuma conversão, cotação, emissão oficial, saque, pagamento, migration ou alteração de saldo foi habilitada.
 
 ## 1. Direção escolhida
 
