@@ -507,3 +507,36 @@ Nenhuma conversão, cotação, emissão oficial, saque, pagamento, migration, al
 - Esta decisão não altera saldos históricos, não credita PC retroativamente e não autoriza publicação em produção.
 
 **Precedência:** D-046 substitui a regra de PC exclusivamente comprada de D-039 e suspende D-027. As demais regras de D-039 sobre MC, ausência de conversão PC→MC e distribuição de MC pela Mining Pool permanecem vigentes.
+
+
+## Decisão D-048 — XP VIP e monetização do Passe de Batalha (10 nov 2026)
+
+**Estado: direção funcional aprovada pelo usuário; valores de PC, XP, recompensas e implementação permanecem pendentes de balanceamento.**
+
+### XP VIP
+- Os multiplicadores anteriormente descritos como multiplicadores de "pontos" aplicam-se exclusivamente ao XP obtido em missões.
+- Referências propostas por nível VIP: VIP I 2x; VIP II 2,5x; VIP III 3x; VIP IV 4x; VIP V 5x.
+- O objetivo é acelerar a progressão do Passe de Batalha, não multiplicar diretamente PC, MC ou HASH.
+- O XP multiplicado poderá permitir alcançar mais rapidamente os níveis do Passe e, consequentemente, reivindicar recompensas previstas na trilha.
+- Como recompensas do Passe podem incluir PC ou itens que afetam HASH, o orçamento de recompensas por temporada deve ser simulado. O multiplicador de XP não pode criar emissão ilimitada ou não orçada.
+
+### Formas de acesso e aceleração do Passe
+A direção aprovada contempla três modalidades, todas pagas em PIX COIN (PC), sem conversão para MC:
+
+1. **Passe gratuito:** progressão normal por XP e reivindicação das recompensas gratuitas.
+2. **Passe Premium:** compra do acesso à trilha Premium; o jogador continua progredindo por XP.
+3. **Passe Full:** compra que inclui o acesso Premium e desbloqueia imediatamente todos os níveis da temporada, permitindo reivindicar as recompensas elegíveis sem cumprir toda a progressão.
+
+Também será possível comprar níveis individualmente com PC para acelerar a progressão. A compra de níveis não deve exigir que o jogador compre novamente o Passe Premium se já o possuir.
+
+### Regras de integridade e UX
+- A temporada deve ter calendário, quantidade de níveis, XP necessário por nível e catálogo de recompensas publicados antes da venda.
+- A compra do Passe Full ou de níveis não pode conceder MC nem promessa de resgate.
+- Recompensas só podem ser reivindicadas uma vez por conta e nível; compras, progressão e reivindicações devem ser idempotentes e auditáveis.
+- O jogador deve visualizar claramente o que já possui, o que está comprando e quais recompensas serão desbloqueadas.
+- Se o jogador já tiver avançado níveis antes de comprar o Full, não poderá receber recompensas duplicadas; a compra desbloqueia apenas o que ainda não foi reivindicado.
+- O preço em PC deve ser apresentado antes da confirmação. Não usar contagem regressiva enganosa nem pressão artificial.
+- Os custos do Passe Full e dos níveis individuais, o tratamento de níveis já conquistados, as datas de venda, o XP por missão e o conteúdo das recompensas permanecem pendentes de simulação e aprovação.
+- O Passe não deve conceder HASH permanente ou vantagens competitivas ilimitadas sem simulação de concentração da Mining Pool.
+
+Esta decisão aprova a direção do produto e a separação XP/PC/MC; não autoriza implementação ou publicação em produção.
