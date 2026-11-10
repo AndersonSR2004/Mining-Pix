@@ -96,6 +96,14 @@ export default function AuthGate() {
     return () => { active = false }
   }, [session?.user?.id])
 
+  useEffect(() => {
+    if (!session?.user?.id) return
+    void supabase.rpc('record_player_activity_event', {
+      p_event_type: 'session_seen',
+      p_idempotency_key: crypto.randomUUID(),
+    })
+  }, [session?.user?.id])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
