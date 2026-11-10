@@ -198,6 +198,59 @@ export default function FinanceCenter() {
         <article className="admin-stat"><span>COMPROMISSOS DE RECOMPENSA</span><strong>{decimal(data.commitments_open_mc, 8)} MC</strong><small>Separados de obrigações em BRL; sem valor de resgate atribuído</small></article>
       </div>
 
+      <div className="finance-entry-grid">
+        <section className="admin-panel">
+          <div className="admin-panel-heading"><div><span className="admin-eyebrow">CONTABILIDADE</span><h2>Registrar despesa efetiva</h2></div><span>Somente paga</span></div>
+          <p className="admin-empty">Registre despesas já pagas. Elas entram no cálculo da meta de reserva dos três meses completos.</p>
+          <form className="admin-note-form" onSubmit={(event) => void submitExpense(event)}>
+            <label>Categoria<select value={expenseCategory} onChange={(event) => setExpenseCategory(event.target.value)}><option value="infrastructure">Infraestrutura</option><option value="software">Software</option><option value="marketing">Marketing</option><option value="support">Suporte</option><option value="legal">Jurídico</option><option value="tax">Tributos</option><option value="payment_processing">Processamento de pagamentos</option><option value="contractors">Prestadores</option><option value="administration">Administração</option><option value="other">Outras</option></select></label>
+            <label>Descrição<input value={expenseDescription} onChange={(event) => setExpenseDescription(event.target.value)} minLength={3} maxLength={240} required /></label>
+            <label>Valor pago (R$)<input inputMode="decimal" placeholder="0,00" value={expenseAmount} onChange={(event) => setExpenseAmount(event.target.value)} required /></label>
+            <label>Data do pagamento<input type="date" value={expenseDate} max={localDate()} onChange={(event) => setExpenseDate(event.target.value)} required /></label>
+            <label>Fornecedor (opcional)<input value={expenseVendor} onChange={(event) => setExpenseVendor(event.target.value)} maxLength={160} /></label>
+            <label>Referência (nota, fatura ou comprovante)<input value={expenseSource} onChange={(event) => setExpenseSource(event.target.value)} minLength={1} maxLength={160} required /></label>
+            <label>Motivo / observação administrativa<textarea value={expenseReason} onChange={(event) => setExpenseReason(event.target.value)} minLength={3} maxLength={500} required /></label>
+            <button className="admin-primary" type="submit" disabled={expenseBusy}>{expenseBusy ? 'REGISTRANDO...' : 'REGISTRAR DESPESA PAGA'}</button>
+          </form>
+        </section>
+
+        <section className="admin-panel">
+          <div className="admin-panel-heading"><div><span className="admin-eyebrow">CONTAS A PAGAR</span><h2>Registrar compromisso</h2></div><span>Obrigação futura</span></div>
+          <p className="admin-empty">Compromissos em BRL e recompensas em MC são armazenados separadamente. MC não recebe valor em reais.</p>
+          <form className="admin-note-form" onSubmit={(event) => void submitCommitment(event)}>
+            <label>Tipo<select value={commitmentType} onChange={(event) => setCommitmentType(event.target.value)}><option value="operational">Operacional · BRL</option><option value="contractor">Prestador · BRL</option><option value="tax">Tributo · BRL</option><option value="other">Outro compromisso · BRL</option><option value="player_reward_mc">Recompensa de jogador · MC</option></select></label>
+            <label>Categoria<input value={commitmentCategory} onChange={(event) => setCommitmentCategory(event.target.value)} minLength={2} maxLength={80} required /></label>
+            <label>Descrição<input value={commitmentDescription} onChange={(event) => setCommitmentDescription(event.target.value)} minLength={3} maxLength={240} required /></label>
+            <label>{commitmentType === 'player_reward_mc' ? 'Quantidade comprometida (MC)' : 'Valor comprometido (R$)'}<input inputMode="decimal" placeholder={commitmentType === 'player_reward_mc' ? '0,00000000' : '0,00'} value={commitmentAmount} onChange={(event) => setCommitmentAmount(event.target.value)} required /></label>
+            <label>Vencimento<input type="date" value={commitmentDueDate} onChange={(event) => setCommitmentDueDate(event.target.value)} required /></label>
+            <label>Referência<input value={commitmentSource} onChange={(event) => setCommitmentSource(event.target.value)} minLength={1} maxLength={160} required /></label>
+            <label>Motivo / origem da obrigação<textarea value={commitmentReason} onChange={(event) => setCommitmentReason(event.target.value)} minLength={3} maxLength={500} required /></label>
+            <button className="admin-primary" type="submit" disabled={commitmentBusy}>{commitmentBusy ? 'REGISTRANDO...' : 'REGISTRAR COMPROMISSO'}</button>
+          </form>
+        </section>
+      </div>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">RESERVA FINANCEIRA</span><h2>Registrar movimento contábil</h2></div><span>Não transfere dinheiro</span></div>
+        <form className="finance-reserve-form" onSubmit={(event) => void submitReserveMovement(event)}>
+          <label>Movimento<select value={reserveType} onChange={(event) => setReserveType(event.target.value as 'contribution' | 'withdrawal')}><option value="contribution">Aporte na reserva</option><option value="withdrawal">Retirada da reserva</option></select></label>
+          <label>Valor (R$)<input inputMode="decimal" placeholder="0,00" value={reserveAmount} onChange={(event) => setReserveAmount(event.target.value)} required /></label>
+          <label>Referência<input value={reserveSource} onChange={(event) => setReserveSource(event.target.value)} minLength={1} maxLength={160} required /></label>
+          <label>Motivo obrigatório<input value={reserveReason} onChange={(event) => setReserveReason(event.target.value)} minLength={3} maxLength={500} required /></label>
+          <button className="admin-primary" type="submit" disabled={reserveBusy}>{reserveBusy ? 'REGISTRANDO...' : 'REGISTRAR MOVIMENTO'}</button>
+        </form>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">LANÇAMENTOS</span><h2>Despesas efetivas recentes</h2></div><span>Últimas 10</span></div>
+        {data.recent_expenses.length === 0 ? <p className="admin-empty">Nenhuma despesa paga registrada.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Fornecedor</th><th>Valor</th></tr></thead><tbody>{data.recent_expenses.map((item) => <tr key={item.id}><td>{item.expense_date}</td><td>{item.category}</td><td>{item.description}</td><td>{item.vendor_reference || '—'}</td><td>{brl(item.amount_cents)}</td></tr>)}</tbody></table></div>}
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">OBRIGAÇÕES</span><h2>Compromissos recentes</h2></div><span>Últimos 20</span></div>
+        {data.recent_commitments.length === 0 ? <p className="admin-empty">Nenhum compromisso registrado.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Vencimento</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.recent_commitments.map((item) => <tr key={item.id}><td>{item.due_date}</td><td>{item.commitment_type}</td><td>{item.description}</td><td>{item.amount_mc !== null ? decimal(item.amount_mc, 8) + ' MC' : brl(item.amount_cents)}</td><td>{item.status}</td></tr>)}</tbody></table></div>}
+      </section>
+
       <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">SOLVÊNCIA E LIQUIDEZ</span><h2>Fundo de garantia</h2></div><span>Meta móvel baseada em despesas reais</span></div>
         <div className="finance-reserve-row">
