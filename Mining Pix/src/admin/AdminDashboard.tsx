@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
+import FinanceCenter from './FinanceCenter'
 
 type AdminTransaction = {
   id: string
@@ -63,6 +64,7 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
+  const [activeSection, setActiveSection] = useState<'operations' | 'finance'>('operations')
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
   const [directory, setDirectory] = useState<AdminDirectory | null>(null)
   const [directorySearch, setDirectorySearch] = useState('')
@@ -238,6 +240,12 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
 
         <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>Controles habilitados: notas internas auditadas e bloqueio/desbloqueio de contas por 30 dias. Toda alteração exige motivo e confirmação; não altera a economia.</span></div>
 
+        <nav className="admin-section-nav" aria-label="Seções do Admin Center">
+          <button className={activeSection === 'operations' ? 'active' : ''} onClick={() => setActiveSection('operations')}>CENTRO OPERACIONAL</button>
+          <button className={activeSection === 'finance' ? 'active' : ''} onClick={() => setActiveSection('finance')}>FINANCIAL INTELLIGENCE</button>
+        </nav>
+        {activeSection === 'finance' ? <FinanceCenter /> : <>
+
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
 
@@ -345,6 +353,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
             <p className="admin-generated">Dados consultados em {date(snapshot.generated_at)} · Projeto Supabase DEV</p>
           </>
         )}
+        </>}
       </section>
     </main>
   )
