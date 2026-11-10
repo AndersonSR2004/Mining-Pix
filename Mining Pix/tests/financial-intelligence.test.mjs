@@ -127,7 +127,7 @@ test('reserve target requires three immutable completed expense-month closes', (
 
 test('closed expense months cannot be silently altered and preserve a close-time total', () => {
   assert.match(closedMonthGuard, /financial_expense_month_closings/i)
-  assert.match(closedMonthGuard, /direct backdated insertion is blocked/i)
+  assert.match(closeMessage, /direct backdated insertion is blocked/i)
   assert.match(closeTotals, /expense_total_cents/i)
   assert.match(closeTotals, /sum\(amount_cents\)/i)
   assert.match(closeHistoryTotals, /expense_total_cents/i)
