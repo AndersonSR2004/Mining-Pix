@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react'
 import Games from './Games.tsx'
-import LuckyBoxPanel from './LuckyBoxPanel.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
@@ -22,7 +21,6 @@ type Page =
   | 'Passe de Batalha'
   | 'Missões'
   | 'Jogos'
-  | 'Lucky Box'
 
 type VipTier = 0 | 1 | 2 | 3
 
@@ -137,7 +135,6 @@ const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
   { name: 'Mineração', icon: '▣' },
   { name: 'Jogos', icon: '🎮' },
-  { name: 'Lucky Box', icon: '◇' },
   { name: 'Equipamentos', icon: '▤' },
   { name: 'Inventário', icon: '▦' },
   { name: 'Loja', icon: '♜' },
@@ -1188,7 +1185,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
       case 'Missões': return renderMissions()
-      case 'Lucky Box': return <LuckyBoxPanel userId={userId} />
       case 'Jogos': return <Games userId={userId} onGameComplete={(event) => {
         setMissionState((value) => recordMissionProgress(value, event))
       }} />
