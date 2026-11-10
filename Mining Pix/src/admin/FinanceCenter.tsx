@@ -101,6 +101,7 @@ export default function FinanceCenter() {
   const [transitionReason, setTransitionReason] = useState('')
   const [transitionBusy, setTransitionBusy] = useState(false)
   const [reserveRequestId, setReserveRequestId] = useState(() => crypto.randomUUID())
+  const [scenarioRevenueInput, setScenarioRevenueInput] = useState('10000')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -238,6 +239,16 @@ export default function FinanceCenter() {
   const supplyChange = latestSupply && data.supply_30d_baseline
     ? Number(latestSupply.pc_supply) - Number(data.supply_30d_baseline.pc_supply)
     : null
+
+  // P-049 is approved for simulation only; it does not change the active ledger policy.
+  const scenarioRevenueNumber = Number(scenarioRevenueInput.trim().replace(',', '.'))
+  const scenarioRevenueCents = Number.isFinite(scenarioRevenueNumber)
+    ? Math.max(0, Math.min(1_000_000_000_000, Math.round(scenarioRevenueNumber * 100)))
+    : 0
+  const scenarioPoolCents = Math.floor(scenarioRevenueCents * 0.25)
+  const scenarioReserveCents = Math.floor(scenarioRevenueCents * 0.35)
+  const scenarioOperationsCents = Math.floor(scenarioRevenueCents * 0.30)
+  const scenarioAdministrationCents = scenarioRevenueCents - scenarioPoolCents - scenarioReserveCents - scenarioOperationsCents
 
   return (
     <div className="finance-center">
@@ -381,14 +392,39 @@ export default function FinanceCenter() {
       </div>
 
       <section className="admin-panel">
-        <div className="admin-panel-heading"><div><span className="admin-eyebrow">POLÍTICA FINANCEIRA APROVADA</span><h2>Alocação de referência da receita líquida</h2></div><span>Não executa transferências</span></div>
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">POLÍTICA HISTÓRICA DO SNAPSHOT</span><h2>Alocação registrada no backend</h2></div><span>Referência D-019</span></div>
         <div className="finance-allocation-grid">
           <article><strong>{data.allocation_policy.pool_percent}%</strong><span>Mining Pool</span></article>
           <article><strong>{data.allocation_policy.reserve_percent}%</strong><span>Reserva</span></article>
           <article><strong>{data.allocation_policy.operations_percent}%</strong><span>Operação e desenvolvimento</span></article>
           <article><strong>{data.allocation_policy.administration_percent}%</strong><span>Administração</span></article>
         </div>
-        <p className="admin-empty">A parcela de reserva fica suspensa quando a meta for atingida, até revisão formal. Não há redirecionamento automático. O motor de alocação será implementado após fechamento e conciliação.</p>
+        <p className="admin-empty">Esta é a divisão ainda retornada pelo snapshot financeiro do banco. Ela permanece exibida como histórico e não foi sobrescrita pela proposta nova.</p>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">P-049 · APROVADA PARA SIMULAÇÃO</span><h2>Nova distribuição proposta da RLE</h2></div><span>Modo simulação</span></div>
+        <p className="admin-empty">A proposta destina 25% à Pool, 35% ao Fundo de Garantia, 30% à operação e desenvolvimento e 10% à administração. Não altera a política ativa, não registra lançamentos e não movimenta dinheiro ou MC.</p>
+        <label htmlFor="p049-scenario-revenue" className="admin-field-label">Receita Líquida Elegível hipotética (R$)</label>
+        <input
+          id="p049-scenario-revenue"
+          type="number"
+          min="0"
+          max="10000000000"
+          step="0.01"
+          inputMode="decimal"
+          value={scenarioRevenueInput}
+          onChange={(event) => setScenarioRevenueInput(event.target.value)}
+          className="admin-input"
+          style={{ maxWidth: 260, marginTop: 8, marginBottom: 18 }}
+        />
+        <div className="finance-allocation-grid">
+          <article><strong>{brl(scenarioPoolCents)}</strong><span>25% · Mining Pool</span></article>
+          <article><strong>{brl(scenarioReserveCents)}</strong><span>35% · Fundo de Garantia</span></article>
+          <article><strong>{brl(scenarioOperationsCents)}</strong><span>30% · Operação e desenvolvimento</span></article>
+          <article><strong>{brl(scenarioAdministrationCents)}</strong><span>10% · Administração</span></article>
+        </div>
+        <p className="admin-generated">Total alocado: {brl(scenarioPoolCents + scenarioReserveCents + scenarioOperationsCents + scenarioAdministrationCents)} · 100% da RLE hipotética · Valores arredondados em centavos.</p>
       </section>
 
       <section className="admin-panel">
