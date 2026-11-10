@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase/client'
 
 type Bot = { id: string; bot_number: number; display_name: string; hashrate: number; pc_balance: number; mc_balance: number; total_pc_earned: number; total_mc_earned: number; active: boolean }
 type Block = { id: string; block_number: number; status: string; opened_at: string; duration_seconds: number; reward_pc: number; reward_mc: number; total_hashrate: number; participant_count: number; accelerated: boolean; closed_at: string | null }
-type Snapshot = { session: { id: string; status: string; created_at: string }; bots: Bot[]; blocks: Block[]; network_hashrate: number; open_block: Block | null }
+type AdminEvent = { id: string; action: string; target_user_id: string | null; reason: string; before_data: Record<string, unknown> | null; after_data: Record<string, unknown> | null; created_at: string }
+type Snapshot = { events: AdminEvent[]; session: { id: string; status: string; created_at: string }; bots: Bot[]; blocks: Block[]; network_hashrate: number; open_block: Block | null }
 const fmt = (v: unknown, digits = 2) => Number(v ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: digits })
 
 export default function SandboxNetworkControl() {
@@ -155,6 +156,10 @@ export default function SandboxNetworkControl() {
           <div className="admin-panel-heading"><div><span className="admin-eyebrow">MINERADORES FICTÍCIOS</span><h2>10 bots da sessão</h2></div><span>PC e MC simulados</span></div>
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Bot</th><th>HASH</th><th>Saldo PC</th><th>Saldo MC</th><th>PC recebido</th><th>MC recebido</th></tr></thead><tbody>
             {snapshot.bots.map(bot => <tr key={bot.id}><td><strong>{bot.display_name}</strong></td><td>{fmt(bot.hashrate)} H/s</td><td>{fmt(bot.pc_balance, 0)}</td><td>{fmt(bot.mc_balance, 8)}</td><td>{fmt(bot.total_pc_earned, 0)}</td><td>{fmt(bot.total_mc_earned, 8)}</td></tr>)}
+          </tbody></table></div>
+          <div className="admin-panel-heading"><div><span className="admin-eyebrow">AUDITORIA PRIVILEGIADA</span><h2>Últimas operações administrativas</h2></div><span>{snapshot.events.length} eventos</span></div>
+          <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Data</th><th>Ação</th><th>Alvo</th><th>Motivo</th><th>Dados</th></tr></thead><tbody>
+            {snapshot.events.map(event => <tr key={event.id}><td>{new Date(event.created_at).toLocaleString('pt-BR')}</td><td>{event.action}</td><td>{event.target_user_id ?? 'Rede sandbox'}</td><td>{event.reason}</td><td><details className="admin-audit-details"><summary>Ver dados</summary><pre>{JSON.stringify({ before: event.before_data, after: event.after_data }, null, 2)}</pre></details></td></tr>)}
           </tbody></table></div>
           <div className="admin-panel-heading"><div><span className="admin-eyebrow">HISTÓRICO</span><h2>Últimos blocos</h2></div></div>
           <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Bloco</th><th>Status</th><th>HASH</th><th>Participantes</th><th>Fechamento</th></tr></thead><tbody>
