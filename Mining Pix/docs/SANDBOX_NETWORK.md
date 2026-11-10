@@ -20,14 +20,17 @@ Each bot has its own sandbox PC and MC balances and cumulative earnings. These a
 
 ## Administrative controls
 
+Sandbox default reward budget for a new block is 100 PC and 1 MC; these are test defaults only, editable per open block, and not a proposed production reward rate.
+
 - PC balance adjustment for real DEV player wallets is ledger-backed, idempotent, rejects negative resulting balances, and requires a reason.
 - Artificial machine grants create inventory items without charging PC. They are marked `admin_granted=true` and audited.
+- Administrative PC credits/debits affect real DEV player balances only, create a ledger transaction, require a reason, and reject negative resulting balances. Machine grants are added to the player's inventory, not auto-installed.
 - Real MINING COIN issuance remains restricted to the official Mining Pool policy. The admin console does not bypass the existing MC issuance lock. Sandbox bots can earn simulated MC independently.
 - Sandbox reward edits and accelerated settlements are audited with before/after values, actor, reason, and request identifier.
 
 ## Important boundaries
 
-- The official Mining Pool and its current 24-hour settlement guard are unchanged by this sandbox feature.
-- The approved 600-second block cadence is implemented for the sandbox network only in this phase. Switching the official Mining Pool to 600 seconds requires a separate migration and a reviewed funding/reward policy.
+- The official PIX BLOCK settlement guard now enforces a minimum of 600 seconds. This changes the timing rule but does not activate MC payouts or create a scheduler that opens and settles official blocks automatically.
+- The official Mining Pool now accepts settlement after 600 seconds, but block opening/settlement still requires the existing trusted pool-operator process. An automated operator/scheduler is a separate dependency. The official MC distribution lock remains enabled until the funding and conversion policy is approved.
 - No sandbox PC/MC balances are written to `wallets`, `wallet_transactions`, `mining_coin_wallets`, or `mining_coin_transactions`.
 - No service-role key is exposed to the browser.
