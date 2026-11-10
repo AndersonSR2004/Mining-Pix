@@ -88,7 +88,7 @@ export default function SandboxNetworkControl() {
       })
       if (rpcError) throw rpcError
       const result = data as { pc_distributed?: number; mc_distributed?: number; already_settled?: boolean }
-      setMessage(result.already_settled ? 'Este bloco já havia sido liquidado.' : `Bloco liquidado no sandbox: ${${fmt(result.mc_distributed, 8)} MC distribuídas. Nenhuma PC foi emitida.`)
+      setMessage(result.already_settled ? 'Este bloco já havia sido liquidado.' : `Bloco liquidado no sandbox: ${fmt(result.mc_distributed, 8)} MC distribuídas. Nenhuma PC foi emitida.`)
       setAdjustReason('')
       await load(sessionId)
     } catch (cause) {
