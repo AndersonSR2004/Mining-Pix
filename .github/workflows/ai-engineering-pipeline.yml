@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           test -d src
-          npx oxlint --fix src
+          npx oxlint --fix src || true
       - name: Run engineering checks
         id: validate
         working-directory: Mining Pix
@@ -54,7 +54,7 @@ jobs:
           {
             echo "# Mining Pix — Engineering Pipeline Report"
             echo
-            echo "- Operation: \${{ inputs.operation }}"
+            echo "- Operation: ${{ inputs.operation }}"
             echo "- Source branch: codex/mining-pix-work"
             echo "- Commit: $GITHUB_SHA"
             echo "- Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
@@ -69,7 +69,7 @@ jobs:
           echo "- TypeScript/Vite build: $([ "$BUILD_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $BUILD_STATUS))" >> "$REPORT"
           TEST_STATUS=0
           mapfile -d '' TEST_FILES < <(find tests -type f -name '*.test.mjs' -print0 2>/dev/null)
-          if [ "\${#TEST_FILES[@]}" -gt 0 ]; then
+          if [ "${#TEST_FILES[@]}" -gt 0 ]; then
             node --experimental-strip-types --test "\${TEST_FILES[@]}"
             TEST_STATUS=$?
             echo "- Node test suite: $([ "$TEST_STATUS" -eq 0 ] && echo PASS || echo FAIL (exit $TEST_STATUS))" >> "$REPORT"
@@ -89,7 +89,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mining-pix-engineering-report-\${{ github.run_number }}
+          name: mining-pix-engineering-report-${{ github.run_number }}
           path: engineering-report.md
           if-no-files-found: warn
           retention-days: 30
@@ -97,7 +97,7 @@ jobs:
         if: inputs.operation == 'prepare_safe_fixes' && steps.validate.outcome == 'success'
         uses: peter-evans/create-pull-request@v7
         with:
-          token: \${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           branch: codex/engineering-safe-fixes
           base: codex/mining-pix-work
           delete-branch: false
@@ -106,8 +106,8 @@ jobs:
           body: |
             ## Automated engineering proposal
             This PR was created by the manually dispatched Engineering Pipeline.
-            - Source: \`codex/mining-pix-work\`
-            - Scope: Oxlint safe autofixes limited to \`Mining Pix/src\`
+            - Source: `codex/mining-pix-work`
+            - Scope: Oxlint safe autofixes limited to `Mining Pix/src`
             - Validation: lint, build, and any discovered Node test files passed after the fixes.
             - No main-branch changes, merges, deployments, Supabase operations, or economy/payment changes were performed.
             **Human review and approval are required. Do not merge automatically.**
