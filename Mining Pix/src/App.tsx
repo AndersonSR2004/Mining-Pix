@@ -1,5 +1,13 @@
 
 import { useEffect, useState } from 'react'
+import Games from './Games.tsx'
+import PersistentWalletPanel from './PersistentWalletPanel.tsx'
+import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
+import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
+import PersistentMiningPool from './PersistentMiningPool.tsx'
+import PersistentProgressPanel from './PersistentProgressPanel.tsx'
+import { distributePoolBudget } from './lib/pool.ts'
+import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
@@ -11,7 +19,8 @@ type Page =
   | 'Carteira'
   | 'VIP'
   | 'Passe de Batalha'
-  | 'Administração'
+  | 'Missões'
+  | 'Jogos'
 
 type VipTier = 0 | 1 | 2 | 3
 
@@ -73,11 +82,16 @@ type SavedState = {
   xp: number
   premiumPass: boolean
   claimedRewards: string[]
+  nextCycleAt: number
+  missionState: MissionState
+  temporaryHash: number
+  temporaryHashExpiresAt: number
 }
 
 const STORAGE_KEY = 'mining-pix-demo-v1'
 const ROOM_CAPACITY = 10
 const XP_PER_LEVEL = 1000
+const CYCLE_DURATION_MS = 10 * 60 * 1000
 
 const vipPlans = [
   { tier: 0 as VipTier, name: 'FREE', rooms: 1, spaces: 10 },
@@ -101,23 +115,6 @@ const initialMachines: Machine[] = [
   },
 ]
 
-const shopMachines = [
-  {
-    id: 2,
-    name: 'PIX Miner II',
-    type: 'Equipamento intermediário',
-    hashrate: 250,
-    price: 2500,
-  },
-  {
-    id: 3,
-    name: 'PIX Miner III',
-    type: 'Equipamento avançado',
-    hashrate: 600,
-    price: 5000,
-  },
-]
-
 const battleRewards: BattleReward[] = [
   { id: 'free-1', level: 1, track: 'free', name: 'PIX Miner BP 01', hashrate: 1 },
   { id: 'premium-2', level: 2, track: 'premium', name: 'PIX Miner BP 02', hashrate: 1 },
@@ -137,13 +134,14 @@ const battleRewards: BattleReward[] = [
 const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
   { name: 'Mineração', icon: '▣' },
+  { name: 'Jogos', icon: '🎮' },
   { name: 'Equipamentos', icon: '▤' },
   { name: 'Inventário', icon: '▦' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
+  { name: 'Missões', icon: '◎' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
-  { name: 'Administração', icon: '⚙' },
 ]
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -161,7 +159,7 @@ function isValidMachine(value: unknown): value is Machine {
   )
 }
 
-function loadSavedState(): SavedState {
+function loadSavedState(storageKey: string): SavedState {
   const fallback: SavedState = {
     balance: 10000,
     machines: initialMachines,
@@ -177,10 +175,14 @@ function loadSavedState(): SavedState {
     xp: 0,
     premiumPass: false,
     claimedRewards: [],
+    nextCycleAt: Date.now() + CYCLE_DURATION_MS,
+    missionState: createMissionState(),
+    temporaryHash: 0,
+    temporaryHashExpiresAt: 0,
   }
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey)
     if (!raw) return fallback
 
     const parsed = JSON.parse(raw) as Record<string, unknown>
@@ -293,14 +295,26 @@ function loadSavedState(): SavedState {
       claimedRewards: Array.isArray(parsed.claimedRewards)
         ? parsed.claimedRewards.filter((item): item is string => typeof item === 'string')
         : [],
+      nextCycleAt:
+        typeof parsed.nextCycleAt === 'number' && parsed.nextCycleAt > 0
+          ? parsed.nextCycleAt
+          : Date.now() + CYCLE_DURATION_MS,
+      missionState: refreshMissionState(
+        isObject(parsed.missionState) ? parsed.missionState as unknown as MissionState : createMissionState(),
+      ),
+      temporaryHash: typeof parsed.temporaryHash === 'number' && parsed.temporaryHash > 0 ? parsed.temporaryHash : 0,
+      temporaryHashExpiresAt: typeof parsed.temporaryHashExpiresAt === 'number' && parsed.temporaryHashExpiresAt > 0 ? parsed.temporaryHashExpiresAt : 0,
     }
   } catch {
     return fallback
   }
 }
 
-function App() {
-  const [saved] = useState<SavedState>(loadSavedState)
+type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }
+
+function App({ userId, email, displayName, onSignOut }: AppProps) {
+  const storageKey = `${STORAGE_KEY}:${userId}`
+  const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
 
   const [page, setPage] = useState<Page>('Dashboard')
   const [balance, setBalance] = useState(saved.balance)
@@ -310,35 +324,29 @@ function App() {
   const [history, setHistory] = useState<string[]>(saved.history)
   const [vipTier, setVipTier] = useState<VipTier>(saved.vipTier)
 
-  const [poolBudget, setPoolBudget] = useState(saved.poolBudget)
-  const [cycles, setCycles] = useState(saved.cycles)
-  const [totalRewards, setTotalRewards] = useState(saved.totalRewards)
-  const [poolHistory, setPoolHistory] = useState<PoolCycle[]>(saved.poolHistory)
-  const [bots, setBots] = useState<Bot[]>(saved.bots)
+  const [poolBudget] = useState(saved.poolBudget)
+  const [cycles] = useState(saved.cycles)
+  const [totalRewards] = useState(saved.totalRewards)
+  const [poolHistory] = useState<PoolCycle[]>(saved.poolHistory)
+  const [bots] = useState<Bot[]>(saved.bots)
 
   const [xp, setXp] = useState(saved.xp)
-  const [premiumPass, setPremiumPass] = useState(saved.premiumPass)
+  const [premiumPass] = useState(saved.premiumPass)
   const [claimedRewards, setClaimedRewards] = useState<string[]>(saved.claimedRewards)
+  const [nextCycleAt] = useState(saved.nextCycleAt)
+  const [missionState, setMissionState] = useState(saved.missionState)
+  const [temporaryHash] = useState(saved.temporaryHash)
+  const [temporaryHashExpiresAt] = useState(saved.temporaryHashExpiresAt)
+  const [clockNow, setClockNow] = useState(Date.now())
 
   const [selectedRoomId, setSelectedRoomId] = useState(1)
   const [message, setMessage] = useState('')
 
-  const [adminBalance, setAdminBalance] = useState(String(saved.balance))
-  const [adminBalanceMode, setAdminBalanceMode] = useState<'set' | 'add' | 'remove'>('add')
-  const [adminVip, setAdminVip] = useState(String(saved.vipTier))
-  const [adminXp, setAdminXp] = useState('1000')
-  const [adminMachineName, setAdminMachineName] = useState('PIX Miner Admin')
-  const [adminMachineHash, setAdminMachineHash] = useState('100')
-  const [adminMachinePrice, setAdminMachinePrice] = useState('0')
-
-  const [botName, setBotName] = useState('')
-  const [botHashrate, setBotHashrate] = useState('100')
-  const [editingBotId, setEditingBotId] = useState<number | null>(null)
-
   const currentPlan = vipPlans[vipTier]
   const totalCapacity = currentPlan.spaces
 
-  const hashrate = machines.reduce((total, machine) => total + machine.hashrate, 0)
+  const activeTemporaryHash = temporaryHashExpiresAt > clockNow ? temporaryHash : 0
+  const hashrate = machines.reduce((total, machine) => total + machine.hashrate, 0) + activeTemporaryHash
 
   const activeBots = bots.filter((bot) => bot.active && bot.hashrate > 0)
   const botsHashrate = activeBots.reduce((total, bot) => total + bot.hashrate, 0)
@@ -349,7 +357,14 @@ function App() {
   const participation =
     networkHashrate > 0 ? hashrate / networkHashrate : 0
 
-  const estimatedReward = Math.floor(poolBudget * participation)
+  const poolAllocations = distributePoolBudget(poolBudget, [
+    { id: 'player', hashrate },
+    ...activeBots.map((bot) => ({ id: `bot-${bot.id}`, hashrate: bot.hashrate })),
+  ])
+  const estimatedReward = poolAllocations.player ?? 0
+  const secondsUntilCycle = Math.max(0, Math.ceil((nextCycleAt - clockNow) / 1000))
+  const countdownLabel = `${String(Math.floor(secondsUntilCycle / 60)).padStart(2, '0')}:${String(secondsUntilCycle % 60).padStart(2, '0')}`
+  const cycleReady = secondsUntilCycle === 0
 
   const currentLevel = Math.floor(xp / XP_PER_LEVEL) + 1
   const levelProgress = (xp % XP_PER_LEVEL) / XP_PER_LEVEL * 100
@@ -375,37 +390,33 @@ function App() {
       xp,
       premiumPass,
       claimedRewards,
+      nextCycleAt,
+      missionState,
+      temporaryHash,
+      temporaryHashExpiresAt,
     }
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      localStorage.setItem(storageKey, JSON.stringify(data))
     } catch {
       setMessage('Não foi possível salvar os dados neste navegador.')
     }
   }, [
     balance, machines, inventory, rooms, history, vipTier, poolBudget,
-    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards,
+    cycles, totalRewards, poolHistory, bots, xp, premiumPass, claimedRewards, nextCycleAt, missionState, temporaryHash, temporaryHashExpiresAt, userId,
   ])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    setMissionState((value) => recordMissionProgress(value, 'daily_login'))
+  }, [])
 
   function logAction(text: string) {
     setHistory((value) => [text, ...value].slice(0, 200))
-  }
-
-  function nextMachineId() {
-    return Math.max(Date.now(), ...[...machines, ...inventory].map((item) => item.id + 1))
-  }
-
-  function buyMachine(machine: (typeof shopMachines)[number]) {
-    if (balance < machine.price) {
-      setMessage('Saldo insuficiente para esta compra.')
-      return
-    }
-
-    const newMachine: Machine = { ...machine, id: nextMachineId(), roomId: 0 }
-    setBalance((value) => value - machine.price)
-    setInventory((value) => [...value, newMachine])
-    logAction(`Compra de ${machine.name}: -${machine.price.toLocaleString('pt-BR')} PC`)
-    setMessage(`${machine.name} adquirido e enviado ao inventário!`)
   }
 
   function installMachine(machine: Machine) {
@@ -514,196 +525,22 @@ function App() {
     setMessage('Nome da sala atualizado.')
   }
 
-  function updatePoolBudget(value: number) {
-    if (!Number.isFinite(value) || value < 0) return
-    setPoolBudget(Math.floor(value))
-  }
-
-  // Simula a distribuição para o jogador e para todos os bots ativos.
-  function simulateMiningCycle() {
-    if (networkHashrate <= 0) {
-      setMessage('A rede não possui participantes com hashrate ativo.')
+  function claimMissionReward(missionId: string) {
+    const mission = MISSIONS.find((item) => item.id === missionId)
+    if (!mission) return
+    const current = refreshMissionState(missionState)
+    if (current.claimed.includes(missionId) || getMissionProgress(current, mission) < mission.target) {
+      setMessage('Missão ainda não concluída ou recompensa já resgatada.')
       return
     }
-    if (poolBudget <= 0) {
-      setMessage('Defina um orçamento de recompensas maior que zero.')
-      return
-    }
-
-    const playerReward = Math.floor(poolBudget * (hashrate / networkHashrate))
-    const updatedBots = bots.map((bot) => {
-      if (!bot.active || bot.hashrate <= 0) return bot
-      const reward = Math.floor(poolBudget * (bot.hashrate / networkHashrate))
-      return {
-        ...bot,
-        balance: bot.balance + reward,
-        totalRewards: bot.totalRewards + reward,
-      }
-    })
-
-    const nextCycle = cycles + 1
-    const cycle: PoolCycle = {
-      id: nextCycle,
-      date: new Date().toLocaleString('pt-BR'),
-      reward: playerReward,
-      participation: participation * 100,
-      playerHashrate: hashrate,
-      networkHashrate,
-      budget: poolBudget,
-      botCount: activeBots.length,
-    }
-
-    setBalance((value) => value + playerReward)
-    setBots(updatedBots)
-    setCycles(nextCycle)
-    setTotalRewards((value) => value + playerReward)
-    setPoolHistory((value) => [cycle, ...value])
-    setXp((value) => value + 100)
-    logAction(`Ciclo ${nextCycle}: +${playerReward.toLocaleString('pt-BR')} PC pela Mining Pool`)
-    setMessage(`Ciclo ${nextCycle} concluído! Você recebeu ${playerReward.toLocaleString('pt-BR')} PC. XP +100.`)
+    setMissionState({ ...current, claimed: [...current.claimed, missionId] })
+    setXp((value) => value + mission.rewardXp)
+    logAction(`Missão concluída: ${mission.title} · +${mission.rewardXp} XP`)
+    setMessage(`Missão resgatada! Você recebeu ${mission.rewardXp} XP.`)
   }
 
-  // PAINEL ADMINISTRATIVO — controles exclusivos deste sandbox local.
-  function applyAdminBalance() {
-    const amount = Number(adminBalance)
-    if (!Number.isFinite(amount) || amount < 0) {
-      setMessage('Informe um valor válido para o saldo.')
-      return
-    }
-
-    if (adminBalanceMode === 'set') {
-      setBalance(amount)
-      logAction(`[ADMIN] Saldo definido para ${amount.toLocaleString('pt-BR')} PC`)
-    } else if (adminBalanceMode === 'add') {
-      setBalance((value) => value + amount)
-      logAction(`[ADMIN] Adicionado ${amount.toLocaleString('pt-BR')} PC`)
-    } else {
-      setBalance((value) => Math.max(0, value - amount))
-      logAction(`[ADMIN] Removido até ${amount.toLocaleString('pt-BR')} PC`)
-    }
-
-    setMessage('Saldo administrativo atualizado.')
-  }
-
-  function applyAdminVip() {
-    const tier = Number(adminVip) as VipTier
-    if (![0, 1, 2, 3].includes(tier)) return
-    activateVip(tier)
-  }
-
-  function applyAdminXp() {
-    const amount = Number(adminXp)
-    if (!Number.isFinite(amount) || amount < 0) {
-      setMessage('Informe uma quantidade válida de XP.')
-      return
-    }
-    setXp(amount)
-    logAction(`[ADMIN] XP definido para ${amount.toLocaleString('pt-BR')}`)
-    setMessage('XP atualizado.')
-  }
-
-  function addAdminMachine() {
-    const name = adminMachineName.trim()
-    const power = Number(adminMachineHash)
-    const price = Number(adminMachinePrice)
-
-    if (!name || !Number.isFinite(power) || power <= 0 || !Number.isFinite(price) || price < 0) {
-      setMessage('Informe nome, hashrate positivo e preço válido.')
-      return
-    }
-
-    const machine: Machine = {
-      id: nextMachineId(),
-      name,
-      type: 'Equipamento administrativo',
-      hashrate: power,
-      price,
-      roomId: 0,
-    }
-
-    setInventory((value) => [...value, machine])
-    logAction(`[ADMIN] ${name} (${power} H/s) adicionado ao inventário`)
-    setMessage(`${name} adicionado ao inventário.`)
-  }
-
-  function togglePremiumPass() {
-    setPremiumPass((value) => !value)
-    logAction(`[ADMIN] Passe premium ${premiumPass ? 'desativado' : 'ativado'}`)
-    setMessage(`Passe premium ${premiumPass ? 'desativado' : 'ativado'} no sandbox.`)
-  }
-
-  function resetSandbox() {
-    if (!window.confirm('Isso apagará o progresso local e restaurará o sandbox. Continuar?')) return
-
-    setBalance(10000)
-    setMachines(initialMachines)
-    setInventory([])
-    setRooms(initialRooms)
-    setHistory(['Sandbox restaurado. Saldo inicial: 10.000 PC'])
-    setVipTier(0)
-    setPoolBudget(0)
-    setCycles(0)
-    setTotalRewards(0)
-    setPoolHistory([])
-    setBots([])
-    setXp(0)
-    setPremiumPass(false)
-    setClaimedRewards([])
-    setSelectedRoomId(1)
-    setMessage('Sandbox restaurado.')
-  }
-
-  // BOTS
-  function saveBot() {
-    const name = botName.trim()
-    const power = Number(botHashrate)
-
-    if (!name || !Number.isFinite(power) || power <= 0) {
-      setMessage('Informe um nome e um hashrate maior que zero.')
-      return
-    }
-
-    if (editingBotId !== null) {
-      setBots((value) => value.map((bot) =>
-        bot.id === editingBotId ? { ...bot, name, hashrate: power } : bot,
-      ))
-      logAction(`[ADMIN] Bot ${name} atualizado para ${power} H/s`)
-      setMessage('Bot atualizado.')
-    } else {
-      const bot: Bot = {
-        id: Date.now(),
-        name,
-        hashrate: power,
-        active: true,
-        balance: 0,
-        totalRewards: 0,
-      }
-      setBots((value) => [...value, bot])
-      logAction(`[ADMIN] Bot ${name} criado com ${power} H/s`)
-      setMessage(`Bot ${name} criado e ativado.`)
-    }
-
-    setBotName('')
-    setBotHashrate('100')
-    setEditingBotId(null)
-  }
-
-  function editBot(bot: Bot) {
-    setEditingBotId(bot.id)
-    setBotName(bot.name)
-    setBotHashrate(String(bot.hashrate))
-  }
-
-  function deleteBot(bot: Bot) {
-    if (!window.confirm(`Excluir o bot ${bot.name}?`)) return
-    setBots((value) => value.filter((item) => item.id !== bot.id))
-    logAction(`[ADMIN] Bot ${bot.name} excluído`)
-    setMessage(`Bot ${bot.name} excluído.`)
-    if (editingBotId === bot.id) {
-      setEditingBotId(null)
-      setBotName('')
-      setBotHashrate('100')
-    }
+  function nextMachineId() {
+    return Math.max(0, ...machines.map((machine) => machine.id), ...inventory.map((machine) => machine.id)) + 1
   }
 
   function claimBattleReward(reward: BattleReward) {
@@ -716,7 +553,7 @@ function App() {
       return
     }
     if (reward.track === 'premium' && !premiumPass) {
-      setMessage('Esta recompensa está bloqueada. Ative o passe premium no painel administrativo.')
+      setMessage('Esta recompensa ainda não está disponível nesta versão demonstrativa.')
       return
     }
 
@@ -799,6 +636,10 @@ function App() {
               <span>Hashrate total da rede</span>
               <strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong>
             </div>
+            <div className="pool-footer">
+              <span>Próximo ciclo de referência</span>
+              <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
+            </div>
             <button className="primary-button" onClick={() => setPage('Mineração')}>
               ACESSAR MINERAÇÃO →
             </button>
@@ -842,8 +683,14 @@ function App() {
       <section className="page-content">
         <span className="eyebrow">REDE GLOBAL</span>
         <h1>Central de mineração</h1>
-        <p className="page-description">A rede é calculada automaticamente pela soma dos participantes ativos.</p>
+        <p className="page-description">Os dados do simulador local e da infraestrutura persistente são apresentados separadamente.</p>
+        <PersistentFacilityPanel mode="summary" />
+        <PersistentMiningPool />
 
+        <div className="sandbox-section-label">
+          <span className="eyebrow">SIMULADOR LOCAL · SANDBOX</span>
+          <p className="page-description">As métricas abaixo pertencem ao ambiente demonstrativo deste navegador.</p>
+        </div>
         <div className="stats">
           <article className="stat-card">
             <span>HASHRATE DO JOGADOR</span>
@@ -898,57 +745,11 @@ function App() {
             <span>Recompensa estimada para você</span>
             <strong>{estimatedReward.toLocaleString('pt-BR')} PC</strong>
           </div>
-          <button className="primary-button" onClick={simulateMiningCycle}>
-            SIMULAR DISTRIBUIÇÃO DO CICLO
-          </button>
-          <p className="page-description">
-            A simulação credita sua parte no saldo e registra a parte de cada bot em sua carteira simulada.
-            O ciclo equivale a 10 minutos, mas não é executado automaticamente.
-          </p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Orçamento da Mining Pool</h2>
-            <span className="status">SANDBOX</span>
+          <div className="pool-footer">
+            <span>Próximo ciclo de referência</span>
+            <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
           </div>
-          <div className="history-item">
-            <span>Orçamento total por ciclo (PC)</span>
-            <input
-              type="number"
-              min="0"
-              step="100"
-              value={poolBudget}
-              onChange={(event) => updatePoolBudget(Number(event.target.value))}
-            />
-          </div>
-          <p className="page-description">
-            O orçamento é um valor fixo definido para o ciclo. O hashrate apenas determina
-            a proporção distribuída entre os participantes.
-          </p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Participantes da rede</h2>
-            <span className="equipment-count">{activeBots.length + 1} participantes</span>
-          </div>
-          <div className="history-item">
-            <div><strong>Você</strong><small>Jogador principal</small></div>
-            <strong>{hashrate.toLocaleString('pt-BR')} H/s · {(participation * 100).toFixed(2)}%</strong>
-          </div>
-          {activeBots.map((bot) => {
-            const share = networkHashrate > 0 ? bot.hashrate / networkHashrate * 100 : 0
-            return (
-              <div className="history-item" key={bot.id}>
-                <div><strong>{bot.name}</strong><small>Bot ativo</small></div>
-                <strong>{bot.hashrate.toLocaleString('pt-BR')} H/s · {share.toFixed(2)}%</strong>
-              </div>
-            )
-          })}
-          {activeBots.length === 0 && (
-            <p className="page-description">Nenhum bot ativo. Se você for o único participante com hashrate, terá 100% da rede.</p>
-          )}
+          <p className="page-description">A distribuição desta rede demonstrativa não emite recompensas nesta tela. O saldo persistente e os ciclos oficiais são consultados separadamente acima.</p>
         </article>
 
         <article className="panel page-panel">
@@ -981,8 +782,13 @@ function App() {
       <section className="page-content">
         <span className="eyebrow">SUA INFRAESTRUTURA</span>
         <h1>Gerenciamento de salas</h1>
-        <p className="page-description">Selecione uma sala para administrar seus equipamentos.</p>
+        <p className="page-description">A infraestrutura da conta é administrada no PostgreSQL. O simulador local permanece separado.</p>
+        <PersistentFacilityPanel mode="management" />
 
+        <div className="sandbox-section-label">
+          <span className="eyebrow">GERENCIAMENTO LOCAL · SANDBOX</span>
+          <p className="page-description">Salas e máquinas abaixo pertencem apenas ao simulador demonstrativo deste navegador.</p>
+        </div>
         <div className="stats">
           <article className="stat-card">
             <span>HASHRATE DO JOGADOR</span>
@@ -1126,24 +932,8 @@ function App() {
       <section className="page-content">
         <span className="eyebrow">EXPANDA SUA OPERAÇÃO</span>
         <h1>Loja de equipamentos</h1>
-        <p className="page-description">Adquira máquinas e encontre-as no inventário.</p>
-        <article className="wallet-summary">
-          <span>SEU SALDO DISPONÍVEL</span>
-          <strong>{balance.toLocaleString('pt-BR')} PC</strong>
-        </article>
-        <div className="shop-grid">
-          {shopMachines.map((machine) => (
-            <article className="panel shop-card" key={machine.id}>
-              <div className="machine-icon large">▦</div>
-              <span className="eyebrow">EQUIPAMENTO DE MINERAÇÃO</span>
-              <h2>{machine.name}</h2>
-              <p>{machine.type}</p>
-              <div className="shop-hash">{machine.hashrate} H/s</div>
-              <strong className="shop-price">{machine.price.toLocaleString('pt-BR')} PC</strong>
-              <button className="primary-button" onClick={() => buyMachine(machine)}>COMPRAR EQUIPAMENTO</button>
-            </article>
-          ))}
-        </div>
+        <p className="page-description">Catálogo oficial conectado à carteira PIX COIN e ao inventário persistente da sua conta.</p>
+        <PersistentEquipmentShop />
       </section>
     )
   }
@@ -1154,9 +944,10 @@ function App() {
       <section className="page-content">
         <span className="eyebrow">GESTÃO DE RECURSOS</span>
         <h1>Minha carteira</h1>
-        <p className="page-description">Consulte seu saldo e o histórico de movimentações.</p>
+        <p className="page-description">Acompanhe separadamente o saldo persistente do servidor e os valores de demonstração locais.</p>
+        <PersistentWalletPanel />
         <article className="wallet-summary">
-          <span>SALDO DISPONÍVEL</span>
+          <span>SALDO DO SANDBOX LOCAL</span>
           <strong>{balance.toLocaleString('pt-BR')} PC</strong>
           <small>PIX COIN · MOEDA VIRTUAL DO JOGO</small>
         </article>
@@ -1217,12 +1008,83 @@ function App() {
     )
   }
 
+  // MISSÕES DIÁRIAS E SEMANAIS
+  function renderMissions() {
+    const currentMissions = refreshMissionState(missionState)
+    const renderGroup = (period: 'daily' | 'weekly') => (
+      <div className="panel page-panel">
+        <div className="panel-heading">
+          <h2>{period === 'daily' ? 'Missões diárias' : 'Missões semanais'}</h2>
+          <span className="equipment-count">{period === 'daily' ? 'REINÍCIO DIÁRIO' : 'REINÍCIO SEGUNDA-FEIRA'}</span>
+        </div>
+        <div className="shop-grid">
+          {MISSIONS.filter((mission) => mission.period === period).map((mission) => {
+            const progress = Math.min(getMissionProgress(currentMissions, mission), mission.target)
+            const completed = progress >= mission.target
+            const claimed = currentMissions.claimed.includes(mission.id)
+            return (
+              <article className="panel shop-card" key={mission.id}>
+                <span className="eyebrow">{period === 'daily' ? 'DIÁRIA' : 'SEMANAL'}</span>
+                <h2>{mission.title}</h2>
+                <p>{mission.description}</p>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${progress / mission.target * 100}%` }} />
+                </div>
+                <div className="pool-footer">
+                  <span>Progresso</span>
+                  <strong>{progress} / {mission.target}</strong>
+                </div>
+                {mission.id === 'daily-rewarded-ad' && (
+                  <div className="pool-footer">
+                    <span>Anúncios assistidos hoje</span>
+                    <strong>{missionState.dailyProgress.rewarded_ads ?? 0} / {DAILY_REWARDED_AD_LIMIT}</strong>
+                  </div>
+                )}
+                <div className="pool-footer">
+                  <span>Recompensa</span>
+                  <strong>{mission.rewardXp} XP do Passe</strong>
+                </div>
+                {claimed ? <span className="status">✓ RESGATADA</span> : (
+                  <button className="primary-button" disabled={!completed} onClick={() => claimMissionReward(mission.id)}>
+                    {completed ? 'RESGATAR XP' : 'EM ANDAMENTO'}
+                  </button>
+                )}
+              </article>
+            )
+          })}
+        </div>
+      </div>
+    )
+
+    return (
+      <section className="page-content">
+        <span className="eyebrow">CENTRAL DE OBJETIVOS</span>
+        <h1>Missões</h1>
+        <p className="page-description">Conclua atividades para receber XP do Passe de Batalha. Cada missão diária concluída conta automaticamente como 1 unidade para as metas semanais, mesmo antes do resgate.</p>
+        <div className="stats">
+          <article className="stat-card"><span>NÍVEL DO PASSE</span><h2>{currentLevel}</h2></article>
+          <article className="stat-card"><span>XP DO PASSE</span><h2>{xp.toLocaleString('pt-BR')}</h2></article>
+          <article className="stat-card"><span>MISSÕES DIÁRIAS CONCLUÍDAS NA SEMANA</span><h2>{currentMissions.weeklyCompletedDailyMissions}</h2></article>
+        </div>
+        {renderGroup('daily')}
+        <article className="panel page-panel">
+          <div className="panel-heading"><h2>Contador semanal</h2><span className="equipment-count">MISSÕES DIÁRIAS CONCLUÍDAS</span></div>
+          <p className="page-description">O contador soma cada missão diária uma única vez por dia. As metas são cumulativas: ao chegar a 50, todas as metas anteriores também estarão concluídas.</p>
+          <div className="pool-footer"><span>Total nesta semana</span><strong>{currentMissions.weeklyCompletedDailyMissions} / 50</strong></div>
+        </article>
+        {renderGroup('weekly')}
+        <p className="page-description">Recompensas atuais de XP são valores provisórios de balanceamento do sandbox. O progresso permanece salvo neste navegador.</p>
+      </section>
+    )
+  }
+
   // PASSE DE BATALHA
   function renderBattlePass() {
     return (
       <section className="page-content">
         <span className="eyebrow">TEMPORADA DE TESTES</span>
         <h1>Passe de Batalha</h1>
+        <PersistentProgressPanel userId={userId} />
         <p className="page-description">Avance de nível, acumule XP e desbloqueie equipamentos nas duas trilhas.</p>
 
         <article className="panel page-panel">
@@ -1281,7 +1143,7 @@ function App() {
             <span className="equipment-count">PREMIUM · 10 MÁQUINAS</span>
           </div>
           {!premiumPass && (
-            <p className="page-description">As recompensas desta trilha ficam bloqueadas para jogadores Free. No sandbox, o administrador pode ativar o passe.</p>
+            <p className="page-description">As recompensas desta trilha ficam bloqueadas para jogadores Free. A trilha premium ainda não está habilitada nesta versão demonstrativa.</p>
           )}
           <div className="shop-grid">
             {battleRewards.filter((reward) => reward.track === 'premium').map((reward) => {
@@ -1312,167 +1174,6 @@ function App() {
     )
   }
 
-  // ADMINISTRAÇÃO
-  function renderAdmin() {
-    return (
-      <section className="page-content">
-        <span className="eyebrow">AMBIENTE DE DESENVOLVIMENTO</span>
-        <h1>Painel administrativo</h1>
-        <p className="page-description">
-          Ferramentas locais para testar saldo, VIP, progressão, equipamentos e cenários da rede.
-          As alterações são salvas somente neste navegador.
-        </p>
-
-        <div className="stats">
-          <article className="stat-card">
-            <span>SALDO DO JOGADOR</span>
-            <h2>{balance.toLocaleString('pt-BR')} <small>PC</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>HASHRATE DA REDE</span>
-            <h2>{networkHashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>BOTS ATIVOS</span>
-            <h2>{activeBots.length} <small>/ {bots.length}</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>NÍVEL / XP</span>
-            <h2>{currentLevel} <small>· {xp} XP</small></h2>
-          </article>
-        </div>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Controle do jogador</h2><span className="status">ADMIN</span></div>
-          <div className="history-item">
-            <span>Operação de saldo</span>
-            <select value={adminBalanceMode} onChange={(event) => setAdminBalanceMode(event.target.value as 'set' | 'add' | 'remove')}>
-              <option value="add">Adicionar saldo</option>
-              <option value="remove">Remover saldo</option>
-              <option value="set">Definir saldo exato</option>
-            </select>
-          </div>
-          <div className="history-item">
-            <span>Valor em PC</span>
-            <input type="number" min="0" value={adminBalance} onChange={(event) => setAdminBalance(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={applyAdminBalance}>APLICAR ALTERAÇÃO DE SALDO</button>
-
-          <div className="history-item">
-            <span>Alterar plano VIP</span>
-            <select value={adminVip} onChange={(event) => setAdminVip(event.target.value)}>
-              {vipPlans.map((plan) => <option key={plan.tier} value={plan.tier}>{plan.name}</option>)}
-            </select>
-          </div>
-          <button className="primary-button" onClick={applyAdminVip}>APLICAR VIP</button>
-
-          <div className="history-item">
-            <span>Definir XP total</span>
-            <input type="number" min="0" value={adminXp} onChange={(event) => setAdminXp(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={applyAdminXp}>ATUALIZAR XP E NÍVEL</button>
-
-          <div className="history-item">
-            <span>Passe de batalha premium</span>
-            <strong>{premiumPass ? 'ATIVADO' : 'DESATIVADO'}</strong>
-          </div>
-          <button className="secondary-button" onClick={togglePremiumPass}>
-            {premiumPass ? 'DESATIVAR PASSE PREMIUM' : 'ATIVAR PASSE PREMIUM'}
-          </button>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Adicionar equipamento</h2><span className="equipment-count">INVENTÁRIO</span></div>
-          <div className="history-item">
-            <span>Nome do equipamento</span>
-            <input value={adminMachineName} onChange={(event) => setAdminMachineName(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Hashrate (H/s)</span>
-            <input type="number" min="1" value={adminMachineHash} onChange={(event) => setAdminMachineHash(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Preço-base (PC)</span>
-            <input type="number" min="0" value={adminMachinePrice} onChange={(event) => setAdminMachinePrice(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={addAdminMachine}>ADICIONAR AO INVENTÁRIO</button>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <div><span className="eyebrow">SIMULADOR MULTIPLAYER</span><h2>Gerenciamento de bots</h2></div>
-            <span className="equipment-count">{bots.length} bots</span>
-          </div>
-          <p className="page-description">Crie participantes artificiais para simular concorrência na rede. Bots ativos entram no cálculo do hashrate e recebem sua parcela do orçamento.</p>
-
-          <div className="history-item">
-            <span>Nome do bot</span>
-            <input value={botName} placeholder="Ex.: Bot 01" onChange={(event) => setBotName(event.target.value)} />
-          </div>
-          <div className="history-item">
-            <span>Hashrate do bot (H/s)</span>
-            <input type="number" min="1" value={botHashrate} onChange={(event) => setBotHashrate(event.target.value)} />
-          </div>
-          <button className="primary-button" onClick={saveBot}>
-            {editingBotId === null ? 'CRIAR BOT' : 'SALVAR ALTERAÇÕES DO BOT'}
-          </button>
-          {editingBotId !== null && (
-            <button className="secondary-button" onClick={() => { setEditingBotId(null); setBotName(''); setBotHashrate('100') }}>
-              CANCELAR EDIÇÃO
-            </button>
-          )}
-
-          {bots.length === 0 ? (
-            <p className="page-description">Nenhum bot cadastrado. Crie seu primeiro participante para testar a rede.</p>
-          ) : bots.map((bot) => {
-            const share = networkHashrate > 0 && bot.active ? bot.hashrate / networkHashrate * 100 : 0
-            return (
-              <div className="panel" key={bot.id} style={{ marginTop: 12, padding: 16 }}>
-                <div className="panel-heading">
-                  <div><strong>{bot.name}</strong><p className="page-description">{bot.hashrate.toLocaleString('pt-BR')} H/s · {bot.active ? `${share.toFixed(2)}% da rede` : 'INATIVO'}</p></div>
-                  <span className={bot.active ? 'status' : 'equipment-count'}>{bot.active ? '● ATIVO' : '○ INATIVO'}</span>
-                </div>
-                <div className="pool-footer">
-                  <span>Saldo simulado do bot</span>
-                  <strong>{bot.balance.toLocaleString('pt-BR')} PC</strong>
-                </div>
-                <div className="pool-footer">
-                  <span>Total recebido</span>
-                  <strong>{bot.totalRewards.toLocaleString('pt-BR')} PC</strong>
-                </div>
-                <button className="secondary-button" onClick={() => setBots((value) => value.map((item) => item.id === bot.id ? { ...item, active: !item.active } : item))}>
-                  {bot.active ? 'DESATIVAR BOT' : 'ATIVAR BOT'}
-                </button>
-                <button className="secondary-button" onClick={() => editBot(bot)}>EDITAR</button>
-                <button className="dismantle-button" onClick={() => deleteBot(bot)}>EXCLUIR BOT</button>
-              </div>
-            )
-          })}
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Parâmetros da simulação</h2><span className="status">REDE DINÂMICA</span></div>
-          <div className="pool-footer"><span>Hashrate do jogador</span><strong>{hashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Hashrate dos bots ativos</span><strong>{botsHashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Hashrate total calculado</span><strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong></div>
-          <div className="pool-footer"><span>Participação do jogador</span><strong>{(participation * 100).toFixed(4)}%</strong></div>
-          <div className="history-item">
-            <span>Orçamento total por ciclo (PC)</span>
-            <input type="number" min="0" value={poolBudget} onChange={(event) => updatePoolBudget(Number(event.target.value))} />
-          </div>
-          <button className="primary-button" onClick={simulateMiningCycle}>EXECUTAR CICLO DE SIMULAÇÃO</button>
-          <p className="page-description">A distribuição individual pode apresentar pequenas sobras por arredondamento para baixo. Não há emissão adicional para compensá-las.</p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Ferramentas de manutenção</h2><span className="status">CUIDADO</span></div>
-          <p className="page-description">Restaurar o sandbox apaga saldo, equipamentos, bots, XP, VIP e histórico armazenados neste navegador.</p>
-          <button className="dismantle-button" onClick={resetSandbox}>RESTAURAR SANDBOX COMPLETO</button>
-        </article>
-      </section>
-    )
-  }
-
   function renderPage() {
     switch (page) {
       case 'Dashboard': return renderDashboard()
@@ -1483,7 +1184,10 @@ function App() {
       case 'Carteira': return renderWallet()
       case 'VIP': return renderVip()
       case 'Passe de Batalha': return renderBattlePass()
-      case 'Administração': return renderAdmin()
+      case 'Missões': return renderMissions()
+      case 'Jogos': return <Games userId={userId} onGameComplete={(event) => {
+        setMissionState((value) => recordMissionProgress(value, event))
+      }} />
       default: return renderDashboard()
     }
   }
@@ -1498,7 +1202,7 @@ function App() {
 
         <nav>
           <p className="nav-label">MENU PRINCIPAL</p>
-          {menu.slice(0, 6).map((item) => (
+          {menu.slice(0, 7).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
@@ -1509,7 +1213,7 @@ function App() {
           ))}
 
           <p className="nav-label">CONTA</p>
-          {menu.slice(6).map((item) => (
+          {menu.slice(7).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
@@ -1521,15 +1225,16 @@ function App() {
         </nav>
 
         <div className="profile">
-          <div className="avatar">A</div>
-          <div><strong>Minerador</strong><small>{currentPlan.name}</small></div>
+          <div className="avatar">{displayName.trim().charAt(0).toUpperCase() || 'M'}</div>
+          <div className="profile-identity"><strong>{displayName}</strong><small>{email || currentPlan.name}</small></div>
+          <button className="auth-logout-button" onClick={() => { void onSignOut() }} title="Encerrar sessão">SAIR</button>
         </div>
       </aside>
 
       <main className="main">
         <header className="topbar">
           <div><span className="breadcrumb">MINING PIX /</span><strong> {page.toUpperCase()}</strong></div>
-          <div className="online"><span className="online-dot" /> SISTEMA ONLINE</div>
+          <div className="topbar-actions"><div className="online"><span className="online-dot" /> CONTA CONECTADA · SANDBOX LOCAL</div><button className="auth-logout-button mobile-logout" onClick={() => { void onSignOut() }}>SAIR</button></div>
         </header>
 
         {message && (

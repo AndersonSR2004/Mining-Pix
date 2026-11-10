@@ -1331,3 +1331,381 @@ body::-webkit-scrollbar-thumb:hover {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* =========================================================
+   SUPABASE AUTHENTICATION
+   ========================================================= */
+.auth-shell {
+  min-height: 100vh;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(34, 115, 75, .2), transparent 48%),
+    #090d14;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 34px;
+  border: 1px solid #263640;
+  border-radius: 18px;
+  background: linear-gradient(155deg, #141f2a, #0e151e);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .32);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 34px;
+}
+
+.auth-brand strong,
+.auth-brand small {
+  display: block;
+}
+
+.auth-brand strong {
+  font-size: 14px;
+  letter-spacing: 1.5px;
+}
+
+.auth-brand small {
+  margin-top: 4px;
+  color: #718092;
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+
+.auth-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #173b2c;
+  color: #63e7a1;
+  font-size: 25px;
+}
+
+.auth-card h1 {
+  margin: 10px 0 8px;
+  color: #e8edf5;
+  font-size: 27px;
+  letter-spacing: -.8px;
+}
+
+.auth-description {
+  margin-bottom: 22px;
+  color: #8997a7;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding: 5px;
+  border: 1px solid #263640;
+  border-radius: 9px;
+  background: #0b121a;
+}
+
+.auth-tabs button {
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8997a7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.auth-tabs button.active {
+  background: #173126;
+  color: #70e3a5;
+}
+
+.auth-form {
+  display: grid;
+  gap: 15px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 8px;
+  color: #aeb9c7;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auth-submit {
+  margin-top: 7px;
+}
+
+.auth-link {
+  display: block;
+  margin: 17px auto 0;
+  border: 0;
+  background: transparent;
+  color: #70e3a5;
+  font-size: 11px;
+}
+
+.auth-notice,
+.auth-error {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.auth-notice {
+  border: 1px solid #28553c;
+  background: #14291e;
+  color: #80e9ad;
+}
+
+.auth-error {
+  border: 1px solid #71333b;
+  background: #351b20;
+  color: #ff9292;
+}
+
+.auth-footnote {
+  margin-top: 25px;
+  color: #657487;
+  font-size: 9px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.profile-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-identity strong,
+.profile-identity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-logout-button {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border: 1px solid #34443e;
+  border-radius: 7px;
+  background: #17231f;
+  color: #70e3a5;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .6px;
+}
+
+.auth-logout-button:hover {
+  border-color: #63d99a;
+  background: #1b3026;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-logout {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .auth-card {
+    padding: 26px 22px;
+  }
+  .topbar-actions .online {
+    font-size: 8px;
+    letter-spacing: .4px;
+  }
+  .profile-identity small {
+    max-width: 90px;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar-actions .online {
+    display: none;
+  }
+  .mobile-logout {
+    display: inline-flex;
+  }
+  .sidebar .profile .auth-logout-button {
+    display: none;
+  }
+}
+
+
+/* Persistent equipment store */
+.persistent-store {
+  display: grid;
+  gap: 18px;
+  margin: 22px 0 34px;
+}
+.persistent-store-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.persistent-store-heading h2,
+.persistent-store-inventory h3 {
+  margin: 5px 0;
+  color: #e8f0ed;
+}
+.persistent-store-heading p,
+.persistent-store-footnote {
+  color: #84958e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.persistent-store-balance {
+  display: grid;
+  gap: 7px;
+}
+.persistent-store-balance small {
+  color: #84958e;
+  font-size: 10px;
+}
+.persistent-store-error,
+.persistent-store-notice {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.persistent-store-error {
+  border: 1px solid #71333b;
+  background: #351b20;
+  color: #ff9292;
+}
+.persistent-store-notice {
+  border: 1px solid #28553c;
+  background: #14291e;
+  color: #80e9ad;
+}
+.persistent-store-inventory {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #263a33;
+  border-radius: 12px;
+  background: #101a17;
+}
+.persistent-store-footnote {
+  margin: 0;
+}
+.sandbox-store {
+  margin-top: 22px;
+  padding-top: 24px;
+  border-top: 1px solid #263a33;
+}
+.sandbox-store h2 {
+  margin: 7px 0;
+  color: #c1cec8;
+}
+@media (max-width: 600px) {
+  .persistent-store-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* Persistent rooms, installations and backend hashrate */
+.persistent-facility {
+  display: grid;
+  gap: 18px;
+  margin: 22px 0 30px;
+}
+.persistent-facility-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.persistent-facility-heading h2 {
+  margin: 5px 0;
+  color: #e8f0ed;
+}
+.persistent-facility-heading p {
+  margin: 5px 0 0;
+  color: #84958e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.persistent-facility-summary {
+  padding: 18px;
+  border: 1px solid #29483a;
+  border-radius: 12px;
+  background: #101c17;
+}
+.persistent-facility-summary .stats { margin-bottom: 0; }
+.persistent-room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+.persistent-room-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 18px;
+}
+.persistent-room-card h3 { margin: 0; color: #e8f0ed; }
+.persistent-room-card > strong,
+.persistent-room-card > span:not(.eyebrow) { color: #a7b7af; font-size: 12px; }
+.persistent-room-card .progress-track { width: 100%; }
+.persistent-room-card .secondary-button { width: 100%; }
+.persistent-facility-inventory {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #263a33;
+  border-radius: 12px;
+  background: #101a17;
+}
+.persistent-install-target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.persistent-install-target label { color: #a7b7af; font-size: 12px; }
+.persistent-install-target select {
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid #344b40;
+  border-radius: 8px;
+  background: #101a17;
+  color: #e8f0ed;
+}
+.persistent-machine { flex-wrap: wrap; }
+.sandbox-section-label {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #263a33;
+}
+.sandbox-section-label .page-description { margin-top: 6px; }
+@media (max-width: 600px) {
+  .persistent-facility-heading { flex-direction: column; }
+  .persistent-machine > .primary-button,
+  .persistent-machine > .secondary-button { width: 100%; }
+}
