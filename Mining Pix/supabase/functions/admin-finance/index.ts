@@ -109,7 +109,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (body?.action === 'close_expense_month') {
-      if (typeof body.month !== 'string' || !/^\\d{4}-\\d{2}$/.test(body.month)) return json({ error: 'Invalid month' }, 400)
+      if (typeof body.month !== 'string' || !/^\d{4}-\d{2}$/.test(body.month)) return json({ error: 'Invalid month' }, 400)
       if (typeof body.reason !== 'string' || body.reason.trim().length < 10 || body.reason.length > 500) return json({ error: 'Month close reason must contain at least 10 characters' }, 400)
       if (typeof body.idempotency_key !== 'string' || body.idempotency_key.trim().length < 1 || body.idempotency_key.length > 160) return json({ error: 'Invalid idempotency key' }, 400)
       const { data, error } = await admin.rpc('admin_close_expense_month', {
