@@ -317,7 +317,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [saved] = useState<SavedState>(() => loadSavedState(storageKey))
 
   const [page, setPage] = useState<Page>('Dashboard')
-  const [balance] = useState(saved.balance)
+  const [balance, setBalance] = useState(saved.balance)
   const [machines, setMachines] = useState<Machine[]>(saved.machines)
   const [inventory, setInventory] = useState<Machine[]>(saved.inventory)
   const [rooms, setRooms] = useState<Room[]>(saved.rooms)
@@ -537,6 +537,10 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     setXp((value) => value + mission.rewardXp)
     logAction(`Missão concluída: ${mission.title} · +${mission.rewardXp} XP`)
     setMessage(`Missão resgatada! Você recebeu ${mission.rewardXp} XP.`)
+  }
+
+  function nextMachineId() {
+    return Math.max(0, ...machines.map((machine) => machine.id), ...inventory.map((machine) => machine.id)) + 1
   }
 
   function claimBattleReward(reward: BattleReward) {
