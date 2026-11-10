@@ -13,6 +13,9 @@ type FinanceSnapshot = {
   generated_at: string
   revenue_months: MonthRevenue[]
   expense_months: MonthExpense[]
+  revenue_accumulated_cents: number | string
+  expenses_accumulated_cents: number | string
+  net_operating_result_accumulated_cents: number | string
   revenue_last_3_full_months_cents: number | string
   revenue_forecast_next_month_cents: number | string
   forecast_method: string
@@ -197,6 +200,9 @@ export default function FinanceCenter() {
       <div className="finance-notice"><strong>Indicadores sem dados não são estimativas reais.</strong><span>O projeto ainda não possui receitas, despesas, reserva ou compromissos financeiros importados. Os painéis mostram a estrutura e permanecem zerados até o registro de fatos verificáveis.</span></div>
 
       <div className="admin-stat-grid finance-stat-grid">
+        <article className="admin-stat"><span>RECEITA LÍQUIDA ACUMULADA</span><strong>{brl(data.revenue_accumulated_cents)}</strong><small>Histórico completo do Revenue Ledger</small></article>
+        <article className="admin-stat"><span>DESPESAS EFETIVAS ACUMULADAS</span><strong>{brl(data.expenses_accumulated_cents)}</strong><small>Despesas pagas registradas</small></article>
+        <article className="admin-stat"><span>RESULTADO OPERACIONAL REGISTRADO</span><strong>{brl(data.net_operating_result_accumulated_cents)}</strong><small>Receita líquida acumulada menos despesas pagas; antes de compromissos não pagos</small></article>
         <article className="admin-stat"><span>RECEITA LÍQUIDA · 3 MESES COMPLETOS</span><strong>{brl(data.revenue_last_3_full_months_cents)}</strong><small>Somente entradas liquidadas e conciliadas</small></article>
         <article className="admin-stat"><span>PREVISÃO · PRÓXIMO MÊS</span><strong>{brl(data.revenue_forecast_next_month_cents)}</strong><small>Média simples dos três últimos meses completos</small></article>
         <article className="admin-stat"><span>COMPROMISSOS FINANCEIROS EM ABERTO</span><strong>{brl(data.commitments_open_brl_cents)}</strong><small>{brl(data.commitments_due_30d_brl_cents)} vencem nos próximos 30 dias</small></article>
@@ -262,6 +268,11 @@ export default function FinanceCenter() {
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">PREVISÃO DE OBRIGAÇÕES</span><h2>Compromissos de recompensa por mês</h2></div><span>Somente MC</span></div>
         <div className="finance-bars">{data.reward_commitments_monthly.map((item) => <div className="finance-bar-row" key={item.month}><span>{monthLabel(item.month)}</span><div className="finance-bar-track"><i style={{ width: `${Math.min(100, Number(item.amount_mc) / Math.max(1, ...data.reward_commitments_monthly.map((row) => Number(row.amount_mc))) * 100)}%` }} /></div><strong>{decimal(item.amount_mc, 8)} MC</strong></div>)}</div>
         <p className="admin-empty">Valores registrados como compromissos de recompensa, sem conversão para BRL. Como a emissão MC permanece bloqueada, este indicador não representa pagamento autorizado ou promessa de saque.</p>
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><div><span className="admin-eyebrow">MOVIMENTAÇÕES</span><h2>Histórico da reserva</h2></div><span>Últimos 10</span></div>
+        {data.recent_reserve_movements.length === 0 ? <p className="admin-empty">Nenhum movimento de reserva registrado.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Data</th><th>Tipo</th><th>Referência</th><th>Motivo</th><th>Valor</th></tr></thead><tbody>{data.recent_reserve_movements.map((item) => <tr key={item.id}><td>{new Date(item.created_at).toLocaleString('pt-BR')}</td><td>{item.movement_type}</td><td>{item.source_reference}</td><td>{item.reason}</td><td>{brl(item.signed_amount_cents)}</td></tr>)}</tbody></table></div>}
       </section>
 
       <section className="admin-panel">
