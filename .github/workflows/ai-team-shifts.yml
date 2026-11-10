@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/mining-pix-ai-ops-mainline
+      - codex/fix-ai-team-workflow
   schedule:
     # One specialist shift every two hours (UTC): 12 shifts/day.
     # Six specialists each run twice daily, approximately 12 hours apart.
@@ -79,19 +80,22 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: "Mining Pix/package-lock.json"
-
-      - name: Run lint and production build
-        working-directory: "Mining Pix"
+      - name: Validate specialist configuration
+        shell: bash
         run: |
-          npm ci
-          npm run lint
-          npm run build
+          set -euo pipefail
+          for file in \
+            "Mining Pix/ai-team/AGENT_ARCHITECT.md" \
+            "Mining Pix/ai-team/AGENT_DEVELOPER.md" \
+            "Mining Pix/ai-team/AGENT_SECURITY.md" \
+            "Mining Pix/ai-team/AGENT_FINANCE.md" \
+            "Mining Pix/ai-team/AGENT_GAME_ECONOMY.md" \
+            "Mining Pix/ai-team/AGENT_QA.md" \
+            "Mining Pix/ai-team/RULES.md" \
+            "Mining Pix/ai-team/PROJECT_CONTEXT.md"; do
+            test -s "$file"
+          done
+          echo "All six specialist definitions and team rules are present."
 
       - name: Run specialist review and create report
         env:
@@ -159,7 +163,9 @@ jobs:
               f"- Repository: {os.environ['REPOSITORY']}",
               f"- Commit: {os.environ['COMMIT_SHA']}",
               f"- Trigger: {os.environ['EVENT_NAME']}",
-              "- Runtime checks: npm run lint and npm run build completed before this review.",
+              "- Workflow validation: all six specialist definitions and team rules were verified.",
+              "- Application lint/build are intentionally not run by this isolated team workflow; project CI remains responsible for application validation.",
+
               "- Review scope: tracked text snapshot; no live Supabase, payment, player, or production data.",
               ""
           ]
