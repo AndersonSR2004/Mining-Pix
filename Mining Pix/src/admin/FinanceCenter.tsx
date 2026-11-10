@@ -86,6 +86,11 @@ export default function FinanceCenter() {
   const [reserveSource, setReserveSource] = useState('')
   const [reserveReason, setReserveReason] = useState('')
   const [reserveBusy, setReserveBusy] = useState(false)
+  const [selectedCommitmentId, setSelectedCommitmentId] = useState('')
+  const [transitionStatus, setTransitionStatus] = useState<'paid' | 'cancelled'>('paid')
+  const [transitionExpenseId, setTransitionExpenseId] = useState('')
+  const [transitionReason, setTransitionReason] = useState('')
+  const [transitionBusy, setTransitionBusy] = useState(false)
   const [reserveRequestId, setReserveRequestId] = useState(() => crypto.randomUUID())
 
   const load = useCallback(async () => {
@@ -154,6 +159,33 @@ export default function FinanceCenter() {
       setCommitmentSource(''); setCommitmentReason(''); setCommitmentRequestId(crypto.randomUUID()); await load()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar o compromisso.') }
     finally { setCommitmentBusy(false) }
+  }
+
+  async function submitCommitmentTransition(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const selected = data?.recent_commitments.find((item) => item.id === selectedCommitmentId)
+    if (!selected) return
+    setTransitionBusy(true); setError(''); setMessage('')
+    try {
+      if (transitionStatus === 'paid' && (!selected.amount_cents || !transitionExpenseId)) {
+        throw new Error('Selecione uma despesa paga de valor correspondente para liquidar o compromisso.')
+      }
+      const { data: result, error: invokeError } = await supabase.functions.invoke('admin-finance', {
+        body: {
+          action: 'transition_commitment',
+          commitment_id: selected.id,
+          new_status: transitionStatus,
+          paid_expense_entry_id: transitionStatus === 'paid' ? transitionExpenseId : null,
+          reason: transitionReason.trim(),
+        },
+      })
+      if (invokeError) throw invokeError
+      if (result?.status !== 'succeeded') throw new Error('O backend não confirmou a mudança do compromisso.')
+      setMessage(transitionStatus === 'paid' ? 'Compromisso marcado como pago e vinculado à despesa.' : 'Compromisso cancelado e auditado.')
+      setSelectedCommitmentId(''); setTransitionExpenseId(''); setTransitionReason('')
+      await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar o compromisso.') }
+    finally { setTransitionBusy(false) }
   }
 
   async function submitReserveMovement(event: FormEvent<HTMLFormElement>) {
@@ -261,8 +293,24 @@ export default function FinanceCenter() {
 
       <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">OBRIGAÇÕES</span><h2>Compromissos recentes</h2></div><span>Últimos 20</span></div>
-        {data.recent_commitments.length === 0 ? <p className="admin-empty">Nenhum compromisso registrado.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Vencimento</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.recent_commitments.map((item) => <tr key={item.id}><td>{item.due_date}</td><td>{item.commitment_type}</td><td>{item.description}</td><td>{item.amount_mc !== null ? decimal(item.amount_mc, 8) + ' MC' : brl(item.amount_cents)}</td><td>{item.status}</td></tr>)}</tbody></table></div>}
+        {data.recent_commitments.length === 0 ? <p className="admin-empty">Nenhum compromisso registrado.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Vencimento</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.recent_commitments.map((item) => <tr key={item.id}><td>{item.due_date}</td><td>{item.commitment_type}</td><td>{item.description}</td><td>{item.amount_mc !== null ? decimal(item.amount_mc, 8) + ' MC' : brl(item.amount_cents)}</td><td>{item.status === 'open' ? <button className="admin-secondary admin-access-action" onClick={() => { setSelectedCommitmentId(item.id); setTransitionStatus(item.amount_cents !== null ? 'paid' : 'cancelled'); setTransitionExpenseId(''); setTransitionReason('') }}>GERENCIAR</button> : item.status}</td></tr>)}</tbody></table></div>}
       </section>
+
+      {selectedCommitmentId && (() => {
+        const selected = data.recent_commitments.find((item) => item.id === selectedCommitmentId)
+        if (!selected) return null
+        const matchingExpenses = data.recent_expenses.filter((item) => String(item.amount_cents) === String(selected.amount_cents))
+        return <section className="admin-panel finance-transition-panel">
+          <div className="admin-panel-heading"><div><span className="admin-eyebrow">BAIXA DE OBRIGAÇÃO</span><h2>Atualizar compromisso</h2></div><button className="admin-secondary" type="button" onClick={() => setSelectedCommitmentId('')}>CANCELAR</button></div>
+          <p className="admin-empty">{selected.description} · {selected.amount_mc !== null ? decimal(selected.amount_mc, 8) + ' MC' : brl(selected.amount_cents)} · vencimento {selected.due_date}</p>
+          <form className="admin-note-form" onSubmit={(event) => void submitCommitmentTransition(event)}>
+            <label>Resultado<select value={transitionStatus} onChange={(event) => setTransitionStatus(event.target.value as 'paid' | 'cancelled')}><option value="cancelled">Cancelar obrigação</option>{selected.amount_cents !== null && <option value="paid">Marcar como paga</option>}</select></label>
+            {transitionStatus === 'paid' && <label>Despesa efetivamente paga (valor deve corresponder)<select value={transitionExpenseId} onChange={(event) => setTransitionExpenseId(event.target.value)} required><option value="">Selecione a despesa...</option>{matchingExpenses.map((expense) => <option key={expense.id} value={expense.id}>{expense.expense_date} · {expense.description} · {brl(expense.amount_cents)}</option>)}</select>{matchingExpenses.length === 0 && <small>Nenhuma despesa recente de valor correspondente. Registre a despesa paga primeiro.</small>}</label>}
+            <label>Motivo obrigatório<textarea value={transitionReason} onChange={(event) => setTransitionReason(event.target.value)} minLength={3} maxLength={500} required /></label>
+            <button className="admin-primary" type="submit" disabled={transitionBusy || transitionReason.trim().length < 3 || (transitionStatus === 'paid' && !transitionExpenseId)}>{transitionBusy ? 'PROCESSANDO...' : transitionStatus === 'paid' ? 'CONFIRMAR BAIXA COMO PAGA' : 'CONFIRMAR CANCELAMENTO'}</button>
+          </form>
+        </section>
+      })()}
 
       <section className="admin-panel">
         <div className="admin-panel-heading"><div><span className="admin-eyebrow">PREVISÃO DE OBRIGAÇÕES</span><h2>Compromissos de recompensa por mês</h2></div><span>Somente MC</span></div>
