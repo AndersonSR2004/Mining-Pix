@@ -487,3 +487,30 @@ O usuário propôs a referência nominal R$ 1 = 1 MC = 100 PC. Não representa a
 - O banco exige pelo menos 600 segundos antes da liquidação oficial.
 - A abertura e liquidação automática por operador confiável a cada 600 segundos ainda não está implantada; a emissão/distribuição real de MC permanece desativada até aprovação da política de funding/conversão.
 - O sandbox já opera com blocos de 600 segundos e orçamento padrão de 100 MC, sem PC.
+
+
+## 17. Proposta P-045 — MINING COIN com resgate variável
+
+**Estado: direção escolhida pelo usuário; modelagem em validação; não implementada.**
+
+O usuário escolheu:
+- Arquitetura A: MC poderá ter valor de resgate variável caso um programa futuro seja aprovado.
+- Prioridade econômica: sustentabilidade financeira acima de recompensas elevadas.
+- Recompensa proporcional ao HASH elegível, respeitando orçamento efetivamente financiado.
+- Não estabelecer paridade fixa MC/BRL nesta fase.
+
+Regras e salvaguardas propostas:
+- MC permanece unidade de recompensa virtual, sem valor fixo em BRL prometido.
+- Não aprovar automaticamente a fórmula de resgate, cotação variável, obrigação financeira ou pagamento.
+- O orçamento da Pool continua limitado a até 30% da RLE e ao caixa efetivamente disponível, conforme D-042.
+- A liberação permanece linear em blocos de 600 segundos, conforme D-043 e D-041.
+- A maturação de 7 dias permanece como requisito proposto para elegibilidade futura, sem eliminar a exposição econômica desde o crédito, conforme D-044.
+- Um eventual programa de resgate deve ter orçamento BRL reservado, janela pública, metodologia uniforme, controles antifraude, ledger auditável, revisão jurídica/contábil e circuit breaker.
+- Não usar limite VIP de saque para corrigir concentração de HASH.
+- Avaliar concentração Top 1/10/100, HHI e Gini antes de propor limites ou curva marginal decrescente.
+- Não confiscar ou reavaliar retroativamente recompensas já creditadas.
+- A fórmula candidata `r_t = W_t / M_t` é apenas hipótese de estudo e ainda precisa ser comparada com alternativas mais conservadoras.
+
+Documento de modelagem: `docs/MINING_COIN_VARIABLE_REDEMPTION_MODEL.md`.
+
+Nenhuma conversão, cotação, emissão oficial, saque, pagamento, migration, alteração de saldo, ciclo real da Pool ou mudança de produção foi autorizada por P-045.
