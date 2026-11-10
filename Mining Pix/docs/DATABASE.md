@@ -173,3 +173,23 @@ A função `get_player_room_summaries()` retorna somente salas ativas do usuári
 - `pool-operator` Edge Function exige claim server-managed `app_metadata.pool_operator=true`; não confia em `user_metadata`.
 - Bots do sandbox e hashrate temporário de jogos não participam. Não há emissão automática: cada ciclo exige orçamento inteiro explícito.
 - Frequência e política econômica permanecem decisões de produto antes de ativar ciclos recorrentes.
+
+
+## 9. Revenue Ledger BRL — DEV
+
+### private.revenue_ledger_entries
+
+- Ledger append-only para eventos de receita recebidos, liquidados e conciliados.
+- Fontes: pix_coin, vip, premium_pass e advertising.
+- Tipos: gross_receipt, payment_fee, tax, refund, chargeback, other_deduction e correction.
+- Valores em centavos inteiros BRL (bigint com sinal); créditos positivos e deduções negativas.
+- Referências de origem, liquidação, timestamp e chave idempotente obrigatórias.
+- RLS habilitado; leitura explícita para service_role; sem escrita direta por cliente.
+- Trigger bloqueia UPDATE, DELETE e TRUNCATE. Correções devem ser novos lançamentos compensatórios.
+
+### Funções privadas
+
+- private.record_revenue_ledger_entry(...): gravação idempotente de evento liquidado; somente service_role; retry com payload igual retorna o lançamento existente, chave reutilizada com dados divergentes é rejeitada.
+- private.get_revenue_period_summary(p_period_start, p_period_end): agrega recebimentos e deduções pela janela de settled_at; somente service_role.
+
+O ledger ainda não recebe eventos de gateway ou rede de anúncios. Não existe fechamento mensal, carry-forward de chargebacks tardios, alocação automática de receita, reserva financeira ou orçamento Pool integrado. A função de resumo não autoriza distribuição. Consulte docs/REVENUE_LEDGER.md e docs/MINING_POOL.md.
