@@ -3,6 +3,7 @@ name: Mining Pix AI Team — 24h Shift Rotation
 on:
   push:
     branches:
+      - main
       - codex/mining-pix-ai-ops-mainline
       - codex/fix-ai-team-workflow
   schedule:
