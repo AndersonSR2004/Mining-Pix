@@ -4,8 +4,8 @@ import { supabase } from './lib/supabase/client'
 type Room = { id: string; room_number: number; name: string; installed_count: number; total_hashrate: number | string; capacity: number }
 type Equipment = {
   id: string; catalog_sku: string; status: 'inventory' | 'installed' | 'retired'
-  room_id: string | null; purchase_price_pc: number | string
-  equipment_catalog: { name: string; equipment_type: string; hashrate: number | string } | null
+  room_id: string | null; purchase_price_pc: number | string; blessing_percent: number | string
+  equipment_catalog: { name: string; equipment_type: string; hashrate: number | string; tier: number | null; overclock_percent: number | string } | null
 }
 type MiningSummary = { total_hashrate: number | string; installed_equipment_count: number; room_count: number; total_room_capacity: number }
 type Props = { mode?: 'management' | 'summary' }
@@ -27,7 +27,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
     setError('')
     const [r, e, s] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
-      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,equipment_catalog(name,equipment_type,hashrate)').order('acquired_at'),
+      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
     ])
     const failure = r.error || e.error || s.error
@@ -74,6 +74,12 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
   const installed = equipment.filter(item => item.status === 'installed')
   const roomHash = (id: string) => Number(rooms.find(room => room.id === id)?.total_hashrate ?? 0)
   const roomOccupancy = (id: string) => Number(rooms.find(room => room.id === id)?.installed_count ?? 0)
+  const effectiveHash = (item: Equipment) => {
+    const base = Number(item.equipment_catalog?.hashrate ?? 0)
+    const overclock = Number(item.equipment_catalog?.overclock_percent ?? 0)
+    const blessing = Number(item.blessing_percent ?? 0)
+    return base * (1 + overclock / 100 + blessing / 100)
+  }
 
   if (mode === 'summary') return (
     <section className="persistent-facility persistent-facility-summary">
@@ -133,7 +139,8 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
               <div className="machine-info">
                 <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
                 <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento'}</span>
-                <small>{fmt(item.equipment_catalog?.hashrate ?? 0)} H/s · {fmt(item.purchase_price_pc)} PC</small>
+                <small>{fmt(item.equipment_catalog?.hashrate ?? 0)} H/s base → {fmt(effectiveHash(item))} H/s efetivos · {fmt(item.purchase_price_pc)} PC</small>
+                <small>Tier {item.equipment_catalog?.tier ?? '—'} · Overclock +{fmt(item.equipment_catalog?.overclock_percent ?? 0)}% · Benção +{fmt(item.blessing_percent)}%</small>
                 <small>{isInstalled ? `Instalado: ${room?.name ?? 'Sala'}` : item.status === 'retired' ? 'Desativado' : 'No inventário'}</small>
               </div>
               {isInstalled
@@ -144,7 +151,7 @@ export default function PersistentFacilityPanel({ mode = 'management' }: Props) 
             </div>
           })}
       </div>
-      <p className="persistent-store-footnote">Limite atual: 10 equipamentos por sala. A quantidade de salas é provisionada conforme o VIP registrado no banco. A loja sandbox local não altera esta infraestrutura.</p>
+      <p className="persistent-store-footnote">Limite atual: 10 equipamentos por sala. A quantidade de salas é provisionada conforme o VIP registrado no banco. O HASH efetivo inclui Overclock e Benção individuais calculados no backend.</p>
     </section>
   )
 }
