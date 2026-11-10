@@ -10,21 +10,23 @@ Opening the Admin Center creates a fresh sandbox session for the authenticated a
 
 ## PIX BLOCK test cadence
 
-Sandbox blocks use a fixed 600-second interval. While the Admin Center is open, the control panel refreshes its clock and state and automatically settles the block at the end of the 600 seconds. An administrator may accelerate a block with a reason of at least 10 characters. The next block is opened automatically using the same reward budget.
+Sandbox blocks use a fixed 600-second interval. While the Admin Center is open, the control panel refreshes its clock and state and automatically settles the block at the end of the 600 seconds. An administrator may accelerate a block with a reason of at least 10 characters. The next block is opened automatically using the same reward budget. Each new block defaults to exactly 100 MINING COINS (MC) and zero PIX COIN (PC).
 
-Sandbox PC and MC rewards are configured per open block. The settlement routine allocates rewards proportional to each bot's HASH and assigns rounding residuals to the highest-HASH bot so the full configured PC and MC budgets are distributed exactly. A block can only settle once.
+Only MC is distributed by sandbox blocks. PC is purchase-only and the database rejects any nonzero PC block budget or PC allocation. The sandbox MC budget defaults to 100 MC per block and can be changed for testing through the audited admin override. The settlement routine allocates MC proportional to each bot's HASH and assigns rounding residuals to the highest-HASH bot so the full configured MC budget is distributed exactly. A block can only settle once.
 
 ## Synthetic balances
 
-Each bot has its own sandbox PC and MC balances and cumulative earnings. These are test-only balances and are not redeemable, transferable, or visible as player wallet balances.
+Each bot has a sandbox MC balance and cumulative MC earnings. Legacy PC test fields remain zeroed and are no longer displayed or credited. Sandbox MC is not redeemable, transferable, or visible as player wallet balances.
 
 ## Administrative controls
 
-Sandbox default reward budget for a new block is 100 PC and 1 MC; these are test defaults only, editable per open block, and not a proposed production reward rate.
+Sandbox default reward budget for a new block is 100 MC and 0 PC. The MC budget can be overridden for sandbox tests only; 100 MC is not a proposed production reward rate.
 
 - PC balance adjustment for real DEV player wallets is ledger-backed, idempotent, rejects negative resulting balances, and requires a reason.
 - Artificial machine grants create inventory items without charging PC. They are marked `admin_granted=true` and audited.
 - Administrative PC credits/debits affect real DEV player balances only, create a ledger transaction, require a reason, and reject negative resulting balances. Machine grants are added to the player's inventory, not auto-installed.
+- PIX COIN is purchase-only. No block, game, bot, Lucky Box, or event may distribute PC.
+- MINING COIN is the only mining reward and is distributed by the Mining Pool according to eligible HASH.
 - Real MINING COIN issuance remains restricted to the official Mining Pool policy. The admin console does not bypass the existing MC issuance lock. Sandbox bots can earn simulated MC independently.
 - Sandbox reward edits and accelerated settlements are audited with before/after values, actor, reason, and request identifier.
 
