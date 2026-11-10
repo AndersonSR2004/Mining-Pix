@@ -246,7 +246,8 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className={activeSection === 'finance' ? 'active' : ''} onClick={() => setActiveSection('finance')}>FINANCIAL INTELLIGENCE</button>
           <button className={activeSection === 'sandbox' ? 'active' : ''} onClick={() => setActiveSection('sandbox')}>NETWORK CONTROL</button>
         </nav>
-        {activeSection === 'finance' ? <FinanceCenter /> : activeSection === 'sandbox' ? <SandboxNetworkControl /> : <>
+        <div style={{ display: activeSection === 'sandbox' ? 'block' : 'none' }}><SandboxNetworkControl /></div>
+        {activeSection === 'finance' ? <FinanceCenter /> : activeSection === 'sandbox' ? null : <>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
         {loading && !snapshot && <div className="admin-panel">Carregando indicadores do Supabase...</div>}
