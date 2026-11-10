@@ -47,11 +47,11 @@ export default function AdminPowerTools({ onComplete }: { onComplete?: () => voi
 
   return <section className="admin-panel">
     <div className="admin-panel-heading"><div><span className="admin-eyebrow">ADMINISTRATIVE POWER TOOLS</span><h2>Superpoderes administrativos</h2></div><span>DEV · AUDITADO</span></div>
-    <p className="admin-empty">Ajustes de PC afetam a carteira real DEV do jogador e geram uma transação no ledger. Concessões de máquinas entram no inventário sem cobrança e ficam identificadas como concessão administrativa. MINING COIN real continua protegida pela política de emissão exclusiva via Mining Pool; PC e MC dos bots são simulados separadamente no Sandbox.</p>
+    <p className="admin-empty">PIX COIN é adquirida exclusivamente por compras. O ajuste administrativo abaixo é uma exceção manual de teste, restrita ao DEV, auditada e não representa um canal normal de aquisição nem uma funcionalidade de produção. Concessões de máquinas entram no inventário sem cobrança e ficam identificadas como concessão administrativa. MINING COIN real continua protegida pela política de emissão exclusiva via Mining Pool; PC e MC dos bots são simulados separadamente no Sandbox.</p>
     <label className="power-target">UUID do jogador<input value={target} onChange={e => setTarget(e.target.value)} minLength={36} maxLength={36} placeholder="UUID da conta de destino" /></label>
     <div className="power-tools-grid">
       <form className="admin-note-form" onSubmit={adjustPc}>
-        <h3>Ajustar saldo PIX COIN</h3>
+        <h3>Ajuste excepcional de saldo PIX COIN (DEV)</h3>
         <label>Valor inteiro (positivo credita; negativo debita)<input type="number" step="1" value={amount} onChange={e => setAmount(e.target.value)} required /></label>
         <label>Motivo obrigatório<textarea value={pcReason} onChange={e => setPcReason(e.target.value)} minLength={5} maxLength={500} rows={2} required /></label>
         <button className="admin-primary" disabled={busy || target.trim().length !== 36 || !Number.isInteger(Number(amount)) || Number(amount) === 0 || pcReason.trim().length < 5}>APLICAR AJUSTE PC</button>
