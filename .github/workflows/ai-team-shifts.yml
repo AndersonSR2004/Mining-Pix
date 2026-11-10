@@ -1,6 +1,9 @@
 name: Mining Pix AI Team — 24h Shift Rotation
 
 on:
+  push:
+    branches:
+      - codex/mining-pix-ai-operations
   schedule:
     # Six specialist shifts, one every four hours (UTC).
     # Each specialist returns once every 24 hours, leaving 20 hours between shifts.
