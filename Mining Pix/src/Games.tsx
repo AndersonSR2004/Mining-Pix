@@ -142,7 +142,6 @@ export default function Games({ userId, onGameComplete }: Props) {
     attemptRef.current = null
     if (!attemptId) {
       setRewardError('Não foi possível localizar a partida no servidor. Nenhuma recompensa foi creditada.')
-      onGameComplete(events[mode], won)
       return
     }
 
@@ -154,22 +153,27 @@ export default function Games({ userId, onGameComplete }: Props) {
       setRewardError(error.message.includes('expirou')
         ? 'A partida expirou no servidor. Nenhuma recompensa foi creditada.'
         : 'Não foi possível confirmar a partida no servidor. Nenhuma recompensa foi creditada.')
-    } else if (data) {
-      const result = data as {
-        pc_awarded?: number
-        hash_awarded?: number
-        active_hashrate?: number
-        expires_at?: string | null
-        daily_used?: number
-      }
-      setDailyUsed((old) => ({ ...old, [mode]: Number(result.daily_used ?? old[mode]) }))
-      setActiveHash(Number(result.active_hashrate ?? 0))
-      setBoostExpiresAt(result.expires_at ?? null)
-      setRewardMessage(won
-        ? 'Vitória confirmada: +1 H/s temporário por 24 horas. PIX COIN é exclusiva de compras.'
-        : 'Partida registrada. Sem recompensa de vitória.')
-      setRewardError('')
+      return
     }
+    if (!data) {
+      setRewardError('O servidor não retornou a confirmação da partida. Nenhuma recompensa foi creditada.')
+      return
+    }
+    const result = data as {
+      pc_awarded?: number
+      hash_awarded?: number
+      active_hashrate?: number
+      expires_at?: string | null
+      daily_used?: number
+    }
+    setDailyUsed((old) => ({ ...old, [mode]: Number(result.daily_used ?? old[mode]) }))
+    setActiveHash(Number(result.active_hashrate ?? 0))
+    setBoostExpiresAt(result.expires_at ?? null)
+    setRewardMessage(won
+      ? 'Vitória confirmada: +1 H/s temporário por 24 horas. PIX COIN é exclusiva de compras.'
+      : 'Partida registrada. Sem recompensa de vitória.')
+    setRewardError('')
+    // Mission progress advances only after the server confirms the attempt.
     onGameComplete(events[mode], won)
   }
 
