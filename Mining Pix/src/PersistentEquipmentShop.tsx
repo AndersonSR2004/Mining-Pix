@@ -14,23 +14,6 @@ type CatalogItem = {
   blessing_max_percent: number | null
 }
 
-type OwnedEquipment = {
-  id: string
-  catalog_sku: string
-  purchase_price_pc: number
-  blessing_percent: number
-  acquired_at: string
-  status: 'inventory' | 'installed' | 'retired'
-  room_id: string | null
-  equipment_catalog: {
-    name: string
-    equipment_type: string
-    hashrate: number
-    tier: number | null
-    overclock_percent: number
-  } | null
-}
-
 type PurchaseResult = {
   success: boolean
   replayed: boolean
@@ -46,7 +29,6 @@ function formatPc(value: number | string) {
 
 export default function PersistentEquipmentShop() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
-  const [owned, setOwned] = useState<OwnedEquipment[]>([])
   const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [pendingSku, setPendingSku] = useState<string | null>(null)
@@ -57,23 +39,19 @@ export default function PersistentEquipmentShop() {
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [catalogResult, equipmentResult, walletResult] = await Promise.all([
+    const [catalogResult, walletResult] = await Promise.all([
       supabase.from('equipment_catalog')
         .select('sku,name,description,equipment_type,hashrate,price_pc,tier,overclock_percent,blessing_min_percent,blessing_max_percent')
         .eq('active', true)
         .order('display_order', { ascending: true }),
-      supabase.from('player_equipment')
-        .select('id,catalog_sku,purchase_price_pc,blessing_percent,acquired_at,status,room_id,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)')
-        .order('acquired_at', { ascending: false }),
       supabase.from('wallets').select('balance').maybeSingle(),
     ])
 
-    const failure = catalogResult.error || equipmentResult.error || walletResult.error
+    const failure = catalogResult.error || walletResult.error
     if (failure) {
       setError(failure.message)
     } else {
       setCatalog((catalogResult.data ?? []) as CatalogItem[])
-      setOwned((equipmentResult.data ?? []) as unknown as OwnedEquipment[])
       setBalance(walletResult.data ? Number(walletResult.data.balance) : 0)
     }
     setLoading(false)
@@ -117,8 +95,8 @@ export default function PersistentEquipmentShop() {
       <div className="persistent-store-heading">
         <div>
           <span className="eyebrow">ECONOMIA CONECTADA · PROGRESSÃO FREE</span>
-          <h2>Loja de máquinas</h2>
-          <p>Comece com máquinas T0 acessíveis. Cada unidade recebe sua própria Benção de Potência no momento da compra.</p>
+          <h2>Loja de equipamentos</h2>
+          <p>Adquira equipamentos disponíveis no catálogo atual. Cada unidade recebe sua própria Benção de Potência no momento da compra.</p>
         </div>
         <button className="secondary-button" onClick={() => void refresh()} disabled={loading || pendingSku !== null}>
           ATUALIZAR
@@ -161,31 +139,8 @@ export default function PersistentEquipmentShop() {
         </div>
       )}
 
-      <div className="persistent-store-inventory">
-        <div className="panel-heading">
-          <h3>Meu inventário persistente</h3>
-          <span className="equipment-count">{owned.length} itens</span>
-        </div>
-        {loading ? (
-          <p className="page-description">Carregando equipamentos...</p>
-        ) : owned.length === 0 ? (
-          <p className="page-description">Você ainda não possui equipamentos nesta carteira persistente.</p>
-        ) : owned.map((item) => (
-          <div className="machine" key={item.id}>
-            <div className="machine-icon">▦</div>
-            <div className="machine-info">
-              <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
-              <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento adquirido'}</span>
-              <small>{Number(item.equipment_catalog?.hashrate ?? 0).toLocaleString('pt-BR')} H/s base · {formatPc(item.purchase_price_pc)} PC</small>
-              <small>Benção de Potência: +{Number(item.blessing_percent ?? 0).toFixed(2)}% · Overclock: +{Number(item.equipment_catalog?.overclock_percent ?? 0).toFixed(0)}%</small>
-              <small>{item.status === 'installed' ? 'Instalado na infraestrutura' : item.status === 'retired' ? 'Desativado' : 'Disponível para instalação'}</small>
-            </div>
-            <span className="equipment-count">ADQUIRIDO</span>
-          </div>
-        ))}
-      </div>
       <p className="persistent-store-footnote">
-        A Benção é sorteada uma única vez no backend na compra e fica vinculada à unidade. O HASH efetivo é calculado pelo servidor; a loja demonstrativa permanece separada.
+        A Benção é sorteada uma única vez no backend na compra e fica vinculada à unidade. O HASH efetivo é calculado pelo servidor. O inventário e a instalação são gerenciados na tela Salas e equipamentos.
       </p>
     </section>
   )
