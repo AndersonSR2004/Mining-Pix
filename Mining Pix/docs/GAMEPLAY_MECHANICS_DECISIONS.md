@@ -578,7 +578,7 @@ Esta decisão aprova a direção do produto e a separação XP/PC/MC; não autor
 - O VIP não provisiona nem limita salas. A instalação de equipamentos valida propriedade da sala, não nível VIP.
 - Manutenção: retenção de **1,5% da recompensa bruta individual da Pool**, uma única vez por jogador/ciclo, diretamente em MINING COIN (MC), sem conversão para PIX COIN (PC).
 - O MC retido é registrado em reserva segregada da própria Pool e incorporado ao orçamento de ciclos futuros. Não é creditado ao saldo do jogador nem tratado como PC.
-- Como MC é contabilizada em unidades inteiras, a retenção por jogador/ciclo é arredondada para baixo; recompensas brutas inferiores a 67 MC podem resultar em retenção zero naquele ciclo.
+- Como MC é contabilizada em unidades inteiras, a fração inferior a 1 MC é acumulada individualmente entre ciclos; quando completa uma unidade, é retida e enviada à reserva da Pool. Isso preserva a taxa efetiva de 1,5% ao longo do tempo sem perder frações a cada ciclo.
 
 ## Decisão D-051 — centro de eventos e temporadas no Admin Center (10 nov 2026)
 
