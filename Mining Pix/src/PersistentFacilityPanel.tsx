@@ -29,21 +29,22 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
+    const vipResult = await supabase.rpc('get_my_vip_status')
     const [r, e, s, wallet, progress] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
       supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
       supabase.from('wallets').select('balance').maybeSingle(),
-      supabase.from('player_progress').select('vip_tier,level').maybeSingle(),
+      supabase.from('player_progress').select('level').maybeSingle(),
     ])
-    const failure = r.error || e.error || s.error || wallet.error || progress.error
+    const failure = vipResult.error || r.error || e.error || s.error || wallet.error || progress.error
     if (failure) setError(failure.message)
     else {
       const nextRooms = (r.data ?? []) as Room[]
       setRooms(nextRooms)
       setEquipment((e.data ?? []) as unknown as Equipment[])
       setWalletBalance(wallet.data ? Number(wallet.data.balance) : 0)
-      setVipTier(Number(progress.data?.vip_tier ?? 0))
+      setVipTier(Number((vipResult.data as { vip_tier?: number } | null)?.vip_tier ?? 0))
       setPlayerLevel(Number(progress.data?.level ?? 1))
       const rows = (s.data ?? []) as MiningSummary[]
       setSummary(rows[0] ?? { total_hashrate: 0, installed_equipment_count: 0, room_count: nextRooms.length, total_room_capacity: nextRooms.length * 10 })
