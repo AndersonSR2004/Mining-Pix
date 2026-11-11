@@ -106,14 +106,14 @@ export default function PersistentEquipmentShop() {
       <article className="wallet-summary persistent-store-balance">
         <span>SALDO DA CARTEIRA PERSISTENTE</span>
         <strong>{balance === null ? '—' : `${formatPc(balance)} PC`}</strong>
-        <small>Este saldo não utiliza os créditos demonstrativos do sandbox.</small>
+        <small>Compras debitam a carteira persistente por operação atômica no servidor.</small>
       </article>
 
       {error && <div className="persistent-store-error" role="alert">{error}</div>}
       {notice && <div className="persistent-store-notice" role="status">{notice}</div>}
 
       {loading ? (
-        <p className="page-description">Carregando catálogo e inventário...</p>
+        <p className="page-description">Carregando catálogo...</p>
       ) : catalog.length === 0 ? (
         <p className="page-description">Nenhum equipamento disponível no catálogo.</p>
       ) : (
