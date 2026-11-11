@@ -123,21 +123,6 @@ export default function Games({ userId, onGameComplete }: Props) {
     recordGameActivity('game_completed')
     setStatus('over')
     updateBest(scoreRef.current)
-    const cooldown = cooldownFor(current.level)
-    setProgress((old) => {
-      const item = old[mode]
-      const nextWins = won ? item.wins + 1 : item.wins
-      const levelUp = nextWins >= 3
-      return {
-        ...old,
-        [mode]: {
-          level: levelUp ? item.level + 1 : item.level,
-          wins: levelUp ? 0 : nextWins,
-          cooldownUntil: Date.now() + cooldown * 1000,
-        },
-      }
-    })
-
     const attemptId = attemptRef.current
     attemptRef.current = null
     if (!attemptId) {
@@ -165,16 +150,36 @@ export default function Games({ userId, onGameComplete }: Props) {
       active_hashrate?: number
       expires_at?: string | null
       daily_used?: number
+      won?: boolean
+      win_verified?: boolean
+      win_verification_pending?: boolean
     }
+    const confirmedWon = result.won === true && result.win_verified === true
+    const cooldown = cooldownFor(current.level)
+    setProgress((old) => {
+      const item = old[mode]
+      const nextWins = confirmedWon ? item.wins + 1 : item.wins
+      const levelUp = nextWins >= 3
+      return {
+        ...old,
+        [mode]: {
+          level: levelUp ? item.level + 1 : item.level,
+          wins: levelUp ? 0 : nextWins,
+          cooldownUntil: Date.now() + cooldown * 1000,
+        },
+      }
+    })
     setDailyUsed((old) => ({ ...old, [mode]: Number(result.daily_used ?? old[mode]) }))
     setActiveHash(Number(result.active_hashrate ?? 0))
     setBoostExpiresAt(result.expires_at ?? null)
-    setRewardMessage(won
-      ? 'Vitória confirmada: +1 H/s temporário por 24 horas. PIX COIN é exclusiva de compras.'
-      : 'Partida registrada. Sem recompensa de vitória.')
+    setRewardMessage(won && !confirmedWon
+      ? 'Partida registrada, mas a vitória ainda não pode ser validada pelo servidor. Nenhuma recompensa de vitória foi creditada.'
+      : confirmedWon
+        ? 'Vitória validada: +1 H/s temporário por 24 horas.'
+        : 'Partida registrada. Sem recompensa de vitória.')
     setRewardError('')
-    // Mission progress advances only after the server confirms the attempt.
-    onGameComplete(events[mode], won)
+    // Progression and missions use only a server-verified win result.
+    onGameComplete(events[mode], confirmedWon)
   }
 
   async function startGame() {
