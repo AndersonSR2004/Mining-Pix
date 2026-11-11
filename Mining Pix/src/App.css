@@ -1751,3 +1751,40 @@ body::-webkit-scrollbar-thumb:hover {
   .persistent-machine > .primary-button,
   .persistent-machine > .secondary-button { width: 100%; }
 }
+
+
+/* Dashboard rooms-first layout and compact PIX Block timer */
+.dashboard-home { display: grid; gap: 18px; padding-bottom: 28px; }
+.dashboard-welcome { margin-bottom: 0; }
+.dashboard-level { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.dashboard-level span,.dashboard-level small { color: #8291a2; font-size: 9px; letter-spacing: 1.4px; }
+.dashboard-level strong { color: var(--green); font-size: 42px; line-height: 1; }
+.persistent-facility-dashboard { padding: 20px; border: 1px solid #263b34; border-radius: 16px; background: linear-gradient(145deg,rgba(20,39,31,.72),rgba(14,22,30,.96)); }
+.persistent-room-grid-featured { grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 14px; }
+.persistent-room-grid-featured .persistent-room-card { min-height: 205px; border-color: #29473a; background: linear-gradient(155deg,#17271f,#111923); }
+.persistent-room-grid-featured .persistent-room-card h3 { font-size: 18px; }
+.persistent-room-stats { grid-template-columns: repeat(4,minmax(0,1fr)); margin: 18px 0; }
+.persistent-room-unlock { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:18px 0; padding:16px 18px; border:1px solid #315440; border-radius:12px; background:#12231b; }
+.persistent-room-unlock div { display:grid; gap:5px; }
+.persistent-room-unlock strong { color:#e8f5ec; font-size:13px; }
+.persistent-room-unlock span { color:#8da99a; font-size:11px; }
+.pool-timer-compact { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:13px 18px; border:1px solid #1e303d; border-radius:12px; background:rgba(10,17,25,.72); }
+.pool-timer-meta { display:grid; gap:7px; }
+.pool-live-indicator,.pool-idle-indicator { font-size:9px; font-weight:800; letter-spacing:1px; color:#62e7a0; }
+.pool-idle-indicator { color:#7f8d9b; }
+.pool-timer-main { display:flex; align-items:center; gap:18px; }
+.pool-timer-main>div { display:grid; gap:3px; text-align:right; }
+.pool-timer-main>div>span,.pool-timer-caption { color:#748699; font-size:8px; letter-spacing:1px; }
+.pool-digital-timer { color:#83f2b5; font:800 28px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:2px; text-shadow:0 0 18px rgba(99,231,161,.22); }
+.live-events-panel { display:grid; gap:14px; }
+.live-event-card { min-width:0; }
+.live-event-card h2 { font-size:17px; }
+@media (max-width: 900px) { .persistent-room-stats { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) {
+ .persistent-facility-dashboard { padding:14px; }
+ .persistent-room-unlock { align-items:stretch; flex-direction:column; }
+ .pool-timer-compact { align-items:flex-start; flex-direction:column; gap:12px; }
+ .pool-timer-main { width:100%; justify-content:space-between; }
+ .pool-timer-main>div { text-align:left; }
+ .dashboard-level strong { font-size:32px; }
+}
