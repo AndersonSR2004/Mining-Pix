@@ -23,6 +23,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [vipTier, setVipTier] = useState(0)
   const [playerLevel, setPlayerLevel] = useState(1)
+  const [effectiveHashrate, setEffectiveHashrate] = useState<number | null>(null)
   const [buyingRoom, setBuyingRoom] = useState(false)
   const keys = useRef<Record<string, string>>({})
 
@@ -30,12 +31,13 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
     setLoading(true)
     setError('')
     const vipResult = await supabase.rpc('get_my_vip_status')
-    const [r, e, s, wallet, progress] = await Promise.all([
+    const [r, e, s, wallet, progress, pool] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
       supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
       supabase.from('wallets').select('balance').maybeSingle(),
       supabase.from('player_progress').select('level').maybeSingle(),
+      supabase.rpc('get_pool_dashboard'),
     ])
     const failure = vipResult.error || r.error || e.error || s.error || wallet.error || progress.error
     if (failure) setError(failure.message)
@@ -46,6 +48,8 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
       setWalletBalance(wallet.data ? Number(wallet.data.balance) : 0)
       setVipTier(Number((vipResult.data as { vip_tier?: number } | null)?.vip_tier ?? 0))
       setPlayerLevel(Number(progress.data?.level ?? 1))
+      const poolSummary = pool.data as { player_hashrate?: number | string } | null
+      setEffectiveHashrate(poolSummary?.player_hashrate == null ? null : Number(poolSummary.player_hashrate))
       const rows = (s.data ?? []) as MiningSummary[]
       setSummary(rows[0] ?? { total_hashrate: 0, installed_equipment_count: 0, room_count: nextRooms.length, total_room_capacity: nextRooms.length * 10 })
       setSelectedRoomId(current => nextRooms.some(room => room.id === current) ? current : (nextRooms[0]?.id ?? ''))
@@ -118,7 +122,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
       {error && <div className="persistent-store-error" role="alert">{error}</div>}
       {notice && <div className="persistent-store-notice" role="status">{notice}</div>}
       <div className="stats persistent-room-stats">
-        <article className="stat-card"><span>PODER TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
+        <article className="stat-card"><span>PODER TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(effectiveHashrate ?? summary.total_hashrate)} <small>H/s</small></>}</h2></article>
         <article className="stat-card"><span>SALAS PERMANENTES</span><h2>{loading ? '—' : rooms.length}</h2></article>
         <article className="stat-card"><span>VIP</span><h2>{loading ? '—' : vipTier === 0 ? 'FREE' : `VIP ${['','I','II','III','IV','V'][vipTier] ?? vipTier}`}</h2></article>
         <article className="stat-card"><span>NÍVEL DO JOGADOR</span><h2>{loading ? '—' : playerLevel}</h2></article>
