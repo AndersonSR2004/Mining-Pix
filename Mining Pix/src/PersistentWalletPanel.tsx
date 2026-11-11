@@ -91,7 +91,7 @@ export default function PersistentWalletPanel() {
           ))}
         </>
       ) : null}
-      <p className="page-description">Este saldo é independente do saldo de demonstração local. Nenhum saldo antigo foi importado e nenhuma recompensa local foi convertida em crédito persistente.</p>
+      <p className="page-description">PIX COIN é a moeda interna de utilidade do jogo. MINING COIN permanece em carteira separada e não pode ser comprada ou convertida.</p>
     </article>
   )
 }
