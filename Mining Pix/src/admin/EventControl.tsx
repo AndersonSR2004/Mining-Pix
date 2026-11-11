@@ -76,7 +76,7 @@ export default function EventControl() {
       if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
         throw new Error('A configuração precisa ser um objeto JSON.')
       }
-      const { data, error: rpcError } = await supabase.rpc('admin_save_game_event', {
+      const { error: rpcError } = await supabase.rpc('admin_save_game_event', {
         p_id: editingId,
         p_title: title.trim(),
         p_description: description.trim(),
