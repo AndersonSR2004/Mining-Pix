@@ -567,3 +567,25 @@ Esta decisão aprova a direção do produto e a separação XP/PC/MC; não autor
 
 **Restrições de implementação:** multiplicadores de XP aplicam-se somente ao XP de missões, não a pontos de jogos, PC, MC ou HASH. O boost HASH redistribui participação dentro do orçamento já financiado da Mining Pool; não cria orçamento ou MC. Energia permanente do VIP V e a política de redução automática de salas/equipamentos exigem tratamento técnico que preserve o histórico e não interrompa indevidamente máquinas instaladas. Nenhum benefício poderá ser comunicado como retorno financeiro, ROI ou renda garantida.
 
+## Decisão D-050 — salas permanentes adquiridas com PIX COIN (10 nov 2026)
+
+**Estado: regra aprovada e base de backend implementada no DEV.**
+
+- As salas são permanentes e pertencem à conta. Não são benefício VIP e nunca são removidas, suspensas ou desativadas por rebaixamento VIP.
+- Desbloqueio de cada sala adicional: 10.000 PC, por débito atômico e idempotente na carteira persistente.
+- Limite técnico inicial: 50 salas por conta; cada sala mantém capacidade de 10 equipamentos.
+- Salas existentes na migração são preservadas como legadas/grandfathered, sem cobrança retroativa.
+- O VIP não provisiona nem limita salas. A instalação de equipamentos valida propriedade da sala, não nível VIP.
+- Manutenção definida em 1,5% dos ganhos da Mining Pool do próprio jogador. A moeda exata de cobrança e o momento de retenção ainda exigem confirmação: MC retida da recompensa bruta ou PC cobrada com uma regra de conversão explicitamente definida. Até essa confirmação, a taxa é armazenada como parâmetro, mas **não é debitada**.
+
+## Decisão D-051 — centro de eventos e temporadas no Admin Center (10 nov 2026)
+
+**Estado: base de dados, controles administrativos e feed de eventos ativos implementados no DEV.**
+
+- O administrador cria eventos ou Passe de Batalha como rascunho, define título, descrição, payload JSON e janela de início/fim.
+- O administrador pode agendar, iniciar manualmente, encerrar ou cancelar campanhas. O backend valida transições e registra auditoria.
+- Apenas eventos com status AO VIVO e dentro da janela configurada são expostos ao jogador.
+- Passe de Batalha usa o mesmo calendário editorial, com tipo próprio e payload para níveis, trilhas e recompensas.
+- O registro e publicação do Passe estão integrados; compra de Premium/Full, compra de níveis e reivindicação idempotente de recompensas ainda dependem da implementação do motor de temporada e da homologação de preços/recompensas.
+- Nenhum evento ou Passe pode emitir MC fora da Mining Pool.
+
