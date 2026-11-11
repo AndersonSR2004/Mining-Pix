@@ -573,10 +573,12 @@ Esta decisão aprova a direção do produto e a separação XP/PC/MC; não autor
 
 - As salas são permanentes e pertencem à conta. Não são benefício VIP e nunca são removidas, suspensas ou desativadas por rebaixamento VIP.
 - Desbloqueio de cada sala adicional: 10.000 PC, por débito atômico e idempotente na carteira persistente.
-- Limite técnico inicial: 50 salas por conta; cada sala mantém capacidade de 10 equipamentos.
-- Salas existentes na migração são preservadas como legadas/grandfathered, sem cobrança retroativa.
+- Limite máximo definitivo: **4 salas por jogador**, cada uma com capacidade de 10 equipamentos. O limite é independente do nível VIP.
+- Salas existentes na migração são preservadas como legadas/grandfathered, sem cobrança retroativa; os registros existentes permanecem intactos.
 - O VIP não provisiona nem limita salas. A instalação de equipamentos valida propriedade da sala, não nível VIP.
-- Manutenção definida em 1,5% dos ganhos da Mining Pool do próprio jogador. A moeda exata de cobrança e o momento de retenção ainda exigem confirmação: MC retida da recompensa bruta ou PC cobrada com uma regra de conversão explicitamente definida. Até essa confirmação, a taxa é armazenada como parâmetro, mas **não é debitada**.
+- Manutenção: retenção de **1,5% da recompensa bruta individual da Pool**, uma única vez por jogador/ciclo, diretamente em MINING COIN (MC), sem conversão para PIX COIN (PC).
+- O MC retido é registrado em reserva segregada da própria Pool e incorporado ao orçamento de ciclos futuros. Não é creditado ao saldo do jogador nem tratado como PC.
+- Como MC é contabilizada em unidades inteiras, a retenção por jogador/ciclo é arredondada para baixo; recompensas brutas inferiores a 67 MC podem resultar em retenção zero naquele ciclo.
 
 ## Decisão D-051 — centro de eventos e temporadas no Admin Center (10 nov 2026)
 
