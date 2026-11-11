@@ -1763,7 +1763,7 @@ body::-webkit-scrollbar-thumb:hover {
 .persistent-room-grid-featured { grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 14px; }
 .persistent-room-grid-featured .persistent-room-card { min-height: 205px; border-color: #29473a; background: linear-gradient(155deg,#17271f,#111923); }
 .persistent-room-grid-featured .persistent-room-card h3 { font-size: 18px; }
-.persistent-room-stats { grid-template-columns: repeat(4,minmax(0,1fr)); margin: 18px 0; }
+.persistent-room-stats { grid-template-columns: repeat(5,minmax(0,1fr)); margin: 18px 0; }
 .persistent-room-unlock { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:18px 0; padding:16px 18px; border:1px solid #315440; border-radius:12px; background:#12231b; }
 .persistent-room-unlock div { display:grid; gap:5px; }
 .persistent-room-unlock strong { color:#e8f5ec; font-size:13px; }
