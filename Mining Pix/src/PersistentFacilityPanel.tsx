@@ -189,7 +189,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         })}
         {!loading && rooms.length === 0 && <p className="page-description">Nenhuma sala persistente foi provisionada para esta conta.</p>}
       </div>
-      <div className="persistent-room-unlock"><div><strong>Desbloquear nova sala permanente</strong><span>10.000 PC · máximo de 4 salas · independente do VIP</span></div><button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 50}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR · 10.000 PC'}</button></div>
+      <div className="persistent-room-unlock"><div><strong>Desbloquear nova sala permanente</strong><span>10.000 PC · máximo de 4 salas · independente do VIP</span></div><button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 4}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR · 10.000 PC'}</button></div>
       <div className="persistent-facility-inventory">
         <div className="panel-heading"><h3>Inventário e instalação</h3><span className="equipment-count">{inventory.length} disponíveis · {installed.length} instalados</span></div>
         {inventory.length > 0 && <div className="persistent-install-target">
