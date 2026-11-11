@@ -22,6 +22,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
   const [notice, setNotice] = useState('')
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [vipTier, setVipTier] = useState(0)
+  const [playerLevel, setPlayerLevel] = useState(1)
   const [buyingRoom, setBuyingRoom] = useState(false)
   const keys = useRef<Record<string, string>>({})
 
@@ -33,7 +34,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
       supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
       supabase.from('wallets').select('balance').maybeSingle(),
-      supabase.from('player_progress').select('vip_tier').maybeSingle(),
+      supabase.from('player_progress').select('vip_tier,level').maybeSingle(),
     ])
     const failure = r.error || e.error || s.error || wallet.error || progress.error
     if (failure) setError(failure.message)
@@ -43,6 +44,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
       setEquipment((e.data ?? []) as unknown as Equipment[])
       setWalletBalance(wallet.data ? Number(wallet.data.balance) : 0)
       setVipTier(Number(progress.data?.vip_tier ?? 0))
+      setPlayerLevel(Number(progress.data?.level ?? 1))
       const rows = (s.data ?? []) as MiningSummary[]
       setSummary(rows[0] ?? { total_hashrate: 0, installed_equipment_count: 0, room_count: nextRooms.length, total_room_capacity: nextRooms.length * 10 })
       setSelectedRoomId(current => nextRooms.some(room => room.id === current) ? current : (nextRooms[0]?.id ?? ''))
@@ -118,6 +120,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         <article className="stat-card"><span>PODER TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
         <article className="stat-card"><span>SALAS PERMANENTES</span><h2>{loading ? '—' : rooms.length}</h2></article>
         <article className="stat-card"><span>VIP</span><h2>{loading ? '—' : vipTier === 0 ? 'FREE' : `VIP ${['','I','II','III','IV','V'][vipTier] ?? vipTier}`}</h2></article>
+        <article className="stat-card"><span>NÍVEL DO JOGADOR</span><h2>{loading ? '—' : playerLevel}</h2></article>
         <article className="stat-card"><span>PIX COIN</span><h2>{loading || walletBalance === null ? '—' : <>{fmt(walletBalance)} <small>PC</small></>}</h2></article>
       </div>
       <div className="persistent-room-grid persistent-room-grid-featured">
