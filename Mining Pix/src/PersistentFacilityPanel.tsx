@@ -142,10 +142,10 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         {!loading && rooms.length === 0 && <p className="page-description">Sua primeira sala está sendo provisionada. Atualize em instantes.</p>}
       </div>
       <div className="persistent-room-unlock">
-        <div><strong>Expandir infraestrutura</strong><span>Desbloqueio permanente de nova sala · 10.000 PC</span></div>
-        <button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 50}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR SALA · 10.000 PC'}</button>
+        <div><strong>Expandir infraestrutura</strong><span>Desbloqueio permanente · 10.000 PC · máximo de 4 salas</span></div>
+        <button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 4}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR SALA · 10.000 PC'}</button>
       </div>
-      <p className="persistent-store-footnote">A manutenção está definida em 1,5% dos ganhos da Mining Pool por jogador. A cobrança recorrente ainda depende da definição final da unidade de cobrança; nenhuma taxa está sendo debitada nesta prévia.</p>
+      <p className="persistent-store-footnote">A manutenção retém 1,5% dos ganhos brutos da Pool diretamente em MINING COIN (MC), sem conversão. O valor retorna à reserva da própria Pool para ciclos futuros.</p>
     </section>
   )
 
@@ -189,7 +189,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         })}
         {!loading && rooms.length === 0 && <p className="page-description">Nenhuma sala persistente foi provisionada para esta conta.</p>}
       </div>
-      <div className="persistent-room-unlock"><div><strong>Desbloquear nova sala permanente</strong><span>10.000 PC · Salas independentes do nível VIP</span></div><button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 50}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR · 10.000 PC'}</button></div>
+      <div className="persistent-room-unlock"><div><strong>Desbloquear nova sala permanente</strong><span>10.000 PC · máximo de 4 salas · independente do VIP</span></div><button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 50}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR · 10.000 PC'}</button></div>
       <div className="persistent-facility-inventory">
         <div className="panel-heading"><h3>Inventário e instalação</h3><span className="equipment-count">{inventory.length} disponíveis · {installed.length} instalados</span></div>
         {inventory.length > 0 && <div className="persistent-install-target">
@@ -220,7 +220,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
             </div>
           })}
       </div>
-      <p className="persistent-store-footnote">Limite atual: 10 equipamentos por sala. As salas são permanentes e adquiridas por 10.000 PC; não dependem do VIP. O HASH efetivo inclui Overclock e Benção individuais calculados no backend.</p>
+      <p className="persistent-store-footnote">Limite: 4 salas permanentes por jogador, com até 10 equipamentos por sala. Cada sala adicional custa 10.000 PC e não depende do VIP. A manutenção retém 1,5% dos ganhos brutos da Pool em MC e devolve esse valor à reserva da Pool. O HASH efetivo inclui Overclock e Benção individuais calculados no backend.</p>
     </section>
   )
 }
