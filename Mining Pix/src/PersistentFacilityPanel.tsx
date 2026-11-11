@@ -128,7 +128,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
             <h3>{room.name}</h3><strong>{occupied} / {room.capacity} equipamentos</strong>
             <span>{fmt(roomHash(room.id))} H/s</span>
             <div className="progress-track"><div className="progress-fill" style={{ width: `${occupied / room.capacity * 100}%` }} /></div>
-            <small className="persistent-store-footnote">PERMANENTE · {room.grandfathered ? 'SALA LEGADA PRESERVADA' : 'DESBLOQUEADA COM PC'}</small>
+            <small className="persistent-store-footnote">PERMANENTE · SALA PERMANENTE</small>
           </article>
         })}
         {!loading && rooms.length === 0 && <p className="page-description">Sua primeira sala está sendo provisionada. Atualize em instantes.</p>}
