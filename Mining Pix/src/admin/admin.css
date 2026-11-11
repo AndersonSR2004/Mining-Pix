@@ -128,3 +128,21 @@ body{min-width:320px;background:#090d14}
 .power-tools-grid>.admin-note-form{padding:16px;border:1px solid #263644;border-radius:10px;background:#0d151e}
 .power-tools-grid h3{margin:0;color:#eef3f8;font-size:15px}
 @media(max-width:700px){.power-tools-grid{grid-template-columns:1fr}}
+
+
+.admin-event-control { display:grid; gap:18px; }
+.admin-event-dates { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.admin-event-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:12px; }
+.admin-event-list { display:grid; gap:12px; }
+.admin-event-card { padding:16px; border:1px solid #263542; border-radius:11px; background:#101923; display:grid; gap:9px; }
+.admin-event-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.admin-event-card h3 { color:#e8edf5; font-size:15px; margin-top:4px; }
+.admin-event-card p { color:#9baaba; font-size:12px; line-height:1.6; }
+.admin-event-card small { color:#7d8d9d; font-size:10px; }
+.admin-event-status { border:1px solid #394958; border-radius:99px; padding:5px 9px; font-size:9px; font-weight:800; letter-spacing:.6px; white-space:nowrap; }
+.admin-event-status.status-live { color:#71e8a7; border-color:#2c6647; background:#14291f; }
+.admin-event-status.status-ended,.admin-event-status.status-cancelled { color:#9aa6b2; }
+.admin-event-status.status-scheduled { color:#8bc9ff; border-color:#315a78; }
+.admin-event-control .admin-note-form select { width:100%; min-height:42px; border:1px solid #344555; border-radius:8px; background:#0c141d; color:#e8edf5; padding:10px 12px; }
+.admin-danger { border:1px solid #71333b; border-radius:8px; background:#351b20; color:#ffaaaa; padding:10px 13px; font-size:10px; font-weight:800; }
+@media(max-width:650px) { .admin-event-dates { grid-template-columns:1fr; } .admin-event-card-head { flex-direction:column; } }
