@@ -212,3 +212,14 @@ Verificação pós-migration no Supabase DEV:
 - Nenhum grant direto a `anon` ou `authenticated`.
 - `authenticated_private_usage=false` e `anon_private_usage=false`.
 - Sem alteração de dados, saldos, ciclos ou recompensas.
+
+## 15. Salas permanentes, eventos e VIP — DEV
+
+- purchase_player_room(text) é SECURITY DEFINER, exige auth.uid(), usa lock transacional da conta, debita 10.000 PC e grava a sala e a transação com chave de idempotência. anon não tem EXECUTE.
+- Triggers antigos que criavam/desativavam salas em mudanças VIP foram removidos. O limite de sala foi ampliado para 50 e a função de instalação não verifica VIP.
+- private.vip_topup_events tem RLS habilitada, sem policies nem grants para anon/authenticated; somente service_role recebe acesso para ingestão de pagamentos confirmados pelo futuro webhook. Nenhum gateway está conectado nesta fase.
+- get_my_vip_status() só consulta a própria conta e recalcula a janela móvel de 30 dias. Reembolsos/chargebacks são excluídos pelo status do ledger.
+- private.vip_hash_multiplier(uuid) deriva o boost diretamente do ledger de pagamentos confirmados, evitando depender de um vip_tier expirado. get_pool_dashboard() e settle_pool_cycle(uuid) usam o multiplicador individual por jogador. Liquidação permanece restrita a service_role.
+- game_events tem RLS; jogadores leem apenas campanhas ao vivo dentro da janela. RPCs administrativas verificam auth.uid() e auth.jwt()->'app_metadata'->>'admin'='true', e ações são registradas em admin_audit_logs.
+- Não foram ativados pagamentos reais, saques ou webhooks. A manutenção de 1,5% não é debitada até decisão final sobre a moeda de cobrança.
+
