@@ -27,7 +27,7 @@ type PoolDashboard = {
 }
 const number = (value: number | string) => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
 
-export default function PersistentMiningPool() {
+export default function PersistentMiningPool({ compact = false }: { compact?: boolean }) {
   const [data, setData] = useState<PoolDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [miningCoinBalance, setMiningCoinBalance] = useState<number | string | null>(null)
@@ -57,6 +57,18 @@ export default function PersistentMiningPool() {
   const cycle = data?.current_cycle ?? null
   const history = data?.history ?? []
   const blockRemaining = cycle ? Math.max(0, Math.ceil((new Date(cycle.opened_at).getTime() + 600000 - now) / 1000)) : 0
+  const timerLabel = `${String(Math.floor(blockRemaining / 60)).padStart(2, '0')}:${String(blockRemaining % 60).padStart(2, '0')}`
+
+  if (compact) return (
+    <section className="pool-timer-compact">
+      <div className="pool-timer-meta"><span className="eyebrow">PIX BLOCK · 600 SEGUNDOS</span><span className={cycle ? 'pool-live-indicator' : 'pool-idle-indicator'}>{cycle ? 'MINERANDO' : 'AGUARDANDO'}</span></div>
+      <div className="pool-timer-main">
+        <div><span>PRÓXIMO FECHAMENTO</span><strong className="pool-digital-timer">{loading ? '--:--' : cycle ? timerLabel : '--:--'}</strong></div>
+        <span className="pool-timer-caption">{loading ? 'SINCRONIZANDO COM A POOL' : cycle ? (blockRemaining > 0 ? 'CONTAGEM REGRESSIVA DO BLOCO' : 'TEMPO CONCLUÍDO · AGUARDANDO LIQUIDAÇÃO') : 'NENHUM BLOCO ABERTO'}</span>
+      </div>
+      {error && <small className="persistent-store-error">{error}</small>}
+    </section>
+  )
 
   return (
     <section className="persistent-pool panel page-panel">
