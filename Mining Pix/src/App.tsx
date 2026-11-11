@@ -6,15 +6,14 @@ import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import PersistentMiningPool from './PersistentMiningPool.tsx'
 import PersistentProgressPanel from './PersistentProgressPanel.tsx'
+import LiveEventsPanel from './LiveEventsPanel.tsx'
 import { distributePoolBudget } from './lib/pool.ts'
 import { createMissionState, DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
 type Page =
   | 'Dashboard'
-  | 'Mineração'
   | 'Equipamentos'
-  | 'Inventário'
   | 'Loja'
   | 'Carteira'
   | 'VIP'
@@ -141,13 +140,11 @@ const battleRewards: BattleReward[] = [
 
 const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
-  { name: 'Mineração', icon: '▣' },
-  { name: 'Jogos', icon: '🎮' },
   { name: 'Equipamentos', icon: '▤' },
-  { name: 'Inventário', icon: '▦' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
   { name: 'Missões', icon: '◎' },
+  { name: 'Jogos', icon: '🎮' },
   { name: 'Carteira', icon: '◉' },
   { name: 'VIP', icon: '♛' },
 ]
@@ -580,356 +577,33 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     setMessage(`${reward.name} recebido! Enviado ao inventário.`)
   }
 
-  // DASHBOARD
+  // DASHBOARD — persistent rooms are the primary experience.
   function renderDashboard() {
     return (
-      <>
-        <section className="welcome">
+      <section className="page-content dashboard-home">
+        <section className="welcome dashboard-welcome">
           <div>
             <span className="eyebrow">CENTRAL DE OPERAÇÕES</span>
-            <h1>Bem-vindo à mineração.</h1>
-            <p>Gerencie seus equipamentos e acompanhe sua participação na rede.</p>
+            <h1>Seu centro de mineração.</h1>
+            <p>Suas salas são permanentes. Expanda a infraestrutura, organize seus equipamentos e acompanhe seu poder.</p>
           </div>
-          <div className="level">
-            <span>NÍVEL DO MINERADOR</span>
-            <strong>{String(currentLevel).padStart(2, '0')}</strong>
-            <small>MINERADOR</small>
-          </div>
+          <div className="dashboard-level"><span>MINERADOR</span><strong>{String(currentLevel).padStart(2, '0')}</strong><small>NÍVEL</small></div>
         </section>
-
-        <section className="stats">
-          <article className="stat-card">
-            <span>SALDO DISPONÍVEL</span>
-            <h2>{balance.toLocaleString('pt-BR')} <small>PC</small></h2>
-            <p>PIX COIN</p>
-          </article>
-          <article className="stat-card">
-            <span>PODER DE MINERAÇÃO</span>
-            <h2>{hashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-            <p>HASHRATE DO JOGADOR</p>
-          </article>
-          <article className="stat-card">
-            <span>EQUIPAMENTOS</span>
-            <h2>{machines.length} <small>/ {totalCapacity}</small></h2>
-            <p>ESPAÇOS OCUPADOS</p>
-          </article>
-          <article className="stat-card">
-            <span>PLANO ATUAL</span>
-            <h2>{currentPlan.name}</h2>
-            <p>{rooms.length} SALA(S) DISPONÍVEL(IS)</p>
-          </article>
-        </section>
-
-        <section className="content-grid">
-          <article className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">REDE GLOBAL</span>
-                <h2>Mining Pool</h2>
-              </div>
-              <span className="status">● SANDBOX</span>
-            </div>
-            <div className="pool-value">
-              <span>SUA PARTICIPAÇÃO NA REDE</span>
-              <h2>{(participation * 100).toFixed(4)} <small>%</small></h2>
-            </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${participation * 100}%` }} />
-            </div>
-            <div className="pool-footer">
-              <span>Recompensa estimada</span>
-              <strong>{estimatedReward.toLocaleString('pt-BR')} PC</strong>
-            </div>
-            <div className="pool-footer">
-              <span>Hashrate total da rede</span>
-              <strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong>
-            </div>
-            <div className="pool-footer">
-              <span>Próximo ciclo de referência</span>
-              <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
-            </div>
-            <button className="primary-button" onClick={() => setPage('Mineração')}>
-              ACESSAR MINERAÇÃO →
-            </button>
-          </article>
-
-          <article className="panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">SUA INFRAESTRUTURA</span>
-                <h2>Salas de mineração</h2>
-              </div>
-              <span className="equipment-count">{rooms.length} / 4</span>
-            </div>
-            {rooms.map((room) => {
-              const list = machines.filter((item) => item.roomId === room.id)
-              const power = list.reduce((total, item) => total + item.hashrate, 0)
-              return (
-                <div className="machine" key={room.id}>
-                  <div className="machine-icon">▦</div>
-                  <div className="machine-info">
-                    <strong>{room.name}</strong>
-                    <span>{list.length} / {room.capacity} espaços</span>
-                    <small>{power.toLocaleString('pt-BR')} H/s</small>
-                  </div>
-                  <span className="machine-status">ATIVA</span>
-                </div>
-              )
-            })}
-            <button className="secondary-button" onClick={() => setPage('Equipamentos')}>
-              GERENCIAR SALAS →
-            </button>
-          </article>
-        </section>
-      </>
-    )
-  }
-
-  // MINERAÇÃO
-  function renderMining() {
-    return (
-      <section className="page-content">
-        <span className="eyebrow">REDE GLOBAL</span>
-        <h1>Central de mineração</h1>
-        <p className="page-description">Os dados do simulador local e da infraestrutura persistente são apresentados separadamente.</p>
-        <PersistentFacilityPanel mode="summary" />
-        <PersistentMiningPool />
-
-        <div className="sandbox-section-label">
-          <span className="eyebrow">SIMULADOR LOCAL · SANDBOX</span>
-          <p className="page-description">As métricas abaixo pertencem ao ambiente demonstrativo deste navegador.</p>
-        </div>
-        <div className="stats">
-          <article className="stat-card">
-            <span>HASHRATE DO JOGADOR</span>
-            <h2>{hashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>HASHRATE DOS BOTS</span>
-            <h2>{botsHashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>HASHRATE DA REDE</span>
-            <h2>{networkHashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>SUA PARTICIPAÇÃO</span>
-            <h2>{(participation * 100).toFixed(2)} <small>%</small></h2>
-          </article>
-        </div>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">DISTRIBUIÇÃO COLETIVA</span>
-              <h2>Mining Pool</h2>
-            </div>
-            <span className="status">● SIMULAÇÃO</span>
-          </div>
-          <div className="pool-value">
-            <span>SUA PARTICIPAÇÃO ESTIMADA</span>
-            <h2>{(participation * 100).toFixed(4)} <small>%</small></h2>
-          </div>
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${participation * 100}%` }} />
-          </div>
-          <div className="pool-footer">
-            <span>Seu poder computacional</span>
-            <strong>{hashrate.toLocaleString('pt-BR')} H/s</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Poder dos bots ativos</span>
-            <strong>{botsHashrate.toLocaleString('pt-BR')} H/s</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Poder total da rede</span>
-            <strong>{networkHashrate.toLocaleString('pt-BR')} H/s</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Orçamento por ciclo</span>
-            <strong>{poolBudget.toLocaleString('pt-BR')} PC</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Recompensa estimada para você</span>
-            <strong>{estimatedReward.toLocaleString('pt-BR')} PC</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Próximo ciclo de referência</span>
-            <strong>{cycleReady ? 'CICLO DISPONÍVEL' : countdownLabel}</strong>
-          </div>
-          <p className="page-description">A distribuição desta rede demonstrativa não emite recompensas nesta tela. O saldo persistente e os ciclos oficiais são consultados separadamente acima.</p>
-        </article>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Histórico da Mining Pool</h2>
-            <span className="equipment-count">{poolHistory.length} ciclos</span>
-          </div>
-          {poolHistory.length === 0 ? (
-            <p className="page-description">Nenhuma distribuição realizada ainda.</p>
-          ) : poolHistory.slice(0, 20).map((cycle) => (
-            <div className="history-item" key={cycle.id}>
-              <div>
-                <strong>Ciclo #{cycle.id}</strong>
-                <small>{cycle.date} · {cycle.botCount} bots</small>
-              </div>
-              <div>
-                <strong>+{cycle.reward.toLocaleString('pt-BR')} PC</strong>
-                <small>{cycle.participation.toFixed(4)}% · rede {cycle.networkHashrate.toLocaleString('pt-BR')} H/s</small>
-              </div>
-            </div>
-          ))}
-        </article>
+        <PersistentFacilityPanel mode="dashboard" onManage={() => setPage('Equipamentos')} />
+        <PersistentMiningPool compact />
+        <LiveEventsPanel />
       </section>
     )
   }
 
-  // EQUIPAMENTOS
+  // EQUIPAMENTOS — rooms, inventory and installation in one place.
   function renderEquipment() {
     return (
       <section className="page-content">
-        <span className="eyebrow">SUA INFRAESTRUTURA</span>
-        <h1>Gerenciamento de salas</h1>
-        <p className="page-description">A infraestrutura da conta é administrada no PostgreSQL. O simulador local permanece separado.</p>
+        <span className="eyebrow">INFRAESTRUTURA PERMANENTE</span>
+        <h1>Salas e equipamentos</h1>
+        <p className="page-description">Gerencie suas salas, equipamentos instalados e itens disponíveis no inventário sem alternar entre telas redundantes.</p>
         <PersistentFacilityPanel mode="management" />
-
-        <div className="sandbox-section-label">
-          <span className="eyebrow">GERENCIAMENTO LOCAL · SANDBOX</span>
-          <p className="page-description">Salas e máquinas abaixo pertencem apenas ao simulador demonstrativo deste navegador.</p>
-        </div>
-        <div className="stats">
-          <article className="stat-card">
-            <span>HASHRATE DO JOGADOR</span>
-            <h2>{hashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>SALAS DISPONÍVEIS</span>
-            <h2>{rooms.length} <small>/ 4</small></h2>
-          </article>
-          <article className="stat-card">
-            <span>ESPAÇOS OCUPADOS</span>
-            <h2>{machines.length} <small>/ {totalCapacity}</small></h2>
-          </article>
-        </div>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Minhas salas</h2>
-            <span className="status">{currentPlan.name}</span>
-          </div>
-          <div className="shop-grid">
-            {rooms.map((room) => {
-              const list = machines.filter((item) => item.roomId === room.id)
-              const power = list.reduce((total, item) => total + item.hashrate, 0)
-              const selected = selectedRoomId === room.id
-              return (
-                <article className="panel shop-card" key={room.id} style={{ border: selected ? '1px solid #37d67a' : undefined }}>
-                  <div className="machine-icon large">▦</div>
-                  <span className="eyebrow">SALA DE MINERAÇÃO</span>
-                  <h2>{room.name}</h2>
-                  <div className="shop-hash">{list.length} / {room.capacity} espaços</div>
-                  <p>{power.toLocaleString('pt-BR')} H/s</p>
-                  <button className={selected ? 'primary-button' : 'secondary-button'} onClick={() => setSelectedRoomId(room.id)}>
-                    {selected ? 'SALA SELECIONADA' : 'GERENCIAR SALA'}
-                  </button>
-                  <button className="secondary-button" onClick={() => renameRoom(room)}>RENOMEAR SALA</button>
-                </article>
-              )
-            })}
-          </div>
-        </article>
-
-        {selectedRoom && (
-          <>
-            <article className="panel page-panel">
-              <div className="panel-heading">
-                <div><span className="eyebrow">SALA SELECIONADA</span><h2>{selectedRoom.name}</h2></div>
-                <span className="equipment-count">{roomMachines.length} / {selectedRoom.capacity}</span>
-              </div>
-              <div className="pool-value">
-                <span>HASHRATE DA SALA</span>
-                <h2>{roomHashrate.toLocaleString('pt-BR')} <small>H/s</small></h2>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${Math.min(roomMachines.length / selectedRoom.capacity * 100, 100)}%` }} />
-              </div>
-            </article>
-
-            <div className="machine-list">
-              {roomMachines.length === 0 ? (
-                <article className="panel">
-                  <p className="page-description">Esta sala ainda não possui equipamentos instalados.</p>
-                  <button className="primary-button" onClick={() => setPage('Inventário')}>ABRIR INVENTÁRIO →</button>
-                </article>
-              ) : roomMachines.map((machine) => (
-                <article className="panel machine-card" key={machine.id}>
-                  <div className="machine-icon large">▦</div>
-                  <div className="machine-info">
-                    <strong>{machine.name}</strong>
-                    <span>{machine.type}</span>
-                    <small>{machine.hashrate} H/s</small>
-                  </div>
-                  <select value={machine.roomId} onChange={(event) => transferMachine(machine, Number(event.target.value))}>
-                    {rooms.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
-                  </select>
-                  <button className="secondary-button" onClick={() => uninstallMachine(machine)}>DESINSTALAR</button>
-                  <button className="dismantle-button" onClick={() => dismantleMachine(machine, 'installed')}>DESMONTAR</button>
-                </article>
-              ))}
-            </div>
-          </>
-        )}
-        <button className="primary-button page-action" onClick={() => setPage('Inventário')}>INSTALAR EQUIPAMENTOS →</button>
-      </section>
-    )
-  }
-
-  // INVENTÁRIO
-  function renderInventory() {
-    return (
-      <section className="page-content">
-        <span className="eyebrow">GERENCIAMENTO</span>
-        <h1>Inventário</h1>
-        <p className="page-description">Seus equipamentos disponíveis para instalação.</p>
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Equipamentos disponíveis</h2>
-            <span className="equipment-count">{inventory.length} itens</span>
-          </div>
-          {inventory.length === 0 ? (
-            <p className="page-description">Seu inventário está vazio. Visite a loja para adquirir equipamentos.</p>
-          ) : (
-            <>
-              <div className="history-item">
-                <span>Selecionar sala de instalação</span>
-                <select value={selectedRoomId} onChange={(event) => setSelectedRoomId(Number(event.target.value))}>
-                  {rooms.map((room) => {
-                    const occupied = machines.filter((item) => item.roomId === room.id).length
-                    return <option key={room.id} value={room.id}>{room.name} ({occupied}/{room.capacity})</option>
-                  })}
-                </select>
-              </div>
-              {inventory.map((machine) => (
-                <div className="machine" key={machine.id}>
-                  <div className="machine-icon">▦</div>
-                  <div className="machine-info">
-                    <strong>{machine.name}</strong>
-                    <span>{machine.type}</span>
-                    <small>{machine.hashrate} H/s</small>
-                  </div>
-                  <button
-                    className="primary-button"
-                    onClick={() => installMachine(machine)}
-                    disabled={!selectedRoom || machines.filter((item) => item.roomId === selectedRoomId).length >= selectedRoom.capacity}
-                  >
-                    INSTALAR EQUIPAMENTO
-                  </button>
-                  <button className="dismantle-button" onClick={() => dismantleMachine(machine, 'inventory')}>DESMONTAR</button>
-                </div>
-              ))}
-            </>
-          )}
-        </article>
       </section>
     )
   }
@@ -983,59 +657,25 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     )
   }
 
-  // VIP — official benefit table plus an explicitly local room simulator.
+  // VIP — five-level qualification program; room ownership is independent.
   function renderVip() {
     return (
       <section className="page-content">
         <span className="eyebrow">PROGRAMA DE BENEFÍCIOS</span>
-        <h1>VIP e benefícios</h1>
-        <p className="page-description">A qualificação será calculada automaticamente pelas recargas elegíveis confirmadas nos 30 dias imediatamente anteriores. Estornos, reembolsos e recargas fora da janela deixam de contar.</p>
+        <h1>VIP</h1>
+        <p className="page-description">A qualificação considera recargas elegíveis confirmadas nos 30 dias imediatamente anteriores. Salas compradas com PC são permanentes e não dependem do nível VIP.</p>
         <div className="finance-notice">
-          <strong>Qualificação real ainda não está conectada.</strong>
-          <span>Esta tabela apresenta as regras aprovadas. O nível da conta só será atualizado após a integração segura do ledger de recargas confirmadas e do mecanismo de expiração/rebaixamento. Não há ativação manual nem cobrança nesta tela.</span>
+          <strong>Integração de qualificação em andamento.</strong>
+          <span>Os cinco níveis e benefícios estão definidos. O nível real será calculado pelo ledger de recargas liquidadas, com reversão de estornos e expiração automática da janela. Não há ativação manual nesta tela.</span>
         </div>
         <div className="panel page-panel">
           <div className="panel-heading"><h2>Níveis e benefícios</h2><span className="equipment-count">JANELA MÓVEL · 30 DIAS</span></div>
-          <div className="vip-table-wrap">
-            <table className="vip-level-table">
-              <thead><tr><th>Nível</th><th>Recargas elegíveis</th><th>XP de missões</th><th>Desconto na tarifa própria*</th><th>Recarga grátis</th><th>Boost HASH</th><th>Energia</th></tr></thead>
-              <tbody>
-                {vipProgramLevels.map((level) => (
-                  <tr key={level.tier}>
-                    <td><strong>{level.tier}</strong></td><td>{level.threshold}</td><td>{level.xp}</td><td>{level.fee}</td><td>{level.recharge}</td><td>{level.hash}</td><td>{level.energy}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="admin-empty">*Desconto aplicável somente a eventual tarifa própria da plataforma, nunca a custos externos ou tributos. Multiplicadores de XP incidem somente sobre XP de missões. Boost HASH redistribui participação na Pool; não cria orçamento ou MC. Saques e pagamentos reais permanecem desativados.</p>
+          <div className="vip-table-wrap"><table className="vip-level-table">
+            <thead><tr><th>Nível</th><th>Recargas elegíveis</th><th>XP de missões</th><th>Desconto na tarifa própria*</th><th>Recarga grátis</th><th>Boost HASH</th><th>Energia</th></tr></thead>
+            <tbody>{vipProgramLevels.map(level => <tr key={level.tier}><td><strong>{level.tier}</strong></td><td>{level.threshold}</td><td>{level.xp}</td><td>{level.fee}</td><td>{level.recharge}</td><td>{level.hash}</td><td>{level.energy}</td></tr>)}</tbody>
+          </table></div>
+          <p className="admin-empty">*Desconto limitado a eventual tarifa própria da plataforma. Multiplicadores XP afetam apenas missões. Boost HASH redistribui participação, sem criar orçamento ou MC. Pagamentos e saques reais continuam desativados.</p>
         </div>
-        <article className="panel page-panel">
-          <div className="panel-heading"><h2>Simulador local de capacidade de salas</h2><span className="equipment-count">NÃO É VIP REAL</span></div>
-          <p className="page-description">Este controle legado altera somente o estado demonstrativo salvo neste navegador. Não compra VIP, não registra recarga e não altera a qualificação da conta no servidor.</p>
-          <article className="wallet-summary">
-            <span>PLANO DO SIMULADOR LOCAL</span>
-            <strong>{currentPlan.name}</strong>
-            <small>{currentPlan.rooms} salas · {currentPlan.spaces} espaços</small>
-          </article>
-          <div className="shop-grid">
-            {vipPlans.map((plan) => {
-              const active = vipTier === plan.tier
-              return (
-                <article className="panel shop-card" key={plan.tier} style={{ border: active ? '1px solid #37d67a' : undefined }}>
-                  <span className="eyebrow">{plan.tier === 0 ? 'SIMULAÇÃO GRATUITA' : 'SIMULAÇÃO DE CAPACIDADE'}</span>
-                  <h2>{plan.name}</h2>
-                  <div className="shop-hash">{plan.rooms} salas</div>
-                  <p>{plan.spaces} espaços totais</p>
-                  <p>10 equipamentos por sala</p>
-                  {active ? <span className="status">● ATUAL NO SIMULADOR</span> : (
-                    <button className="primary-button" onClick={() => activateVip(plan.tier)}>TESTAR CAPACIDADE LOCAL</button>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-        </article>
       </section>
     )
   }
@@ -1110,106 +750,15 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     )
   }
 
-  // PASSE DE BATALHA
+  // BATTLE PASS — campaign content is published from Admin Center.
   function renderBattlePass() {
     return (
       <section className="page-content">
-        <span className="eyebrow">TEMPORADA DE TESTES</span>
+        <span className="eyebrow">TEMPORADAS E PROGRESSÃO</span>
         <h1>Passe de Batalha</h1>
         <PersistentProgressPanel userId={userId} />
-        <p className="page-description">Avance de nível, acumule XP e desbloqueie recompensas nas duas trilhas.</p>
-        <div className="finance-notice">
-          <strong>Modelo de acesso aprovado: Free, Premium e Full.</strong>
-          <span>Free mantém a trilha gratuita. Premium libera a trilha Premium e a progressão continua por XP. Full inclui Premium e desbloqueia imediatamente os níveis da temporada. Também será possível comprar níveis individuais com PC sem recomprar o Premium. Nenhuma modalidade concede MC.</span>
-        </div>
-        <div className="panel page-panel">
-          <div className="panel-heading"><h2>Configuração da temporada</h2><span className="equipment-count">AGUARDANDO BALANCEAMENTO</span></div>
-          <p className="page-description">Preços em PC, quantidade de níveis, calendário, XP por nível e catálogo final de recompensas ainda precisam ser simulados e publicados. Por isso, compras Premium, Full e de níveis permanecem desativadas; esta tela não debita PC.</p>
-        </div>
-
-        <article className="panel page-panel">
-          <div className="panel-heading">
-            <div><span className="eyebrow">SUA PROGRESSÃO</span><h2>Nível {currentLevel}</h2></div>
-            <span className="equipment-count">{xp.toLocaleString('pt-BR')} XP</span>
-          </div>
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${levelProgress}%` }} />
-          </div>
-          <div className="pool-footer">
-            <span>Progresso para o próximo nível</span>
-            <strong>{(xp % XP_PER_LEVEL).toLocaleString('pt-BR')} / {XP_PER_LEVEL} XP</strong>
-          </div>
-          <div className="pool-footer">
-            <span>XP restante</span>
-            <strong>{Math.max(0, nextLevelXp - xp).toLocaleString('pt-BR')}</strong>
-          </div>
-          <div className="pool-footer">
-            <span>Trilha premium</span>
-            <strong>{premiumPass ? 'ATIVADA' : 'BLOQUEADA'}</strong>
-          </div>
-          <p className="page-description">Cada ciclo simulado da Mining Pool concede 100 XP nesta versão de testes.</p>
-        </article>
-
-        <div className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Trilha gratuita</h2>
-            <span className="status">FREE · 3 MÁQUINAS</span>
-          </div>
-          <div className="shop-grid">
-            {battleRewards.filter((reward) => reward.track === 'free').map((reward) => {
-              const claimed = claimedRewards.includes(reward.id)
-              const unlocked = currentLevel >= reward.level
-              return (
-                <article className="panel shop-card" key={reward.id}>
-                  <span className="eyebrow">NÍVEL {reward.level}</span>
-                  <div className="machine-icon large">▦</div>
-                  <h2>{reward.name}</h2>
-                  <div className="shop-hash">{reward.hashrate} H/s</div>
-                  <p>Equipamento gratuito</p>
-                  {claimed ? <span className="status">✓ RESGATADO</span> : (
-                    <button className="primary-button" disabled={!unlocked} onClick={() => claimBattleReward(reward)}>
-                      {unlocked ? 'RESGATAR' : 'BLOQUEADO'}
-                    </button>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="panel page-panel">
-          <div className="panel-heading">
-            <h2>Trilha premium</h2>
-            <span className="equipment-count">PREMIUM · 10 MÁQUINAS</span>
-          </div>
-          {!premiumPass && (
-            <p className="page-description">As recompensas desta trilha ficam bloqueadas para jogadores Free. A trilha premium ainda não está habilitada nesta versão demonstrativa.</p>
-          )}
-          <div className="shop-grid">
-            {battleRewards.filter((reward) => reward.track === 'premium').map((reward) => {
-              const claimed = claimedRewards.includes(reward.id)
-              const unlocked = currentLevel >= reward.level
-              return (
-                <article className="panel shop-card" key={reward.id} style={{ opacity: premiumPass ? 1 : 0.7 }}>
-                  <span className="eyebrow">NÍVEL {reward.level}</span>
-                  <div className="machine-icon large">{premiumPass ? '▦' : '🔒'}</div>
-                  <h2>{reward.name}</h2>
-                  <div className="shop-hash">{reward.hashrate} H/s</div>
-                  <p>Recompensa premium</p>
-                  {claimed ? <span className="status">✓ RESGATADO</span> : (
-                    <button
-                      className="primary-button"
-                      disabled={!premiumPass || !unlocked}
-                      onClick={() => claimBattleReward(reward)}
-                    >
-                      {!premiumPass ? 'PASSE BLOQUEADO' : unlocked ? 'RESGATAR' : 'NÍVEL BLOQUEADO'}
-                    </button>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-        </div>
+        <LiveEventsPanel filter="battle_pass" />
+        <p className="page-description">As temporadas são criadas, configuradas e ativadas no Admin Center. A loja de níveis e os resgates serão habilitados quando as regras, preços em PC e recompensas forem homologados. Passe não emite MC.</p>
       </section>
     )
   }
@@ -1217,9 +766,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   function renderPage() {
     switch (page) {
       case 'Dashboard': return renderDashboard()
-      case 'Mineração': return renderMining()
       case 'Equipamentos': return renderEquipment()
-      case 'Inventário': return renderInventory()
       case 'Loja': return renderShop()
       case 'Carteira': return renderWallet()
       case 'VIP': return renderVip()
@@ -1242,7 +789,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
 
         <nav>
           <p className="nav-label">MENU PRINCIPAL</p>
-          {menu.slice(0, 7).map((item) => (
+          {menu.slice(0, 6).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
@@ -1253,7 +800,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
           ))}
 
           <p className="nav-label">CONTA</p>
-          {menu.slice(7).map((item) => (
+          {menu.slice(6).map((item) => (
             <a
               key={item.name}
               className={page === item.name ? 'active' : ''}
@@ -1274,7 +821,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <main className="main">
         <header className="topbar">
           <div><span className="breadcrumb">MINING PIX /</span><strong> {page.toUpperCase()}</strong></div>
-          <div className="topbar-actions"><div className="online"><span className="online-dot" /> CONTA CONECTADA · SANDBOX LOCAL</div><button className="auth-logout-button mobile-logout" onClick={() => { void onSignOut() }}>SAIR</button></div>
+          <div className="topbar-actions"><div className="online"><span className="online-dot" /> CONTA CONECTADA · AMBIENTE DEV</div><button className="auth-logout-button mobile-logout" onClick={() => { void onSignOut() }}>SAIR</button></div>
         </header>
 
         {message && (
@@ -1286,7 +833,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
 
         {renderPage()}
 
-        <footer>MINING PIX © 2026 · AMBIENTE DE DESENVOLVIMENTO · SANDBOX</footer>
+        <footer>MINING PIX © 2026 · AMBIENTE DE DESENVOLVIMENTO</footer>
       </main>
     </div>
   )
