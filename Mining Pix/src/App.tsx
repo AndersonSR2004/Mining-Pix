@@ -5,6 +5,7 @@ import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import PersistentMiningPool from './PersistentMiningPool.tsx'
 import PersistentProgressPanel from './PersistentProgressPanel.tsx'
+import PersistentVipPanel from './PersistentVipPanel.tsx'
 import LiveEventsPanel from './LiveEventsPanel.tsx'
 import { DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, createMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
@@ -23,13 +24,6 @@ const menu: { name: Page; icon: string }[] = [
   { name: 'VIP', icon: '♛' },
 ]
 
-const vipProgramLevels = [
-  { tier: 'VIP I', threshold: 'R$ 30', xp: '2x', fee: '50%', recharge: '1/dia', hash: '10%', energy: '—' },
-  { tier: 'VIP II', threshold: 'R$ 40', xp: '2,5x', fee: '60%', recharge: '1/dia', hash: '15%', energy: '—' },
-  { tier: 'VIP III', threshold: 'R$ 45', xp: '3x', fee: '70%', recharge: '1/dia', hash: '20%', energy: '—' },
-  { tier: 'VIP IV', threshold: 'R$ 50', xp: '4x', fee: '75%', recharge: '1/dia', hash: '25%', energy: '—' },
-  { tier: 'VIP V', threshold: 'R$ 60', xp: '5x', fee: '80%', recharge: '1/dia', hash: '30%', energy: 'Permanente enquanto ativo' },
-]
 
 function App({ userId, email, displayName, onSignOut }: AppProps) {
   const [page, setPage] = useState<Page>('Dashboard')
@@ -113,16 +107,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     return (
       <section className="page-content">
         <span className="eyebrow">PROGRAMA DE BENEFÍCIOS</span><h1>VIP</h1>
-        <p className="page-description">A qualificação considera recargas elegíveis confirmadas nos 30 dias imediatamente anteriores. Salas compradas com PC são permanentes e não dependem do nível VIP.</p>
-        <div className="finance-notice"><strong>Integração de qualificação em andamento.</strong><span>Os cinco níveis e benefícios estão definidos. O nível real será calculado pelo ledger de recargas liquidadas, com reversão de estornos e expiração automática da janela. Não há ativação manual nesta tela.</span></div>
-        <div className="panel page-panel">
-          <div className="panel-heading"><h2>Níveis e benefícios</h2><span className="equipment-count">JANELA MÓVEL · 30 DIAS</span></div>
-          <div className="vip-table-wrap"><table className="vip-level-table">
-            <thead><tr><th>Nível</th><th>Recargas elegíveis</th><th>XP de missões</th><th>Desconto na tarifa própria*</th><th>Recarga grátis</th><th>Boost HASH</th><th>Energia</th></tr></thead>
-            <tbody>{vipProgramLevels.map(level => <tr key={level.tier}><td><strong>{level.tier}</strong></td><td>{level.threshold}</td><td>{level.xp}</td><td>{level.fee}</td><td>{level.recharge}</td><td>{level.hash}</td><td>{level.energy}</td></tr>)}</tbody>
-          </table></div>
-          <p className="admin-empty">*Desconto limitado a eventual tarifa própria da plataforma. Multiplicadores XP afetam apenas missões. Boost HASH redistribui participação, sem criar orçamento ou MC. Pagamentos e saques reais continuam desativados.</p>
-        </div>
+        <p className="page-description">Qualificação automática pelas recargas confirmadas nos últimos 30 dias. O VIP não concede nem retira salas: toda sala comprada com PC permanece na conta.</p>
+        <PersistentVipPanel />
       </section>
     )
   }
