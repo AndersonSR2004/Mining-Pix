@@ -11,6 +11,8 @@ type Offer = {
   hashrate: number | null
   tier: number | null
   valid_until: string | null
+  image_url?: string | null
+  ends_at?: string | null
 }
 
 function formatPrice(value: string) {
@@ -95,7 +97,9 @@ export default function PersistentEquipmentShop({ category = 'equipment', onPurc
         <div className="shop-grid">
           {products.map(offer => (
             <article className="panel shop-card" key={offer.product}>
+              {offer.image_url && <img src={offer.image_url} alt="" loading="lazy" referrerPolicy="no-referrer" style={{ maxWidth: '100%', maxHeight: '10rem', objectFit: 'contain' }} />}
               <h3>{offer.name}</h3>
+              {offer.ends_at && <p>Vendas até {new Date(offer.ends_at).toLocaleString('pt-BR')}.</p>}
               {offer.description && <p>{offer.description}</p>}
               {offer.hashrate !== null && <p>{offer.hashrate.toLocaleString('pt-BR')} H/s base</p>}
               <strong className="shop-price">{formatPrice(offer.price)}</strong>
