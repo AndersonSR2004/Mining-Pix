@@ -1,0 +1,91 @@
+import { useEffect, useRef, useState } from 'react'
+import { supabase } from './lib/supabase/client'
+import { formatDepix } from './lib/depixSandbox'
+
+type Offer = { sku: string; family: 'vip' | 'rack'; title: string; tier: number; bonus: number; price: string }
+type Installed = { id: string; room_id: string; equipment_catalog: { name: string } | null }
+type Rack = { id: string; title: string; bonus: number; room_id: string | null }
+type Snapshot = {
+  offers: Offer[]
+  vip: { title: string; bonus: number; valid_until: string } | null
+  racks: Rack[]
+  mounts: Record<string, string>
+}
+
+export default function RoyaltyPanel({ family }: { family: 'rack' | 'vip' }) {
+  const [data, setData] = useState<Snapshot | null>(null)
+  const [installed, setInstalled] = useState<Installed[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const requests = useRef(new Map<string, string>())
+
+  async function load() {
+    const [snapshot, equipment] = await Promise.all([
+      supabase.rpc('royalty_snapshot'),
+      supabase.from('player_equipment').select('id,room_id,equipment_catalog(name)').eq('status', 'installed'),
+    ])
+    if (snapshot.error || equipment.error) {
+      setError(snapshot.error?.message || equipment.error?.message || 'Falha ao consultar benefícios.')
+      return
+    }
+    setData(snapshot.data as Snapshot)
+    setInstalled((equipment.data ?? []) as unknown as Installed[])
+  }
+  useEffect(() => { void load() }, [])
+
+  async function purchase(offer: Offer) {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    const key = `${offer.sku}:${offer.price}`
+    const id = requests.current.get(key) ?? crypto.randomUUID()
+    requests.current.set(key, id)
+    try {
+      const { error: failure } = await supabase.rpc('royalty_purchase', {
+        p_request_id: id, p_sku: offer.sku, p_price: offer.price,
+      })
+      if (failure) { setError(failure.message); return }
+      requests.current.delete(key)
+      await load()
+    } finally { setBusy(false) }
+  }
+
+  async function mount(equipment: string, rack: string) {
+    setBusy(true)
+    setError('')
+    try {
+      const result = await supabase.rpc('royalty_mount', { p_equipment: equipment, p_rack: rack || null })
+      if (result.error) { setError(result.error.message); return }
+      await load()
+    } finally { setBusy(false) }
+  }
+
+  return <section className="persistent-store" aria-busy={busy || (!data && !error)}>
+    <h2>{family === 'vip' ? 'Títulos de nobreza' : 'Racks de mineração'}</h2>
+    {family === 'vip' && data?.vip && <p>Título ativo: {data.vip.title}. HASH +{data.vip.bonus}% até {new Date(data.vip.valid_until).toLocaleString('pt-BR')}.</p>}
+    {family === 'vip' && <p>Um título por vez. Cada compra inicia uma nova validade de 30 dias.</p>}
+    {error && <p role="alert">{error}</p>}
+    <div className="shop-grid">{data?.offers.filter(offer => offer.family === family).map(offer => (
+      <article className="panel shop-card" key={offer.sku}>
+        <h3>{family === 'vip' && <span aria-hidden="true">♛ </span>}{offer.title}</h3>
+        <p>HASH +{offer.bonus}%</p>
+        <strong>{formatDepix(offer.price)} fictício</strong>
+        <button type="button" className="primary-button" disabled={busy} onClick={() => void purchase(offer)}>Comprar no sandbox</button>
+      </article>
+    ))}</div>
+    {family === 'rack' && data && <>
+      <h3>Racks no inventário ({data.racks.length})</h3>
+      {installed.length === 0 && <p>Instale uma máquina em uma sala para conectar um rack.</p>}
+      {installed.map(machine => <p key={machine.id}>
+        <label>{machine.equipment_catalog?.name ?? 'Máquina'}{' '}
+          <select disabled={busy} value={data.mounts[machine.id] ?? ''} onChange={event => void mount(machine.id, event.target.value)}>
+            <option value="">Sem rack</option>
+            {data.racks.filter(rack => !rack.room_id || rack.room_id === machine.room_id).map((rack, index) => (
+              <option key={rack.id} value={rack.id}>{rack.title} · +{rack.bonus}% · unidade {index + 1}</option>
+            ))}
+          </select>
+        </label>
+      </p>)}
+    </>}
+  </section>
+}
