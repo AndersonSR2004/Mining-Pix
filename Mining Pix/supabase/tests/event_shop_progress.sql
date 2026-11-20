@@ -1,0 +1,19 @@
+begin;
+insert into auth.users(id,email) values ('bc60c0dd-bace-4e7f-9362-7e81a7fced21','event-shop-fixture@example.invalid');
+insert into public.game_events(id,title,event_type,status,starts_at,ends_at,payload,created_by,updated_by)
+values ('bc60c0dd-bace-4e7f-9362-7e81a7fced22','Teste','event','live',now()-interval '1 minute',now()+interval '1 minute','{"mechanic":"progression"}',
+ 'bc60c0dd-bace-4e7f-9362-7e81a7fced21','bc60c0dd-bace-4e7f-9362-7e81a7fced21');
+select depix_sandbox.post(gen_random_uuid(),'deposit','bc60c0dd-bace-4e7f-9362-7e81a7fced21','platform_deposit_source','player_available',500000000);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','bc60c0dd-bace-4e7f-9362-7e81a7fced21',true);
+do $$
+declare event uuid := 'bc60c0dd-bace-4e7f-9362-7e81a7fced22';
+begin
+  if public.get_event_shop_progress(event)->>'points' is distinct from '0' then raise exception 'Deposit credited event'; end if;
+  perform public.depix_sandbox_purchase('bc60c0dd-bace-4e7f-9362-7e81a7fced23','room','5');
+  perform public.depix_sandbox_purchase('bc60c0dd-bace-4e7f-9362-7e81a7fced23','room','5');
+  if public.get_event_shop_progress(event)->>'points' is distinct from '5000'
+      or public.get_event_shop_progress(event)#>>'{ranking,0,is_you}' is distinct from 'true' then raise exception 'Incorrect score'; end if;
+end;
+$$;
+rollback;
