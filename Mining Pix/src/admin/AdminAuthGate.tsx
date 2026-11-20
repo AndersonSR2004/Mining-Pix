@@ -83,7 +83,7 @@ export default function AdminAuthGate() {
         )}
         {error && <p className="admin-error" role="alert">{error}</p>}
         <a className="admin-back-link" href="./">← Voltar ao Mining Pix</a>
-        <small className="admin-footnote">Ambiente DEV · Controles restritos · Nenhuma operação financeira pode ser executada aqui.</small>
+        <small className="admin-footnote">Ambiente DEV · Operações DePix simuladas · Acesso administrativo restrito.</small>
       </section>
     </main>
   )

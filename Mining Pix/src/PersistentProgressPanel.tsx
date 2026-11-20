@@ -41,7 +41,7 @@ export default function PersistentProgressPanel({ userId }: { userId: string }) 
       const result = data as ClaimResult
       setProgress({ xp: Number(result.xp), level: Number(result.level) })
       setMessage(result.awarded
-        ? 'Recompensa diária confirmada: +100 XP persistentes.'
+        ? 'Recompensa diária confirmada: +100 XP e 2 H/s por 24 horas na competição.'
         : 'A recompensa diária de hoje já foi resgatada.')
     }
     setClaiming(false)
@@ -67,7 +67,7 @@ export default function PersistentProgressPanel({ userId }: { userId: string }) 
           </div>
           <div className="progress-track"><div className="progress-fill" style={{ width: `${nextLevelProgress / 10}%` }} /></div>
           <button className="primary-button" onClick={() => void claimDailyLogin()} disabled={claiming}>
-            {claiming ? 'PROCESSANDO...' : 'RESGATAR RECOMPENSA DIÁRIA · +100 XP'}
+            {claiming ? 'PROCESSANDO...' : 'Resgatar 100 XP e 2 H/s por 24 h'}
           </button>
         </>
       )}

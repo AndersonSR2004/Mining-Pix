@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import PersistentEquipmentShop from './PersistentEquipmentShop'
 import { supabase } from './lib/supabase/client'
 
 type Room = { id: string; room_number: number; name: string; installed_count: number; total_hashrate: number | string; capacity: number }
 type Equipment = {
   id: string; catalog_sku: string; status: 'inventory' | 'installed' | 'retired'
-  room_id: string | null; purchase_price_pc: number | string; blessing_percent: number | string
+  room_id: string | null; blessing_percent: number | string
   equipment_catalog: { name: string; equipment_type: string; hashrate: number | string; tier: number | null; overclock_percent: number | string } | null
 }
 type MiningSummary = { total_hashrate: number | string; installed_equipment_count: number; room_count: number; total_room_capacity: number }
@@ -20,36 +21,25 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [vipTier, setVipTier] = useState(0)
   const [playerLevel, setPlayerLevel] = useState(1)
-  const [effectiveHashrate, setEffectiveHashrate] = useState<number | null>(null)
-  const [buyingRoom, setBuyingRoom] = useState(false)
   const keys = useRef<Record<string, string>>({})
 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
-    const vipResult = await supabase.rpc('get_my_vip_status')
-    const [r, e, s, wallet, progress, pool] = await Promise.all([
+    const [r, e, s, progress] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
-      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,purchase_price_pc,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
+      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
-      supabase.from('wallets').select('balance').maybeSingle(),
       supabase.from('player_progress').select('level').maybeSingle(),
-      supabase.rpc('get_pool_dashboard'),
     ])
-    const failure = vipResult.error || r.error || e.error || s.error || wallet.error || progress.error
+    const failure = r.error || e.error || s.error || progress.error
     if (failure) setError(failure.message)
     else {
       const nextRooms = (r.data ?? []) as Room[]
       setRooms(nextRooms)
       setEquipment((e.data ?? []) as unknown as Equipment[])
-      setWalletBalance(wallet.data ? Number(wallet.data.balance) : 0)
-      setVipTier(Number((vipResult.data as { vip_tier?: number } | null)?.vip_tier ?? 0))
       setPlayerLevel(Number(progress.data?.level ?? 1))
-      const poolSummary = pool.data as { player_hashrate?: number | string } | null
-      setEffectiveHashrate(poolSummary?.player_hashrate == null ? null : Number(poolSummary.player_hashrate))
       const rows = (s.data ?? []) as MiningSummary[]
       setSummary(rows[0] ?? { total_hashrate: 0, installed_equipment_count: 0, room_count: nextRooms.length, total_room_capacity: nextRooms.length * 10 })
       setSelectedRoomId(current => nextRooms.some(room => room.id === current) ? current : (nextRooms[0]?.id ?? ''))
@@ -72,24 +62,6 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
     setNotice(operation === 'install' ? 'Equipamento instalado na sala selecionada.' : 'Equipamento devolvido ao inventário.')
     await refresh()
     setPendingId(null)
-  }
-
-  async function purchaseRoom() {
-    if (buyingRoom) return
-    setBuyingRoom(true); setError(''); setNotice('')
-    const signature = 'purchase-room'
-    const key = keys.current[signature] ?? crypto.randomUUID()
-    keys.current[signature] = key
-    const { data, error: purchaseError } = await supabase.rpc('purchase_player_room', { p_idempotency_key: key })
-    if (purchaseError) {
-      setError(purchaseError.message)
-    } else {
-      delete keys.current[signature]
-      const result = data as { replayed?: boolean; room_number?: number }
-      setNotice(result.replayed ? 'Desbloqueio já confirmado anteriormente.' : `Sala ${result.room_number ?? ''} desbloqueada permanentemente por 10.000 PC.`)
-      await refresh()
-    }
-    setBuyingRoom(false)
   }
 
   async function renameRoom(room: Room) {
@@ -122,11 +94,9 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
       {error && <div className="persistent-store-error" role="alert">{error}</div>}
       {notice && <div className="persistent-store-notice" role="status">{notice}</div>}
       <div className="stats persistent-room-stats">
-        <article className="stat-card"><span>PODER TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(effectiveHashrate ?? summary.total_hashrate)} <small>H/s</small></>}</h2></article>
+        <article className="stat-card"><span>PODER TOTAL</span><h2>{loading || !summary ? '—' : <>{fmt(summary.total_hashrate)} <small>H/s</small></>}</h2></article>
         <article className="stat-card"><span>SALAS PERMANENTES</span><h2>{loading ? '—' : rooms.length}</h2></article>
-        <article className="stat-card"><span>VIP</span><h2>{loading ? '—' : vipTier === 0 ? 'FREE' : `VIP ${['','I','II','III','IV','V'][vipTier] ?? vipTier}`}</h2></article>
         <article className="stat-card"><span>NÍVEL DO JOGADOR</span><h2>{loading ? '—' : playerLevel}</h2></article>
-        <article className="stat-card"><span>PIX COIN</span><h2>{loading || walletBalance === null ? '—' : <>{fmt(walletBalance)} <small>PC</small></>}</h2></article>
       </div>
       <div className="persistent-room-grid persistent-room-grid-featured">
         {rooms.map(room => {
@@ -141,11 +111,6 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         })}
         {!loading && rooms.length === 0 && <p className="page-description">Sua primeira sala está sendo provisionada. Atualize em instantes.</p>}
       </div>
-      <div className="persistent-room-unlock">
-        <div><strong>Expandir infraestrutura</strong><span>Desbloqueio permanente · 10.000 PC · máximo de 4 salas</span></div>
-        <button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 4}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR SALA · 10.000 PC'}</button>
-      </div>
-      <p className="persistent-store-footnote">A manutenção retém 1,5% dos ganhos brutos da Pool diretamente em MINING COIN (MC), sem conversão. O valor retorna à reserva da própria Pool para ciclos futuros.</p>
     </section>
   )
 
@@ -189,7 +154,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         })}
         {!loading && rooms.length === 0 && <p className="page-description">Nenhuma sala persistente foi provisionada para esta conta.</p>}
       </div>
-      <div className="persistent-room-unlock"><div><strong>Desbloquear nova sala permanente</strong><span>10.000 PC · máximo de 4 salas · independente do VIP</span></div><button className="primary-button" onClick={() => void purchaseRoom()} disabled={loading || buyingRoom || walletBalance === null || walletBalance < 10000 || rooms.length >= 4}>{buyingRoom ? 'PROCESSANDO...' : 'DESBLOQUEAR · 10.000 PC'}</button></div>
+      {!loading && rooms.length < 4 && <PersistentEquipmentShop category="room" onPurchased={refresh} />}
       <div className="persistent-facility-inventory">
         <div className="panel-heading"><h3>Inventário e instalação</h3><span className="equipment-count">{inventory.length} disponíveis · {installed.length} instalados</span></div>
         {inventory.length > 0 && <div className="persistent-install-target">
@@ -208,7 +173,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
               <div className="machine-info">
                 <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
                 <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento'}</span>
-                <small>{fmt(item.equipment_catalog?.hashrate ?? 0)} H/s base → {fmt(effectiveHash(item))} H/s efetivos · {fmt(item.purchase_price_pc)} PC</small>
+                <small>{fmt(item.equipment_catalog?.hashrate ?? 0)} H/s base → {fmt(effectiveHash(item))} H/s efetivos</small>
                 <small>Tier {item.equipment_catalog?.tier ?? '—'} · Overclock +{fmt(item.equipment_catalog?.overclock_percent ?? 0)}% · Benção +{fmt(item.blessing_percent)}%</small>
                 <small>{isInstalled ? `Instalado: ${room?.name ?? 'Sala'}` : item.status === 'retired' ? 'Desativado' : 'No inventário'}</small>
               </div>
@@ -220,7 +185,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
             </div>
           })}
       </div>
-      <p className="persistent-store-footnote">Limite: 4 salas permanentes por jogador, com até 10 equipamentos por sala. Cada sala adicional custa 10.000 PC e não depende do VIP. A manutenção retém 1,5% dos ganhos brutos da Pool em MC e devolve esse valor à reserva da Pool. O HASH efetivo inclui Overclock e Benção individuais calculados no backend.</p>
+      <p className="persistent-store-footnote">Cada jogador pode ter até quatro salas permanentes, com dez equipamentos por sala.</p>
     </section>
   )
 }
