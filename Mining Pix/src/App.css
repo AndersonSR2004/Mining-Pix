@@ -1796,3 +1796,52 @@ body::-webkit-scrollbar-thumb:hover {
 .vip-current-summary span { color:#83998d; font-size:9px; letter-spacing:1px; }
 .vip-current-summary strong { color:#80edb0; font-size:20px; }
 @media(max-width:650px) { .vip-current-summary { grid-template-columns:1fr; } }
+
+.depix-balances,
+.depix-wallet-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.depix-balances div {
+  flex: 1 1 9rem;
+  padding: .75rem;
+  border: 1px solid #304051;
+  border-radius: .5rem;
+}
+
+.depix-balances dd {
+  margin: .25rem 0 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.depix-wallet-form {
+  align-items: end;
+}
+
+.depix-wallet-form label {
+  flex: 1 1 10rem;
+  min-width: 0;
+  display: grid;
+  gap: .375rem;
+}
+
+.depix-wallet-form :is(input, select) {
+  width: 100%;
+  padding: .625rem;
+  color: inherit;
+  background: #121a24;
+  border: 1px solid #304051;
+  border-radius: .375rem;
+}
+
+.depix-history {
+  margin-top: 1rem;
+}
+
+.depix-history .history-item {
+  overflow-wrap: anywhere;
+}
