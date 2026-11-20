@@ -14,6 +14,9 @@ type FinanceSnapshot = {
 }
 
 type PoolSnapshot = {
+  blocks?: { block_at: string; total_hashrate: string; participants: number; distributed_units: string }[]
+  approved_today?: string | null
+  approved_tomorrow?: string | null
   daily_budget_units: string
   available_budget_units: string
   cycles: { cycle_date: string; settled_at: string; total_hashrate: string; participants: number; budget_units: string; distributed_units: string }[]
@@ -194,6 +197,20 @@ export default function DepixSandboxCenter() {
               <button className="admin-secondary" type="submit" disabled={disabled}>Adicionar ao orçamento</button>
             </form>
           </div>
+          <p>Hoje UTC: {pool.approved_today == null ? 'aguardando aprovação' : formatSandboxUnits(pool.approved_today)} · Amanhã UTC: {pool.approved_tomorrow == null ? 'aguardando aprovação' : formatSandboxUnits(pool.approved_tomorrow)}</p>
+          {[0, 1].map(offset => (
+            <button key={offset} className="admin-secondary" type="button" disabled={disabled} onClick={() => {
+              const day = new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10)
+              void runAction(async () => await supabase.rpc('admin_approve_pool_day', {
+                p_day: day, p_expected_units: pool.daily_budget_units,
+              }), 'Orçamento diário fictício aprovado.')
+            }}>Aprovar limite para {offset === 0 ? 'hoje UTC' : 'amanhã UTC'}</button>
+          ))}
+          <h3>Blocos de 10 minutos</h3>
+          <ul>{pool.blocks?.map(block => (
+            <li key={block.block_at}>{sandboxDate(block.block_at)} · {block.participants} participantes · {formatSandboxUnits(block.distributed_units)} distribuídos</li>
+          ))}</ul>
+          <h3>Ciclos diários anteriores</h3>
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead><tr><th>Ciclo</th><th>Participantes</th><th>HASH elegível</th><th>Orçamento</th><th>Distribuído</th></tr></thead>
