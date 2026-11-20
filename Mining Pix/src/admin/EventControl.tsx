@@ -124,6 +124,7 @@ export default function EventControl() {
           <label>Configuração da campanha (JSON)
             <textarea value={payloadText} onChange={event => setPayloadText(event.target.value)} rows={8} spellCheck={false} />
           </label>
+          {eventType === 'event' && <p className="admin-empty">Para pontuar compras sandbox e exibir ranking, use a chave <code>mechanic</code> com valor <code>progression</code>.</p>}
           {eventType === 'battle_pass' && <p className="admin-empty">Use a configuração JSON para registrar temporada, XP por nível, trilhas Free/Premium/Full, recompensas e custos em PC. O backend armazena a configuração; a ativação de compras e resgates permanece separada até a integração completa.</p>}
           <div className="admin-event-actions">
             <button className="admin-primary" type="submit" disabled={busy || !title.trim() || !startsAt || !endsAt}>{busy ? 'SALVANDO...' : editingId ? 'SALVAR ALTERAÇÕES' : 'CRIAR RASCUNHO'}</button>
