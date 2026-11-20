@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
 import Games from './Games.tsx'
+import CompetitionPanel from './CompetitionPanel.tsx'
 import DepixWalletPanel from './DepixWalletPanel.tsx'
-import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
 import PersistentMiningPool from './PersistentMiningPool.tsx'
 import PersistentProgressPanel from './PersistentProgressPanel.tsx'
-import PersistentVipPanel from './PersistentVipPanel.tsx'
 import LiveEventsPanel from './LiveEventsPanel.tsx'
-import { DAILY_REWARDED_AD_LIMIT, getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, createMissionState, type MissionState } from './lib/missions.ts'
+import { getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, createMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
-type Page = 'Dashboard' | 'Equipamentos' | 'Loja' | 'Passe de Batalha' | 'Missões' | 'Jogos' | 'Carteira' | 'VIP'
+type Page = 'Dashboard' | 'Equipamentos' | 'Loja' | 'Passe de Batalha' | 'Missões' | 'Jogos' | 'Carteira' | 'VIP' | 'Ranking'
 type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }
 
 const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
+  { name: 'Ranking', icon: '↗' },
   { name: 'Equipamentos', icon: '▤' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
@@ -68,7 +68,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
           <div><span className="eyebrow">CENTRAL DE OPERAÇÕES</span><h1>Seu centro de mineração.</h1><p>Suas salas são permanentes. Expanda a infraestrutura, organize seus equipamentos e acompanhe seu poder.</p></div>
         </section>
         <PersistentFacilityPanel mode="dashboard" onManage={() => setPage('Equipamentos')} />
-        <PersistentMiningPool compact />
+        <PersistentMiningPool />
         <LiveEventsPanel />
       </section>
     )
@@ -100,7 +100,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         <span className="eyebrow">GESTÃO DE RECURSOS</span><h1>Minha carteira</h1>
         <p className="page-description">Consulte os saldos e as movimentações da sua conta.</p>
         <DepixWalletPanel />
-        <PersistentWalletPanel />
       </section>
     )
   }
@@ -109,8 +108,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     return (
       <section className="page-content">
         <span className="eyebrow">PROGRAMA DE BENEFÍCIOS</span><h1>VIP</h1>
-        <p className="page-description">Qualificação automática pelas recargas confirmadas nos últimos 30 dias. O VIP não concede nem retira salas: toda sala comprada com PC permanece na conta.</p>
-        <PersistentVipPanel />
+        <p className="page-description">Teste a compra de uma assinatura de 30 dias com saldo fictício.</p>
+        <PersistentEquipmentShop category="vip" />
       </section>
     )
   }
@@ -121,7 +120,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         <span className="eyebrow">TEMPORADAS E PROGRESSÃO</span><h1>Passe de Batalha</h1>
         <PersistentProgressPanel userId={userId} />
         <LiveEventsPanel filter="battle_pass" />
-        <p className="page-description">As temporadas são criadas, configuradas e ativadas no Admin Center. A loja de níveis e os resgates serão habilitados quando regras, preços em PC e recompensas forem homologados. Passe não emite MC.</p>
+        <PersistentEquipmentShop category="pass" />
       </section>
     )
   }
@@ -132,7 +131,10 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <div className="panel page-panel">
         <div className="panel-heading"><h2>{period === 'daily' ? 'Missões diárias' : 'Missões semanais'}</h2><span className="equipment-count">{period === 'daily' ? 'REINÍCIO DIÁRIO' : 'REINÍCIO SEGUNDA-FEIRA'}</span></div>
         <div className="shop-grid">
-          {MISSIONS.filter(mission => mission.period === period).map(mission => {
+          {MISSIONS.filter(mission => (
+            mission.period === 'weekly' ? period === 'weekly' && mission.target <= 20
+              : period === 'daily' && ['flappy_games', 'snake_games', 'coin_catch_games', 'daily_login'].includes(mission.event)
+          )).map(mission => {
             const progress = Math.min(getMissionProgress(current, mission), mission.target)
             const completed = progress >= mission.target
             const claimed = current.claimed.includes(mission.id)
@@ -140,7 +142,6 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
               <span className="eyebrow">{period === 'daily' ? 'DIÁRIA' : 'SEMANAL'}</span><h2>{mission.title}</h2><p>{mission.description}</p>
               <div className="progress-track"><div className="progress-fill" style={{ width: `${progress / mission.target * 100}%` }} /></div>
               <div className="pool-footer"><span>Progresso</span><strong>{progress} / {mission.target}</strong></div>
-              {mission.id === 'daily-rewarded-ad' && <div className="pool-footer"><span>Anúncios assistidos hoje</span><strong>{missionState.dailyProgress.rewarded_ads ?? 0} / {DAILY_REWARDED_AD_LIMIT}</strong></div>}
               <div className="pool-footer"><span>Recompensa de demonstração</span><strong>{mission.rewardXp} XP</strong></div>
               {claimed ? <span className="status">✓ RESGATADA</span> : <button className="primary-button" disabled={!completed} onClick={() => claimMissionReward(mission.id)}>{completed ? 'RESGATAR XP DE DEMONSTRAÇÃO' : 'EM ANDAMENTO'}</button>}
             </article>
@@ -151,10 +152,10 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     return (
       <section className="page-content">
         <span className="eyebrow">CENTRAL DE OBJETIVOS</span><h1>Missões</h1>
-        <p className="page-description">As missões demonstrativas abaixo ainda não creditam XP persistente nem MC. O XP exibido é local e não altera o nível online.</p>
+        <p className="page-description">O XP destas missões é demonstrativo. Consulte o progresso persistente no Passe de Batalha.</p>
         <div className="stats"><article className="stat-card"><span>XP LOCAL DE MISSÕES</span><h2>{missionXp.toLocaleString('pt-BR')}</h2></article><article className="stat-card"><span>MISSÕES DIÁRIAS CONCLUÍDAS NA SEMANA</span><h2>{current.weeklyCompletedDailyMissions}</h2></article></div>
         {renderGroup('daily')}
-        <article className="panel page-panel"><div className="panel-heading"><h2>Contador semanal</h2><span className="equipment-count">MISSÕES DIÁRIAS CONCLUÍDAS</span></div><p className="page-description">O contador soma cada missão diária uma única vez por dia. As metas são cumulativas.</p><div className="pool-footer"><span>Total nesta semana</span><strong>{current.weeklyCompletedDailyMissions} / 50</strong></div></article>
+        <article className="panel page-panel"><div className="panel-heading"><h2>Contador semanal</h2><span className="equipment-count">MISSÕES DIÁRIAS CONCLUÍDAS</span></div><p className="page-description">O contador soma cada missão diária uma única vez por dia. As metas são cumulativas.</p><div className="pool-footer"><span>Total nesta semana</span><strong>{current.weeklyCompletedDailyMissions} / 20</strong></div></article>
         {renderGroup('weekly')}
       </section>
     )
@@ -163,6 +164,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   function renderPage() {
     switch (page) {
       case 'Dashboard': return renderDashboard()
+      case 'Ranking': return <section className="page-content"><h1>Competição</h1><CompetitionPanel /></section>
       case 'Equipamentos': return renderEquipment()
       case 'Loja': return renderShop()
       case 'Passe de Batalha': return renderBattlePass()
