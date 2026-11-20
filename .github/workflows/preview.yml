@@ -32,7 +32,7 @@ jobs:
         working-directory: Mining Pix
       - id: artifact
         run: echo "name=github-pages-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: Mining Pix/dist
