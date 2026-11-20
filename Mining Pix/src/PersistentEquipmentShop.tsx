@@ -1,147 +1,113 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase/client'
 
-type CatalogItem = {
-  sku: string
+type Category = 'equipment' | 'room' | 'vip' | 'pass'
+type Offer = {
+  product: string
+  category: Category
   name: string
-  description: string
-  equipment_type: string
-  hashrate: number
-  price_pc: number
+  price: string
+  description: string | null
+  hashrate: number | null
   tier: number | null
-  overclock_percent: number
-  blessing_min_percent: number | null
-  blessing_max_percent: number | null
+  valid_until: string | null
 }
 
-type PurchaseResult = {
-  success: boolean
-  replayed: boolean
-  sku: string
-  price_pc: number
-  balance_after: number
-  blessing_percent: number
+function formatPrice(value: string) {
+  const [whole, fraction = ''] = value.split('.')
+  return `${BigInt(whole).toLocaleString('pt-BR')},${fraction.replace(/0+$/, '').padEnd(2, '0')} DePix fictícios`
 }
 
-function formatPc(value: number | string) {
-  return Number(value).toLocaleString('pt-BR')
-}
-
-export default function PersistentEquipmentShop() {
-  const [catalog, setCatalog] = useState<CatalogItem[]>([])
-  const [balance, setBalance] = useState<number | null>(null)
+export default function PersistentEquipmentShop({ category = 'equipment', onPurchased }: { category?: Category; onPurchased?: () => Promise<void> }) {
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [available, setAvailable] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [pendingSku, setPendingSku] = useState<string | null>(null)
+  const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const idempotencyKeys = useRef<Record<string, string>>({})
+  const requests = useRef(new Map<string, string>())
 
   const refresh = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [catalogResult, walletResult] = await Promise.all([
-      supabase.from('equipment_catalog')
-        .select('sku,name,description,equipment_type,hashrate,price_pc,tier,overclock_percent,blessing_min_percent,blessing_max_percent')
-        .eq('active', true)
-        .order('display_order', { ascending: true }),
-      supabase.from('wallets').select('balance').maybeSingle(),
-    ])
-
-    const failure = catalogResult.error || walletResult.error
-    if (failure) {
-      setError(failure.message)
-    } else {
-      setCatalog((catalogResult.data ?? []) as CatalogItem[])
-      setBalance(walletResult.data ? Number(walletResult.data.balance) : 0)
+    try {
+      const [catalog, wallet] = await Promise.all([
+        supabase.rpc('depix_sandbox_shop_snapshot'),
+        supabase.rpc('depix_sandbox_wallet_snapshot'),
+      ])
+      const failure = catalog.error || wallet.error
+      if (failure) throw failure
+      setOffers((catalog.data as { offers: Offer[] }).offers)
+      setAvailable((wallet.data as { available: string }).available)
+    } catch {
+      setError('Não foi possível consultar as ofertas ou o saldo.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
 
-  async function buy(item: CatalogItem) {
-    setPendingSku(item.sku)
+  async function buy(offer: Offer) {
+    if (pending !== null) return
+    setPending(offer.product)
     setError('')
     setNotice('')
-    const idempotencyKey = idempotencyKeys.current[item.sku] ?? crypto.randomUUID()
-    idempotencyKeys.current[item.sku] = idempotencyKey
-
-    const { data, error: purchaseError } = await supabase.rpc('purchase_equipment', {
-      p_sku: item.sku,
-      p_idempotency_key: idempotencyKey,
-    })
-
-    if (purchaseError) {
-      setError(purchaseError.message.includes('Saldo insuficiente')
-        ? 'Saldo persistente insuficiente para esta compra.'
-        : purchaseError.message)
-      setPendingSku(null)
-      return
+    const signature = `${offer.product}:${offer.price}`
+    const requestId = requests.current.get(signature) ?? crypto.randomUUID()
+    requests.current.set(signature, requestId)
+    try {
+      const { data, error: failure } = await supabase.rpc('depix_sandbox_purchase', {
+        p_request_id: requestId,
+        p_product: offer.product,
+        p_expected_price: offer.price,
+      })
+      if (failure) {
+        setError(failure.message)
+        return
+      }
+      requests.current.delete(signature)
+      setNotice((data as { replayed: boolean }).replayed
+        ? 'Compra já confirmada.'
+        : `${offer.name}: compra simulada confirmada.`)
+      await refresh()
+      await onPurchased?.()
+    } catch {
+      setError('Não foi possível confirmar a compra. Tente novamente.')
+    } finally {
+      setPending(null)
     }
-
-    const result = data as PurchaseResult
-    delete idempotencyKeys.current[item.sku]
-    setNotice(result.replayed
-      ? 'Compra já processada anteriormente. Nenhum novo débito foi realizado.'
-      : `${item.name} adquirido! O equipamento foi adicionado ao seu inventário persistente.`)
-    await refresh()
-    setPendingSku(null)
   }
 
+  const products = offers.filter(offer => offer.category === category)
   return (
-    <section className="persistent-store">
+    <section className="persistent-store" aria-busy={loading}>
       <div className="persistent-store-heading">
         <div>
-          <span className="eyebrow">ECONOMIA CONECTADA · PROGRESSÃO FREE</span>
-          <h2>Loja de equipamentos</h2>
-          <p>Adquira equipamentos disponíveis no catálogo atual. Cada unidade recebe sua própria Benção de Potência no momento da compra.</p>
+          <h2>Ofertas de demonstração</h2>
+          {available !== null && <p>Saldo disponível: {formatPrice(available)}</p>}
         </div>
-        <button className="secondary-button" onClick={() => void refresh()} disabled={loading || pendingSku !== null}>
-          ATUALIZAR
-        </button>
+        <button className="secondary-button" onClick={() => void refresh()} disabled={loading || pending !== null}>Atualizar</button>
       </div>
-
-      <article className="wallet-summary persistent-store-balance">
-        <span>SALDO DA CARTEIRA PERSISTENTE</span>
-        <strong>{balance === null ? '—' : `${formatPc(balance)} PC`}</strong>
-        <small>Compras debitam a carteira persistente por operação atômica no servidor.</small>
-      </article>
-
-      {error && <div className="persistent-store-error" role="alert">{error}</div>}
-      {notice && <div className="persistent-store-notice" role="status">{notice}</div>}
-
-      {loading ? (
-        <p className="page-description">Carregando catálogo...</p>
-      ) : catalog.length === 0 ? (
-        <p className="page-description">Nenhum equipamento disponível no catálogo.</p>
-      ) : (
+      {error && <p className="auth-error" role="alert">{error}</p>}
+      {notice && <p className="persistent-store-notice" role="status">{notice}</p>}
+      {loading ? <p role="status">Carregando ofertas...</p> : (
         <div className="shop-grid">
-          {catalog.map((item) => (
-            <article className="panel shop-card" key={item.sku}>
-              <div className="machine-icon large">▦</div>
-              <span className="eyebrow">{item.tier === 0 ? 'INICIAL · TIER 0' : item.tier ? `TIER ${item.tier}` : 'CATÁLOGO OFICIAL'}</span>
-              <h3>{item.name}</h3>
-              <p>{item.description}</p>
-              <div className="shop-hash">{Number(item.hashrate).toLocaleString('pt-BR')} H/s base</div>
-              <small className="shop-attributes">Overclock: +{Number(item.overclock_percent).toFixed(0)}% · Benção sorteada: {item.blessing_min_percent === null ? 'não definida' : `0–${Number(item.blessing_max_percent).toFixed(0)}%`}</small>
-              <strong className="shop-price">{formatPc(item.price_pc)} PC</strong>
-              <button
-                className="primary-button"
-                onClick={() => void buy(item)}
-                disabled={pendingSku !== null || balance === null || balance < Number(item.price_pc)}
-              >
-                {pendingSku === item.sku ? 'PROCESSANDO...' : 'COMPRAR COM CARTEIRA'}
+          {products.map(offer => (
+            <article className="panel shop-card" key={offer.product}>
+              <h3>{offer.name}</h3>
+              {offer.description && <p>{offer.description}</p>}
+              {offer.hashrate !== null && <p>{offer.hashrate.toLocaleString('pt-BR')} H/s base</p>}
+              <strong className="shop-price">{formatPrice(offer.price)}</strong>
+              {offer.valid_until && <p>Ativo até {new Date(offer.valid_until).toLocaleDateString('pt-BR')}.</p>}
+              <button className="primary-button" disabled={pending !== null || Boolean(offer.valid_until) || Boolean(error && available === null)} onClick={() => void buy(offer)}>
+                {pending === offer.product ? 'Processando...' : 'Comprar no sandbox'}
               </button>
             </article>
           ))}
+          {products.length === 0 && !error && <p>Nenhuma oferta disponível.</p>}
         </div>
       )}
-
-      <p className="persistent-store-footnote">
-        A Benção é sorteada uma única vez no backend na compra e fica vinculada à unidade. O HASH efetivo é calculado pelo servidor. O inventário e a instalação são gerenciados na tela Salas e equipamentos.
-      </p>
     </section>
   )
 }
