@@ -1,3 +1,4 @@
+import EventShopProgress from './EventShopProgress'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase/client'
 
@@ -54,6 +55,7 @@ export default function LiveEventsPanel({ filter }: { filter?: 'event' | 'battle
             <div className="pool-footer"><span>Encerra em</span><strong>{new Date(item.ends_at).toLocaleString('pt-BR')}</strong></div>
             {typeof payload.season === 'string' && <small className="shop-attributes">Temporada {payload.season}</small>}
             <span className="status">CAMPANHA ATIVA</span>
+            {filter === 'event' && item.event_type === 'event' && payload.mechanic === 'progression' && <EventShopProgress eventId={item.id} />}
           </article>
         })}
       </div>

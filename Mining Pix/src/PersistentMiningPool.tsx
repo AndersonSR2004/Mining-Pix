@@ -9,14 +9,13 @@ type PoolDashboard = {
   latest_cycle: {
     cycle_date: string
     settled_at: string
-    distributed_units: string
     participants: number
   } | null
   history: { cycle_date: string; hashrate: string; reward_units: string }[]
 }
 
 const number = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 })
-const date = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'UTC' })
+const date = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })
 
 export default function PersistentMiningPool() {
   const [data, setData] = useState<PoolDashboard | null>(null)
@@ -45,7 +44,7 @@ export default function PersistentMiningPool() {
       <div className="panel-heading">
         <div>
           <h2>Pool de mineração · Sandbox</h2>
-          <p>Distribuição diária em DePix fictício, conforme o orçamento e o poder elegível.</p>
+          <p>Um bloco a cada 10 minutos. As recompensas em DePix fictício seguem o poder elegível.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void refresh()} disabled={loading}>
           Atualizar
@@ -73,13 +72,10 @@ export default function PersistentMiningPool() {
           {cycle ? (
             <>
               <div className="pool-footer">
-                <span>Último ciclo (UTC)</span>
+                <span>Último bloco (UTC)</span>
                 <strong>{date.format(new Date(cycle.cycle_date))}</strong>
               </div>
-              <div className="pool-footer">
-                <span>Distribuído no ciclo</span>
-                <strong>{formatSandboxUnits(cycle.distributed_units)}</strong>
-              </div>
+
             </>
           ) : <p>Nenhum ciclo liquidado até agora.</p>}
 
