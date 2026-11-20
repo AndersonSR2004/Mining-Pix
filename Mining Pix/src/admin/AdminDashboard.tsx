@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase/client'
 import FinanceCenter from './FinanceCenter'
 import SandboxNetworkControl from './SandboxNetworkControl'
 import AdminPowerTools from './AdminPowerTools'
+import GenesisCatalog from './GenesisCatalog'
 import EventControl from './EventControl'
 import SandboxMfaGate from './SandboxMfaGate'
 import DepixSandboxCenter from './DepixSandboxCenter'
@@ -70,7 +71,7 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
-  const [activeSection, setActiveSection] = useState<'operations' | 'depix' | 'competition' | 'finance' | 'sandbox' | 'powers' | 'events'>('operations')
+  const [activeSection, setActiveSection] = useState<'operations' | 'depix' | 'competition' | 'finance' | 'sandbox' | 'powers' | 'events' | 'genesis'>('operations')
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
   const [directory, setDirectory] = useState<AdminDirectory | null>(null)
   const [directorySearch, setDirectorySearch] = useState('')
@@ -254,12 +255,14 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
           <button className={activeSection === 'sandbox' ? 'active' : ''} onClick={() => setActiveSection('sandbox')}>NETWORK CONTROL</button>
           <button className={activeSection === 'powers' ? 'active' : ''} onClick={() => setActiveSection('powers')}>SUPER POWERS</button>
           <button className={activeSection === 'events' ? 'active' : ''} onClick={() => setActiveSection('events')}>EVENTOS & PASSES</button>
+          <button className={activeSection === 'genesis' ? 'active' : ''} onClick={() => setActiveSection('genesis')}>TEMPORADAS</button>
         </nav>
         <div style={{ display: activeSection === 'sandbox' ? 'block' : 'none' }}><SandboxNetworkControl /></div>
         {activeSection === 'powers' && <AdminPowerTools onComplete={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} />}
         {activeSection === 'depix' && <SandboxMfaGate><DepixSandboxCenter /></SandboxMfaGate>}
         {activeSection === 'competition' && <section className="admin-panel"><CompetitionPanel admin /></section>}
         {activeSection === 'events' && <EventControl />}
+        {activeSection === 'genesis' && <SandboxMfaGate><GenesisCatalog /></SandboxMfaGate>}
         {activeSection === 'finance' && <FinanceCenter />}
         {activeSection === 'operations' && <>
 
