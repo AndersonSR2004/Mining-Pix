@@ -12,12 +12,13 @@ import LiveEventsPanel from './LiveEventsPanel.tsx'
 import { getMissionProgress, MISSIONS, recordMissionProgress, refreshMissionState, createMissionState, type MissionState } from './lib/missions.ts'
 import './App.css'
 
-type Page = 'Dashboard' | 'Equipamentos' | 'Loja' | 'Passe de Batalha' | 'Missões' | 'Jogos' | 'Carteira' | 'VIP' | 'Ranking'
+type Page = 'Dashboard' | 'Equipamentos' | 'Loja' | 'Passe de Batalha' | 'Missões' | 'Jogos' | 'Carteira' | 'VIP' | 'Ranking' | 'Eventos'
 type AppProps = { userId: string; email: string; displayName: string; onSignOut: () => void | Promise<void> }
 
 const menu: { name: Page; icon: string }[] = [
   { name: 'Dashboard', icon: '◈' },
   { name: 'Ranking', icon: '↗' },
+  { name: 'Eventos', icon: '✦' },
   { name: 'Equipamentos', icon: '▤' },
   { name: 'Loja', icon: '♜' },
   { name: 'Passe de Batalha', icon: '⚔' },
@@ -166,6 +167,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
   function renderPage() {
     switch (page) {
       case 'Dashboard': return renderDashboard()
+      case 'Eventos': return <section className="page-content"><h1>Eventos</h1><LiveEventsPanel filter="event" /></section>
       case 'Ranking': return <section className="page-content"><h1>Competição</h1><CompetitionPanel /></section>
       case 'Equipamentos': return renderEquipment()
       case 'Loja': return renderShop()
