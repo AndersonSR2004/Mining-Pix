@@ -1,136 +1,102 @@
 import { useCallback, useEffect, useState } from 'react'
+import { formatSandboxUnits } from './lib/depixSandbox'
 import { supabase } from './lib/supabase/client'
 
-type PoolAllocation = {
-  cycle_key: string
-  amount_pc: number | string
-  amount_mc: number | string
-  hashrate_snapshot: number | string
-  share: number | string
-  created_at: string
-}
-type PoolCycle = {
-  id: string
-  cycle_key: string
-  status: 'open'
-  budget_mc: number | string
-  opened_at: string
-  total_hashrate: number | string
-  participant_count: number
-}
 type PoolDashboard = {
-  player_hashrate: number | string
-  network_hashrate: number | string
-  participation: number | string
-  current_cycle: PoolCycle | null
-  history: PoolAllocation[]
+  player_hashrate: string
+  network_hashrate: string
+  participation: string
+  latest_cycle: {
+    cycle_date: string
+    settled_at: string
+    distributed_units: string
+    participants: number
+  } | null
+  history: { cycle_date: string; hashrate: string; reward_units: string }[]
 }
-const number = (value: number | string) => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
 
-export default function PersistentMiningPool({ compact = false }: { compact?: boolean }) {
+const number = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 })
+const date = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'UTC' })
+
+export default function PersistentMiningPool() {
   const [data, setData] = useState<PoolDashboard | null>(null)
   const [loading, setLoading] = useState(true)
-  const [miningCoinBalance, setMiningCoinBalance] = useState<number | string | null>(null)
-  const [error, setError] = useState('')
-  const [now, setNow] = useState(Date.now())
+  const [error, setError] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
-    setError('')
-    const [dashboardResult, walletResult] = await Promise.all([
-      supabase.rpc('get_pool_dashboard'),
-      supabase.from('mining_coin_wallets').select('balance').maybeSingle(),
-    ])
-    if (dashboardResult.error) setError(dashboardResult.error.message)
-    else setData(dashboardResult.data as PoolDashboard)
-    if (walletResult.error) setError((previous) => previous || walletResult.error.message)
-    else setMiningCoinBalance(walletResult.data?.balance ?? 0)
-    setLoading(false)
+    setError(false)
+    try {
+      const result = await supabase.rpc('get_my_depix_pool')
+      if (result.error || !result.data) throw result.error ?? new Error('Pool indisponível')
+      setData(result.data as PoolDashboard)
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
 
-  const cycle = data?.current_cycle ?? null
-  const history = data?.history ?? []
-  const blockRemaining = cycle ? Math.max(0, Math.ceil((new Date(cycle.opened_at).getTime() + 600000 - now) / 1000)) : 0
-  const timerLabel = `${String(Math.floor(blockRemaining / 60)).padStart(2, '0')}:${String(blockRemaining % 60).padStart(2, '0')}`
-
-  if (compact) return (
-    <section className="pool-timer-compact">
-      <div className="pool-timer-meta"><span className="eyebrow">PIX BLOCK · 600 SEGUNDOS</span><span className={cycle ? 'pool-live-indicator' : 'pool-idle-indicator'}>{cycle ? 'MINERANDO' : 'AGUARDANDO'}</span></div>
-      <div className="pool-timer-main">
-        <div><span>PRÓXIMO FECHAMENTO</span><strong className="pool-digital-timer">{loading ? '--:--' : cycle ? timerLabel : '--:--'}</strong></div>
-        <span className="pool-timer-caption">{loading ? 'SINCRONIZANDO COM A POOL' : cycle ? (blockRemaining > 0 ? 'CONTAGEM REGRESSIVA DO BLOCO' : 'TEMPO CONCLUÍDO · AGUARDANDO LIQUIDAÇÃO') : 'NENHUM BLOCO ABERTO'}</span>
-      </div>
-      {error && <small className="persistent-store-error">{error}</small>}
-    </section>
-  )
-
+  const cycle = data?.latest_cycle
   return (
-    <section className="persistent-pool panel page-panel">
-      <div className="persistent-facility-heading">
+    <section className="persistent-pool panel page-panel" aria-busy={loading}>
+      <div className="panel-heading">
         <div>
-          <span className="eyebrow">ECONOMIA SERVER-SIDE · POSTGRESQL</span>
-          <h2>Mining Pool persistente</h2>
-          <p>Participação calculada com equipamentos instalados e registrados na sua conta.</p>
+          <h2>Pool de mineração · Sandbox</h2>
+          <p>Distribuição diária em DePix fictício, conforme o orçamento e o poder elegível.</p>
         </div>
-        <button className="secondary-button" onClick={() => void refresh()} disabled={loading}>ATUALIZAR</button>
+        <button className="secondary-button" type="button" onClick={() => void refresh()} disabled={loading}>
+          Atualizar
+        </button>
       </div>
-
-      {error && <div className="persistent-store-error" role="alert">{error}</div>}
-
-      <div className="stats">
-        <article className="stat-card">
-          <span>SEU HASHRATE ELEGÍVEL</span>
-          <h2>{loading || !data ? '—' : <>{number(data.player_hashrate)} <small>H/s</small></>}</h2>
-        </article>
-        <article className="stat-card">
-          <span>HASHRATE GLOBAL ELEGÍVEL</span>
-          <h2>{loading || !data ? '—' : <>{number(data.network_hashrate)} <small>H/s</small></>}</h2>
-        </article>
-        <article className="stat-card">
-          <span>SUA PARTICIPAÇÃO ATUAL</span>
-          <h2>{loading || !data ? '—' : <>{(Number(data.participation) * 100).toFixed(4)} <small>%</small></>}</h2>
-        </article>
-      </div>
-
-      <div className="pool-footer">
-        <span>Status do PIX BLOCK</span>
-        <strong>{loading ? 'CONSULTANDO...' : cycle ? 'BLOCO EM MINERAÇÃO' : 'AGUARDANDO PRÓXIMO BLOCO'}</strong>
-      </div>
-      {cycle && <div className="pool-footer"><span>Tempo de bloco · 600 segundos</span><strong>{blockRemaining > 0 ? `${Math.floor(blockRemaining / 60)}m ${blockRemaining % 60}s restantes` : 'TEMPO CONCLUÍDO · AGUARDANDO LIQUIDAÇÃO'}</strong></div>}
-      <div className="pool-footer"><span>Seu saldo de MINING COIN</span><strong>{loading || miningCoinBalance === null ? 'CONSULTANDO...' : `${number(miningCoinBalance)} MC`}</strong></div>
-      {cycle && (
+      {loading && <p role="status">Consultando a pool…</p>}
+      {error && <p className="persistent-store-error" role="alert">Não foi possível consultar a pool.</p>}
+      {!loading && !error && data && (
         <>
-          <div className="pool-footer"><span>Orçamento de MINING COIN do ciclo</span><strong>{number(cycle.budget_mc)} MC</strong></div>
-          <div className="pool-footer"><span>Identificador do bloco</span><strong>{cycle.cycle_key}</strong></div>
+          <div className="stats">
+            <article className="stat-card">
+              <span>Seu poder elegível</span>
+              <h3>{number.format(Number(data.player_hashrate))} H/s</h3>
+            </article>
+            <article className="stat-card">
+              <span>Poder elegível da rede</span>
+              <h3>{number.format(Number(data.network_hashrate))} H/s</h3>
+            </article>
+            <article className="stat-card">
+              <span>Sua participação atual</span>
+              <h3>{number.format(Number(data.participation) * 100)}%</h3>
+            </article>
+          </div>
+
+          {cycle ? (
+            <>
+              <div className="pool-footer">
+                <span>Último ciclo (UTC)</span>
+                <strong>{date.format(new Date(cycle.cycle_date))}</strong>
+              </div>
+              <div className="pool-footer">
+                <span>Distribuído no ciclo</span>
+                <strong>{formatSandboxUnits(cycle.distributed_units)}</strong>
+              </div>
+            </>
+          ) : <p>Nenhum ciclo liquidado até agora.</p>}
+
+          <h3>Suas recompensas simuladas</h3>
+          {data.history.length === 0 ? (
+            <p>Nenhum registro de participação até agora.</p>
+          ) : data.history.map((item) => (
+            <div className="history-item" key={item.cycle_date}>
+              <span>
+                <strong>{date.format(new Date(item.cycle_date))}</strong>
+                <small>{number.format(Number(item.hashrate))} H/s no ciclo</small>
+              </span>
+              <strong>{formatSandboxUnits(item.reward_units)}</strong>
+            </div>
+          ))}
         </>
       )}
-
-      <div className="panel-heading"><h3>Suas últimas distribuições</h3><span className="equipment-count">{history.length} registros</span></div>
-      {loading ? <p className="page-description">Consultando a Mining Pool...</p> : history.length === 0
-        ? <p className="page-description">Nenhuma distribuição persistente registrada. Recompensas locais do simulador não aparecem neste histórico.</p>
-        : history.map((item) => {
-          const isLegacyPc = Number(item.amount_pc) > 0 && Number(item.amount_mc) === 0
-          const amount = isLegacyPc ? item.amount_pc : item.amount_mc
-          const currency = isLegacyPc ? 'PC' : 'MC'
-          return (
-            <div className="history-item" key={item.cycle_key}>
-              <div><strong>{item.cycle_key}</strong><small>{new Date(item.created_at).toLocaleString('pt-BR')}</small></div>
-              <strong>+{number(amount)} {currency}</strong>
-            </div>
-          )
-        })}
-
-      <p className="persistent-store-footnote">
-        Apenas equipamentos persistentes participam. Bots locais, orçamento do sandbox e hashrate temporário de jogos são ignorados.
-        Novos ciclos distribuem exclusivamente MINING COIN (MC); registros antigos em PIX COIN (PC) permanecem identificados como históricos.
-        A liquidação ocorre atomicamente no backend. MC ainda não pode ser comprada, convertida ou sacada.
-      </p>
     </section>
   )
 }
