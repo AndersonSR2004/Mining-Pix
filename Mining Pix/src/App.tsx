@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Games from './Games.tsx'
+import DepixWalletPanel from './DepixWalletPanel.tsx'
 import PersistentWalletPanel from './PersistentWalletPanel.tsx'
 import PersistentEquipmentShop from './PersistentEquipmentShop.tsx'
 import PersistentFacilityPanel from './PersistentFacilityPanel.tsx'
@@ -97,7 +98,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     return (
       <section className="page-content">
         <span className="eyebrow">GESTÃO DE RECURSOS</span><h1>Minha carteira</h1>
-        <p className="page-description">Consulte o saldo PIX COIN e o ledger persistente da sua conta.</p>
+        <p className="page-description">Consulte os saldos e as movimentações da sua conta.</p>
+        <DepixWalletPanel />
         <PersistentWalletPanel />
       </section>
     )
