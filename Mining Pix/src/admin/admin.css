@@ -146,3 +146,30 @@ body{min-width:320px;background:#090d14}
 .admin-event-control .admin-note-form select { width:100%; min-height:42px; border:1px solid #344555; border-radius:8px; background:#0c141d; color:#e8edf5; padding:10px 12px; }
 .admin-danger { border:1px solid #71333b; border-radius:8px; background:#351b20; color:#ffaaaa; padding:10px 13px; font-size:10px; font-weight:800; }
 @media(max-width:650px) { .admin-event-dates { grid-template-columns:1fr; } .admin-event-card-head { flex-direction:column; } }
+
+.admin-depix-mfa {
+  max-width: 24rem;
+}
+
+.admin-depix-qr {
+  width: min(100%, 13rem);
+  background: #fff;
+  padding: .75rem;
+}
+
+.admin-depix-actions,
+.admin-depix-pool-forms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.admin-depix-pool-forms {
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-depix-pool-forms form {
+  flex: 1 1 15rem;
+  min-width: 0;
+}
