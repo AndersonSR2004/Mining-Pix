@@ -5,45 +5,61 @@ on:
     branches: [codex/mining-pix-work]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
+    if: github.ref == 'refs/heads/codex/mining-pix-work'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      artifact: ${{ steps.artifact.outputs.name }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: Mining Pix/package-lock.json
-      - name: Install dependencies
+      - run: npm ci
         working-directory: Mining Pix
-        run: npm ci
-      - name: Run tests
+      - run: npm test
         working-directory: Mining Pix
-        run: npm test
-      - name: Build application
+      - run: npm run build
         working-directory: Mining Pix
-        run: npm run build
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+      - id: artifact
+        run: echo "name=github-pages-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-pages-artifact@v4
         with:
+          name: ${{ steps.artifact.outputs.name }}
           path: Mining Pix/dist
-      - name: Deploy to GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Wait for artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT: ${{ needs.build.outputs.artifact }}
+        run: |
+          for delay in 1 2 4 8 16 16; do
+            if gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].name' | grep -Fxq "$ARTIFACT"; then
+              exit 0
+            fi
+            sleep "$delay"
+          done
+          exit 1
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: ${{ needs.build.outputs.artifact }}
