@@ -1,3 +1,5 @@
+import DepixTreasuryReview from "./DepixTreasuryReview"
+import LeaguePoolManager from './LeaguePoolManager'
 import GameMasterOverview from './GameMasterOverview'
 import ModuleDrafts from './ModuleDrafts'
 import RevenuePolicy from './RevenuePolicy'
@@ -74,7 +76,7 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
-  const [activeSection, setActiveSection] = useState<'executive' | 'events' | 'shop' | 'genesis' | 'depix' | 'operations' | 'technical'>('executive')
+  const [activeSection, setActiveSection] = useState<'executive' | 'events' | 'shop' | 'genesis' | 'depix' | 'operations' | 'technical' | 'leagues'>('executive')
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
   const [directory, setDirectory] = useState<AdminDirectory | null>(null)
   const [directorySearch, setDirectorySearch] = useState('')
@@ -253,6 +255,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
         <nav className="admin-section-nav" aria-label="Centros do Game Master">
           {([
             ['executive', 'Dashboard Executivo'],
+            ['leagues', 'Pools por liga'],
             ['events', 'Eventos e LiveOps'],
             ['shop', 'Loja e Equipamentos'],
             ['genesis', 'Passes e Temporadas'],
@@ -265,10 +268,11 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
             onClick={() => setActiveSection(section)}>{label}</button>)}
         </nav>
         {activeSection === 'executive' && <GameMasterOverview />}
+        {activeSection === 'leagues' && <LeaguePoolManager />}
         {activeSection === 'events' && <EventControl />}
         {activeSection === 'shop' && <SandboxMfaGate><GenesisCatalog /></SandboxMfaGate>}
         {activeSection === 'genesis' && <SandboxMfaGate><ModuleDrafts /></SandboxMfaGate>}
-        {activeSection === 'depix' && <SandboxMfaGate><DepixSandboxCenter /><RevenuePolicy /></SandboxMfaGate>}
+        {activeSection === 'depix' && <SandboxMfaGate><DepixTreasuryReview /><DepixSandboxCenter /><RevenuePolicy /></SandboxMfaGate>}
         {activeSection === 'technical' && <details className="admin-panel">
           <summary>Ferramentas sandbox e registros legados</summary>
           <SandboxNetworkControl />
