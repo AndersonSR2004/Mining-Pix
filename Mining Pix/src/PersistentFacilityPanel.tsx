@@ -1,3 +1,4 @@
+import { formatDepix } from './lib/depixSandbox'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import PersistentEquipmentShop from './PersistentEquipmentShop'
 import { supabase } from './lib/supabase/client'
@@ -6,7 +7,7 @@ type Parts = { cpu: string; gpu: string; motherboard: string }
 type Room = { id: string; room_number: number; name: string; installed_count: number; total_hashrate: number | string; capacity: number }
 type Equipment = {
   id: string; catalog_sku: string; status: 'inventory' | 'installed' | 'retired'
-  room_id: string | null; blessing_percent: number | string
+  forge_level: number; room_id: string | null; blessing_percent: number | string
   equipment_catalog: { name: string; equipment_type: string; hashrate: number | string; tier: number | null; overclock_percent: number | string } | null
 }
 type MiningSummary = { total_hashrate: number | string; installed_equipment_count: number; room_count: number; total_room_capacity: number }
@@ -31,7 +32,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage,
     setError('')
     const [r, e, s, progress] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
-      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').neq('status', 'retired').order('acquired_at'),
+      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,blessing_percent,forge_level,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').neq('status', 'retired').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
       supabase.from('player_progress').select('level').maybeSingle(),
     ])
@@ -90,6 +91,28 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage,
     } finally { setPendingId(null) }
   }
 
+  async function forge(item: Equipment) {
+    setPendingId(item.id)
+    setError('')
+    setNotice('')
+    try {
+      const { data: quote, error: quoteError } = await supabase.rpc('genesis_forge_quote', { p_item: item.id })
+      if (quoteError) { setError(quoteError.message); return }
+      if (!window.confirm(`Forjar para +${quote.level} por ${quote.parts} Parts de cada material e ${formatDepix(quote.fee)} sandbox?`)) return
+      const signature = `forge:${item.id}:${quote.level}:${quote.fee}`
+      const request = keys.current[signature] ?? crypto.randomUUID()
+      keys.current[signature] = request
+      const { error: failure } = await supabase.rpc('genesis_forge', {
+        p_request: request, p_item: item.id, p_level: quote.level, p_fee: quote.fee,
+      })
+      if (failure) { setError(failure.message); return }
+      delete keys.current[signature]
+      setNotice(`Máquina aprimorada para +${quote.level}.`)
+      await refresh()
+      await loadParts()
+    } finally { setPendingId(null) }
+  }
+
   async function renameRoom(room: Room) {
     const entered = window.prompt('Novo nome da sala (até 30 caracteres):', room.name)
     if (entered === null) return
@@ -108,7 +131,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage,
     const base = Number(item.equipment_catalog?.hashrate ?? 0)
     const overclock = Number(item.equipment_catalog?.overclock_percent ?? 0)
     const blessing = Number(item.blessing_percent ?? 0)
-    return base * (1 + overclock / 100 + blessing / 100)
+    return base * (1 + overclock / 100 + blessing / 100 + item.forge_level * 0.05)
   }
 
   if (mode === 'dashboard') return (
@@ -201,7 +224,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage,
                 <strong>{item.equipment_catalog?.name ?? item.catalog_sku}</strong>
                 <span>{item.equipment_catalog?.equipment_type ?? 'Equipamento'}</span>
                 <small>{fmt(item.equipment_catalog?.hashrate ?? 0)} H/s base → {fmt(effectiveHash(item))} H/s efetivos</small>
-                <small>Tier {item.equipment_catalog?.tier ?? '—'} · Overclock +{fmt(item.equipment_catalog?.overclock_percent ?? 0)}% · Benção +{fmt(item.blessing_percent)}%</small>
+                <small>Tier {item.equipment_catalog?.tier ?? '—'} · Overclock +{fmt(item.equipment_catalog?.overclock_percent ?? 0)}% · Benção +{fmt(item.blessing_percent)}% · Forja +{item.forge_level}</small>
                 <small>{isInstalled ? `Instalado: ${room?.name ?? 'Sala'}` : item.status === 'retired' ? 'Desativado' : 'No inventário'}</small>
               </div>
               {isInstalled
@@ -209,6 +232,8 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage,
                 : item.status === 'inventory'
                   ? <button className="primary-button" onClick={() => void operate('install', item, selectedRoomId)} disabled={pendingId !== null || !selectedRoomId || rooms.every(room => roomOccupancy(room.id) >= room.capacity)}>{pendingId === item.id ? 'PROCESSANDO...' : 'INSTALAR'}</button>
                   : <span className="equipment-count">INDISPONÍVEL</span>}
+              {item.forge_level < 10 && <button type="button" className="secondary-button" disabled={pendingId !== null}
+                onClick={() => void forge(item)}>Forjar +{item.forge_level + 1}</button>}
               {item.status === 'inventory' && <button type="button" className="secondary-button"
                 disabled={pendingId !== null} onClick={() => void disassemble(item)}>Desmontar</button>}
             </div>
