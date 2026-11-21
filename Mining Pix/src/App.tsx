@@ -31,6 +31,7 @@ const menu: { name: Page; icon: string }[] = [
 
 
 function App({ userId, email, displayName, onSignOut }: AppProps) {
+  const [partsRevision, setPartsRevision] = useState(0)
   const [page, setPage] = useState<Page>('Dashboard')
   const [message, setMessage] = useState('')
   const missionStorageKey = `mining-pix-missions-v2:${userId}`
@@ -83,8 +84,8 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
       <section className="page-content">
         <span className="eyebrow">INFRAESTRUTURA PERMANENTE</span><h1>Salas e equipamentos</h1>
         <p className="page-description">Gerencie salas, equipamentos instalados e itens disponíveis no inventário em uma única tela.</p>
-        <PersistentFacilityPanel mode="management" />
-        <RoyaltyPanel />
+        <PersistentFacilityPanel mode="management" partsRevision={partsRevision} />
+        <RoyaltyPanel onDisassembled={() => setPartsRevision(previous => previous + 1)} />
       </section>
     )
   }

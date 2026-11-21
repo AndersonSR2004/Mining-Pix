@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import PersistentEquipmentShop from './PersistentEquipmentShop'
 import { supabase } from './lib/supabase/client'
 
+type Parts = { cpu: string; gpu: string; motherboard: string }
 type Room = { id: string; room_number: number; name: string; installed_count: number; total_hashrate: number | string; capacity: number }
 type Equipment = {
   id: string; catalog_sku: string; status: 'inventory' | 'installed' | 'retired'
@@ -9,10 +10,11 @@ type Equipment = {
   equipment_catalog: { name: string; equipment_type: string; hashrate: number | string; tier: number | null; overclock_percent: number | string } | null
 }
 type MiningSummary = { total_hashrate: number | string; installed_equipment_count: number; room_count: number; total_room_capacity: number }
-type Props = { mode?: 'management' | 'summary' | 'dashboard'; onManage?: () => void }
+type Props = { mode?: 'management' | 'summary' | 'dashboard'; onManage?: () => void; partsRevision?: number }
 const fmt = (v: number | string) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 
-export default function PersistentFacilityPanel({ mode = 'management', onManage }: Props) {
+export default function PersistentFacilityPanel({ mode = 'management', onManage, partsRevision }: Props) {
+  const [parts, setParts] = useState<Parts | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [summary, setSummary] = useState<MiningSummary | null>(null)
@@ -29,7 +31,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
     setError('')
     const [r, e, s, progress] = await Promise.all([
       supabase.rpc('get_player_room_summaries'),
-      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').order('acquired_at'),
+      supabase.from('player_equipment').select('id,catalog_sku,status,room_id,blessing_percent,equipment_catalog(name,equipment_type,hashrate,tier,overclock_percent)').neq('status', 'retired').order('acquired_at'),
       supabase.rpc('get_player_mining_summary'),
       supabase.from('player_progress').select('level').maybeSingle(),
     ])
@@ -62,6 +64,30 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
     setNotice(operation === 'install' ? 'Equipamento instalado na sala selecionada.' : 'Equipamento devolvido ao inventário.')
     await refresh()
     setPendingId(null)
+  }
+
+  const loadParts = useCallback(async () => {
+    const { data, error: failure } = await supabase.rpc('genesis_parts_inventory')
+    if (failure) setError(failure.message)
+    else setParts(data as Parts)
+  }, [])
+
+  useEffect(() => {
+    if (mode === 'management') void loadParts()
+  }, [mode, loadParts, partsRevision])
+
+  async function disassemble(item: Equipment) {
+    if (!window.confirm('Desmontar esta máquina por 10 CPU, 10 GPU e 10 Parts de placa-mãe? A desmontagem é irreversível.')) return
+    setPendingId(item.id)
+    setError('')
+    setNotice('')
+    try {
+      const { data, error: failure } = await supabase.rpc('genesis_disassemble', { p_kind: 'machine', p_item: item.id })
+      if (failure) { setError(failure.message); return }
+      setNotice(data ? 'Máquina desmontada. Parts creditadas.' : 'Esta máquina já foi desmontada.')
+      await refresh()
+      await loadParts()
+    } finally { setPendingId(null) }
   }
 
   async function renameRoom(room: Room) {
@@ -155,6 +181,7 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
         {!loading && rooms.length === 0 && <p className="page-description">Nenhuma sala persistente foi provisionada para esta conta.</p>}
       </div>
       {!loading && rooms.length < 4 && <PersistentEquipmentShop category="room" onPurchased={refresh} />}
+      {parts && <p>Parts · CPU {parts.cpu} · GPU {parts.gpu} · Placa-mãe {parts.motherboard}</p>}
       <div className="persistent-facility-inventory">
         <div className="panel-heading"><h3>Inventário e instalação</h3><span className="equipment-count">{inventory.length} disponíveis · {installed.length} instalados</span></div>
         {inventory.length > 0 && <div className="persistent-install-target">
@@ -182,6 +209,8 @@ export default function PersistentFacilityPanel({ mode = 'management', onManage 
                 : item.status === 'inventory'
                   ? <button className="primary-button" onClick={() => void operate('install', item, selectedRoomId)} disabled={pendingId !== null || !selectedRoomId || rooms.every(room => roomOccupancy(room.id) >= room.capacity)}>{pendingId === item.id ? 'PROCESSANDO...' : 'INSTALAR'}</button>
                   : <span className="equipment-count">INDISPONÍVEL</span>}
+              {item.status === 'inventory' && <button type="button" className="secondary-button"
+                disabled={pendingId !== null} onClick={() => void disassemble(item)}>Desmontar</button>}
             </div>
           })}
       </div>

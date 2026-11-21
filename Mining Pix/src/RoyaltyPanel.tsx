@@ -11,7 +11,7 @@ type Snapshot = {
   mounts: Record<string, string>
 }
 
-export default function RoyaltyPanel() {
+export default function RoyaltyPanel({ onDisassembled }: { onDisassembled: () => void }) {
   const [data, setData] = useState<Snapshot | null>(null)
   const [installed, setInstalled] = useState<Installed[]>([])
   const [busy, setBusy] = useState(false)
@@ -59,6 +59,18 @@ export default function RoyaltyPanel() {
     } finally { setBusy(false) }
   }
 
+  async function disassemble(rack: Rack) {
+    if (!window.confirm('Desmontar este rack por 10 CPU, 10 GPU e 10 Parts de placa-mãe? A desmontagem é irreversível.')) return
+    setBusy(true)
+    setError('')
+    try {
+      const { error: failure } = await supabase.rpc('genesis_disassemble', { p_kind: 'rack', p_item: rack.id })
+      if (failure) { setError(failure.message); return }
+      onDisassembled()
+      await load()
+    } finally { setBusy(false) }
+  }
+
   return <section className="persistent-store" aria-busy={busy || (!data && !error)}>
     <h2>Racks de mineração</h2>
     {error && <p role="alert">{error}</p>}
@@ -72,6 +84,11 @@ export default function RoyaltyPanel() {
     ))}</div>
     {data && <>
       <h3>Racks no inventário ({data.racks.length})</h3>
+      {data.racks.map(rack => <p key={rack.id}>
+        {rack.title}{' '}
+        <button type="button" className="secondary-button" disabled={busy || Boolean(rack.room_id)}
+          onClick={() => void disassemble(rack)}>Desmontar rack</button>
+      </p>)}
       {installed.length === 0 && <p>Instale uma máquina em uma sala para conectar um rack.</p>}
       {installed.map(machine => <p key={machine.id}>
         <label>{machine.equipment_catalog?.name ?? 'Máquina'}{' '}
