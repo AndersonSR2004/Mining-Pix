@@ -8,6 +8,7 @@ export default function GenesisCatalog() {
   const [seasons, setSeasons] = useState<Season[]>([])
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
+  const [forgeNotice, setForgeNotice] = useState('')
 
   const update = useCallback(async (action: 'list' | 'create' | 'close', payload?: object) => {
     setBusy(true)
@@ -68,10 +69,42 @@ export default function GenesisCatalog() {
     } finally { setBusy(false) }
   }
 
+  async function configureForge(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const level = Number(data.get('forge-level'))
+    const fee = String(data.get('forge-fee')).trim().replace(',', '.')
+    if (!window.confirm(`Atualizar a taxa sandbox do nível +${level} para ${fee} DePix?`)) return
+    setBusy(true)
+    setError('')
+    setForgeNotice('')
+    try {
+      const { error: failure } = await supabase.rpc('genesis_set_forge_fee', {
+        p_level: level, p_fee: fee, p_reason: String(data.get('forge-reason')),
+      })
+      if (failure) { setError(failure.message); return }
+      setForgeNotice(`Taxa do nível +${level} registrada.`)
+      form.reset()
+    } catch {
+      setError('Não foi possível configurar a taxa da forja.')
+    } finally { setBusy(false) }
+  }
+
   return (
     <section className="admin-panel" aria-busy={busy}>
       <h2>Temporadas da loja</h2>
       {error && <p role="alert">{error}</p>}
+      {forgeNotice && <p role="status">{forgeNotice}</p>}
+      <details>
+        <summary>Taxas da forja sandbox</summary>
+        <form className="admin-form" onSubmit={event => void configureForge(event)}>
+          <label>Nível de destino <input name="forge-level" type="number" min="1" max="10" step="1" required /></label>
+          <label>Nova taxa em DePix <input name="forge-fee" inputMode="decimal" maxLength={19} required /></label>
+          <label>Justificativa <input name="forge-reason" minLength={5} maxLength={500} required /></label>
+          <button className="admin-primary" disabled={busy}>Atualizar taxa</button>
+        </form>
+      </details>
       <form className="admin-form" onSubmit={event => void scheduleGenesis(event)}>
         <h3>GENESIS — Temporada 1</h3>
         <label>Início da loja GENESIS <input name="genesis-start" type="datetime-local" required disabled={busy} /></label>
