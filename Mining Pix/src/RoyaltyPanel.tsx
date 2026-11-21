@@ -7,12 +7,11 @@ type Installed = { id: string; room_id: string; equipment_catalog: { name: strin
 type Rack = { id: string; title: string; bonus: number; room_id: string | null }
 type Snapshot = {
   offers: Offer[]
-  vip: { title: string; bonus: number; valid_until: string } | null
   racks: Rack[]
   mounts: Record<string, string>
 }
 
-export default function RoyaltyPanel({ family }: { family: 'rack' | 'vip' }) {
+export default function RoyaltyPanel() {
   const [data, setData] = useState<Snapshot | null>(null)
   const [installed, setInstalled] = useState<Installed[]>([])
   const [busy, setBusy] = useState(false)
@@ -61,19 +60,17 @@ export default function RoyaltyPanel({ family }: { family: 'rack' | 'vip' }) {
   }
 
   return <section className="persistent-store" aria-busy={busy || (!data && !error)}>
-    <h2>{family === 'vip' ? 'Títulos de nobreza' : 'Racks de mineração'}</h2>
-    {family === 'vip' && data?.vip && <p>Título ativo: {data.vip.title}. HASH +{data.vip.bonus}% até {new Date(data.vip.valid_until).toLocaleString('pt-BR')}.</p>}
-    {family === 'vip' && <p>Um título por vez. Cada compra inicia uma nova validade de 30 dias.</p>}
+    <h2>Racks de mineração</h2>
     {error && <p role="alert">{error}</p>}
-    <div className="shop-grid">{data?.offers.filter(offer => offer.family === family).map(offer => (
+    <div className="shop-grid">{data?.offers.filter(offer => offer.family === 'rack').map(offer => (
       <article className="panel shop-card" key={offer.sku}>
-        <h3>{family === 'vip' && <span aria-hidden="true">♛ </span>}{offer.title}</h3>
+        <h3>{offer.title}</h3>
         <p>HASH +{offer.bonus}%</p>
         <strong>{formatDepix(offer.price)} fictício</strong>
         <button type="button" className="primary-button" disabled={busy} onClick={() => void purchase(offer)}>Comprar no sandbox</button>
       </article>
     ))}</div>
-    {family === 'rack' && data && <>
+    {data && <>
       <h3>Racks no inventário ({data.racks.length})</h3>
       {installed.length === 0 && <p>Instale uma máquina em uma sala para conectar um rack.</p>}
       {installed.map(machine => <p key={machine.id}>
