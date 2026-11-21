@@ -47,7 +47,7 @@ test('finance dashboard is admin-only and exposes policy, forecast, supply and a
     assert.match(snapshotFix, new RegExp(text))
   }
   assert.match(admin, /FinanceCenter/)
-  assert.match(admin, /FINANCIAL INTELLIGENCE/)
+  assert.match(admin, /Carteira e Finanças/)
   assert.match(dashboard, /Aguardando linha de base/)
   assert.match(dashboard, /Telemetria inicial ativa/)
 })
