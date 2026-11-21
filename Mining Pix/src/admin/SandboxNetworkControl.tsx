@@ -104,16 +104,21 @@ export default function SandboxNetworkControl() {
     }
   }, [remaining, busy, snapshot?.open_block?.id])
 
+  const rewardAmount = Number(rewardMc)
+  const rewardReason = adjustReason.trim()
+  const canSaveRewards = Boolean(snapshot?.open_block && rewardReason.length >= 5
+    && rewardMc.trim() && Number.isFinite(rewardAmount) && rewardAmount >= 0)
+
   async function saveRewards() {
-    if (!sessionId || !snapshot?.open_block) return
+    if (!sessionId || !snapshot?.open_block || !canSaveRewards || busy) return
     setBusy(true); setError(''); setMessage('')
     try {
       const { error: rpcError } = await supabase.rpc('admin_sandbox_set_rewards', {
         p_session_id: sessionId,
         p_block_id: snapshot.open_block.id,
         p_reward_pc: 0,
-        p_reward_mc: Number(rewardMc),
-        p_reason: adjustReason.trim(),
+        p_reward_mc: rewardAmount,
+        p_reason: rewardReason,
         p_request_id: crypto.randomUUID(),
       })
       if (rpcError) throw rpcError
@@ -141,10 +146,10 @@ export default function SandboxNetworkControl() {
           <div className="sandbox-block-grid">
             <div><span className="admin-eyebrow">RECOMPENSA DO BLOCO ABERTO</span><strong>{fmt(snapshot.open_block?.reward_mc, 8)} MC</strong><small>PC: 0 · moeda exclusiva de compra</small></div>
             <div><span className="admin-eyebrow">CONTROLE DE RECOMPENSA</span>
-                            <label>MINING COIN (MC)<input type="number" min="0" step="0.00000001" value={rewardMc} onChange={e => setRewardMc(e.target.value)} /></label>
+              <label>MINING COIN (MC)<input type="number" min="0" step="0.00000001" value={rewardMc} onChange={e => setRewardMc(e.target.value)} /></label>
               <label>Motivo da alteração / aceleração<input value={adjustReason} onChange={e => setAdjustReason(e.target.value)} maxLength={500} placeholder="Justificativa obrigatória..." /></label>
               <div className="sandbox-actions">
-                <button className="admin-secondary" disabled={busy || !adjustReason.trim() || Number(rewardMc) < 0} onClick={() => void saveRewards()}>SALVAR RECOMPENSA</button>
+                <button className="admin-secondary" disabled={busy || !canSaveRewards} onClick={() => void saveRewards()}>SALVAR RECOMPENSA</button>
                 <button className="admin-primary" disabled={busy || remaining > 0 || !snapshot.open_block} onClick={() => void settle(false)}>FECHAR BLOCO (600S)</button>
                 <button className="admin-danger" disabled={busy || adjustReason.trim().length < 10 || !snapshot.open_block} onClick={() => void settle(true)}>ACELERAR BLOCO</button>
               </div>
