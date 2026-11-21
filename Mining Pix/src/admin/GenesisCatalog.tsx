@@ -44,10 +44,41 @@ export default function GenesisCatalog() {
     if (saved) form.reset()
   }
 
+  async function scheduleGenesis(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const date = new Date(String(new FormData(form).get('genesis-start') ?? ''))
+    if (!Number.isFinite(date.getTime())) {
+      setError('Informe uma data de início válida.')
+      return
+    }
+    if (!window.confirm('Programar a loja GENESIS por 42 dias no DEV?')) return
+    setBusy(true)
+    setError('')
+    try {
+      const { error: failure } = await supabase.rpc('admin_schedule_genesis_season', { p_start: date.toISOString() })
+      if (failure) {
+        setError(failure.message)
+        return
+      }
+      form.reset()
+      await update('list')
+    } catch {
+      setError('Não foi possível programar a temporada.')
+    } finally { setBusy(false) }
+  }
+
   return (
     <section className="admin-panel" aria-busy={busy}>
       <h2>Temporadas da loja</h2>
       {error && <p role="alert">{error}</p>}
+      <form className="admin-form" onSubmit={event => void scheduleGenesis(event)}>
+        <h3>GENESIS — Temporada 1</h3>
+        <label>Início da loja GENESIS <input name="genesis-start" type="datetime-local" required disabled={busy} /></label>
+        <p>42 dias. GENESIS I, II e III com preços aprovados e estoque global renovado no início de cada mês UTC.</p>
+        <button className="admin-primary" disabled={busy || seasons.some(season => season.items.some(item => item.sku === 'genesis-s1-i'))}>Programar loja GENESIS</button>
+      </form>
+      <details><summary>Catálogo piloto de 30 dias</summary>
       <form className="admin-form" onSubmit={event => void create(event)}>
         <label>Nome da temporada <input name="title" required maxLength={64} /></label>
         <label>Início no horário local <input name="start" type="datetime-local" required /></label>
@@ -66,6 +97,7 @@ export default function GenesisCatalog() {
         ))}
         <button className="admin-primary" disabled={busy}>Programar temporada</button>
       </form>
+      </details>
       {seasons.map(season => {
         const now = Date.now()
         const start = new Date(season.starts_at)
