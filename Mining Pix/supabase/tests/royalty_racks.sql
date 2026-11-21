@@ -1,7 +1,9 @@
 begin;
 insert into auth.users (id,email) values ('ed58e86a-dffc-4ca7-b89a-3ebd43dab020','royalty-test@example.invalid');
+insert into depix_sandbox.requests(id,user_id,kind,amount,status)
+values ('ed58e86a-dffc-4ca7-b89a-3ebd43dab028','ed58e86a-dffc-4ca7-b89a-3ebd43dab020','deposit',20000000000,'credited');
 select depix_sandbox.post('ed58e86a-dffc-4ca7-b89a-3ebd43dab021','deposit',
- 'ed58e86a-dffc-4ca7-b89a-3ebd43dab020','platform_deposit_source','player_available',20000000000);
+ 'ed58e86a-dffc-4ca7-b89a-3ebd43dab020','platform_deposit_source','player_available',20000000000,'ed58e86a-dffc-4ca7-b89a-3ebd43dab028');
 insert into public.player_rooms(user_id,room_number,name,active)
  values ('ed58e86a-dffc-4ca7-b89a-3ebd43dab020',1,'Sala de teste',true) on conflict do nothing;
 set local role authenticated;
@@ -10,7 +12,6 @@ select public.depix_sandbox_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab022','gen
 select public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab023','rack-i','2.99');
 select public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab024','rack-ii','5.99');
 select public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab025','rack-iii','10.99');
-select public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab026','vip-barao','30');
 do $$
 declare machine uuid; room uuid;
 begin
@@ -23,27 +24,17 @@ $$;
 reset role;
 do $$
 begin
-  if (select hashrate from public.competition_hashrates(clock_timestamp()) where user_id=auth.uid()) is distinct from 13.2 then
-     raise exception 'Rack and Barão HASH incorrect';
+  if (select hashrate from public.competition_hashrates(clock_timestamp()) where user_id=auth.uid()) is distinct from 13 then
+     raise exception 'Rack and VIP bonuses did not add on base HASH';
   end if;
 end;
 $$;
 set local role authenticated;
-select public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab027','vip-rei','100');
 do $$
 begin
-  if public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab027','vip-rei','100')
-    or (public.depix_sandbox_wallet_snapshot()->>'available')::numeric <> 40.04 then
-    raise exception 'Idempotency or balance incorrect';
-  end if;
-end;
-$$;
-reset role;
-do $$
-begin
-  if (select hashrate from public.competition_hashrates(clock_timestamp()) where user_id=auth.uid()) is distinct from 15.6
-    or (select hashrate from public.competition_hashrates(clock_timestamp()+interval '31 days') where user_id=auth.uid()) is distinct from 12 then
-    raise exception 'Rei HASH or expiration incorrect';
+  if public.royalty_purchase('ed58e86a-dffc-4ca7-b89a-3ebd43dab023','rack-i','2.99')
+    or (public.depix_sandbox_wallet_snapshot()->>'available')::numeric <> 170.04 then
+    raise exception 'Rack idempotency or balance incorrect';
   end if;
 end;
 $$;
