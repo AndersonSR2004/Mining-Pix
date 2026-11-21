@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase/client'
 
-type Progress = { points: string }
-const points = (value: string) => BigInt(value).toLocaleString('pt-BR')
+type Progress = { points: string; exact_points?: string }
+function points(value: string) {
+  const [whole, fraction] = value.split('.')
+  const formatted = BigInt(whole).toLocaleString('pt-BR')
+  return fraction ? `${formatted},${fraction}` : formatted
+}
 
 export default function EventShopProgress({ eventId }: { eventId: string }) {
   const [data, setData] = useState<Progress | null>(null)
@@ -26,7 +30,7 @@ export default function EventShopProgress({ eventId }: { eventId: string }) {
   if (error) return <p role="alert">Pontuação do evento indisponível.</p>
   if (!data) return <p role="status">Consultando pontuação…</p>
   return <section>
-    <p>Seus pontos na loja: <strong>{points(data.points)}</strong></p>
+    <p>Seus pontos na loja: <strong>{points(data.exact_points ?? data.points)}</strong></p>
     <small>1.000 pontos por DePix fictício em equipamentos, racks e salas.</small>
 
   </section>
