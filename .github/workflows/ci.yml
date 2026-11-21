@@ -2,7 +2,7 @@ name: Mining Pix CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, codex/mining-pix-work]
   push:
     branches: [main, codex/mining-pix-work]
 
@@ -23,7 +23,36 @@ jobs:
           cache-dependency-path: Mining Pix/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Test pool allocation
+      - name: Lint application sources
+        run: npm run lint
+      - name: Run automated tests
         run: npm test
       - name: Type-check and build
         run: npm run build
+      - name: Verify preview entry points
+        if: github.event_name == 'pull_request' && github.base_ref == 'codex/mining-pix-work'
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+          base_url=http://127.0.0.1:4173/Mining-Pix
+          curl --fail --silent --show-error --retry 5 --retry-connrefused "$base_url/" > /tmp/mining-pix-index.html
+          curl --fail --silent --show-error "$base_url/admin.html" > /tmp/mining-pix-admin.html
+          grep -Fq '<title>Mining Pix — Digital Mining</title>' /tmp/mining-pix-index.html
+          grep -Fq '<title>Mining Pix Admin</title>' /tmp/mining-pix-admin.html
+          for html in /tmp/mining-pix-{index,admin}.html; do
+            assets=$(grep -oE '/Mining-Pix/assets/[^"]+' "$html" | sort -u)
+            test -n "$assets"
+            while IFS= read -r asset; do
+              curl --fail --silent --show-error --output /dev/null "http://127.0.0.1:4173$asset"
+            done <<< "$assets"
+          done
+      - name: Upload isolated preview build
+        if: github.event_name == 'pull_request' && github.base_ref == 'codex/mining-pix-work'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mining-pix-preview
+          path: Mining Pix/dist
+          if-no-files-found: error
+          retention-days: 14

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint -c _oxlintrc.json src tests supabase/functions vite.config.ts",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
