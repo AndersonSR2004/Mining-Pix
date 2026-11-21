@@ -1,3 +1,4 @@
+import ModuleDrafts from './ModuleDrafts'
 import RevenuePolicy from './RevenuePolicy'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase/client'
@@ -262,7 +263,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
         {activeSection === 'powers' && <AdminPowerTools onComplete={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} />}
         {activeSection === 'depix' && <SandboxMfaGate><DepixSandboxCenter /><RevenuePolicy /></SandboxMfaGate>}
         {activeSection === 'competition' && <section className="admin-panel"><CompetitionPanel admin /></section>}
-        {activeSection === 'events' && <EventControl />}
+        {activeSection === 'events' && <><EventControl /><SandboxMfaGate><ModuleDrafts /></SandboxMfaGate></>}
         {activeSection === 'genesis' && <SandboxMfaGate><GenesisCatalog /></SandboxMfaGate>}
         {activeSection === 'finance' && <FinanceCenter />}
         {activeSection === 'operations' && <>
