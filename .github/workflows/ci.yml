@@ -2,7 +2,7 @@ name: Mining Pix CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, codex/mining-pix-work]
   push:
     branches: [main, codex/mining-pix-work]
 
@@ -23,7 +23,9 @@ jobs:
           cache-dependency-path: Mining Pix/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Test pool allocation
+      - name: Lint application sources
+        run: npm run lint
+      - name: Run automated tests
         run: npm test
       - name: Type-check and build
         run: npm run build
