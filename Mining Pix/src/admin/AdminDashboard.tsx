@@ -1,3 +1,4 @@
+import GameMasterOverview from './GameMasterOverview'
 import ModuleDrafts from './ModuleDrafts'
 import RevenuePolicy from './RevenuePolicy'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
@@ -73,7 +74,7 @@ const shortId = (value: string | null) => value ? `${value.slice(0, 8)}…` : 'S
 
 export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: string; onSignOut: () => void }) {
   const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null)
-  const [activeSection, setActiveSection] = useState<'operations' | 'depix' | 'competition' | 'finance' | 'sandbox' | 'powers' | 'events' | 'genesis'>('operations')
+  const [activeSection, setActiveSection] = useState<'executive' | 'events' | 'shop' | 'genesis' | 'depix' | 'operations' | 'technical'>('executive')
   const [audit, setAudit] = useState<AdminAuditSnapshot | null>(null)
   const [directory, setDirectory] = useState<AdminDirectory | null>(null)
   const [directorySearch, setDirectorySearch] = useState('')
@@ -237,35 +238,44 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
   return (
     <main className="admin-app">
       <header className="admin-header">
-        <div className="admin-brand"><span className="admin-mark">MP</span><div><strong>MINING PIX</strong><small>ADMIN CENTER · DEV</small></div></div>
+        <div className="admin-brand"><span className="admin-mark">MP</span><div><strong>MINING PIX</strong><small>GAME MASTER 5.0 · DEV</small></div></div>
         <div className="admin-header-actions"><span>{userEmail}</span><button className="admin-secondary" onClick={onSignOut}>SAIR</button></div>
       </header>
 
       <section className="admin-content">
         <div className="admin-title-row">
-          <div><span className="admin-eyebrow">VISÃO OPERACIONAL</span><h1>Painel administrativo</h1><p>Visão consolidada do banco DEV. Todas as informações são consultadas no backend.</p></div>
+          <div><span className="admin-eyebrow">VISÃO OPERACIONAL</span><h1>Game Master</h1><p>Visão consolidada do banco DEV. Todas as informações são consultadas no backend.</p></div>
           <button className="admin-primary admin-refresh" onClick={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} disabled={loading || directoryLoading}>{loading ? 'ATUALIZANDO...' : 'ATUALIZAR DADOS'}</button>
         </div>
 
         <div className="admin-security-note"><strong>Acesso administrativo restrito</strong><span>As operações DePix deste painel são fictícias. A carteira administrativa exige autenticação em dois fatores.</span></div>
 
-        <nav className="admin-section-nav" aria-label="Seções do Admin Center">
-          <button className={activeSection === 'operations' ? 'active' : ''} onClick={() => setActiveSection('operations')}>CENTRO OPERACIONAL</button>
-          <button className={activeSection === 'depix' ? 'active' : ''} onClick={() => setActiveSection('depix')}>DEPIX SANDBOX</button>
-          <button className={activeSection === 'competition' ? 'active' : ''} onClick={() => setActiveSection('competition')}>COMPETITIVIDADE</button>
-          <button className={activeSection === 'finance' ? 'active' : ''} onClick={() => setActiveSection('finance')}>FINANCIAL INTELLIGENCE</button>
-          <button className={activeSection === 'sandbox' ? 'active' : ''} onClick={() => setActiveSection('sandbox')}>NETWORK CONTROL</button>
-          <button className={activeSection === 'powers' ? 'active' : ''} onClick={() => setActiveSection('powers')}>SUPER POWERS</button>
-          <button className={activeSection === 'events' ? 'active' : ''} onClick={() => setActiveSection('events')}>EVENTOS & PASSES</button>
-          <button className={activeSection === 'genesis' ? 'active' : ''} onClick={() => setActiveSection('genesis')}>TEMPORADAS</button>
+        <nav className="admin-section-nav" aria-label="Centros do Game Master">
+          {([
+            ['executive', 'Dashboard Executivo'],
+            ['events', 'Eventos e LiveOps'],
+            ['shop', 'Loja e Equipamentos'],
+            ['genesis', 'Passes e Temporadas'],
+            ['depix', 'Carteira e Finanças'],
+            ['operations', 'Jogadores e Economia'],
+            ['technical', 'Ferramentas técnicas'],
+          ] as const).map(([section, label]) => <button key={section} type="button"
+            className={activeSection === section ? 'active' : ''}
+            aria-pressed={activeSection === section}
+            onClick={() => setActiveSection(section)}>{label}</button>)}
         </nav>
-        <div style={{ display: activeSection === 'sandbox' ? 'block' : 'none' }}><SandboxNetworkControl /></div>
-        {activeSection === 'powers' && <AdminPowerTools onComplete={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} />}
+        {activeSection === 'executive' && <GameMasterOverview />}
+        {activeSection === 'events' && <EventControl />}
+        {activeSection === 'shop' && <SandboxMfaGate><GenesisCatalog /></SandboxMfaGate>}
+        {activeSection === 'genesis' && <SandboxMfaGate><ModuleDrafts /></SandboxMfaGate>}
         {activeSection === 'depix' && <SandboxMfaGate><DepixSandboxCenter /><RevenuePolicy /></SandboxMfaGate>}
-        {activeSection === 'competition' && <section className="admin-panel"><CompetitionPanel admin /></section>}
-        {activeSection === 'events' && <><EventControl /><SandboxMfaGate><ModuleDrafts /></SandboxMfaGate></>}
-        {activeSection === 'genesis' && <SandboxMfaGate><GenesisCatalog /></SandboxMfaGate>}
-        {activeSection === 'finance' && <FinanceCenter />}
+        {activeSection === 'technical' && <details className="admin-panel">
+          <summary>Ferramentas sandbox e registros legados</summary>
+          <SandboxNetworkControl />
+          <AdminPowerTools onComplete={() => { void load(); void loadDirectory(directorySearch, directory?.offset ?? 0) }} />
+          <FinanceCenter />
+          <CompetitionPanel admin />
+        </details>}
         {activeSection === 'operations' && <>
 
         {error && <div className="admin-error admin-error-panel" role="alert"><strong>Não foi possível consultar o painel</strong><span>{error}</span><small>Confirme a permissão administrativa e renove a sessão.</small></div>}
@@ -273,24 +283,6 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
 
         {snapshot && (
           <>
-            <div className="admin-stat-grid">
-              <article className="admin-stat"><span>JOGADORES</span><strong>{number(snapshot.players_count)}</strong><small>Perfis cadastrados</small></article>
-              <article className="admin-stat"><span>CARTEIRAS</span><strong>{number(snapshot.wallets_count)}</strong><small>Contas persistentes</small></article>
-              <article className="admin-stat"><span>SALDO TOTAL</span><strong>{number(snapshot.wallet_balance_pc)} <small>PC</small></strong><small>Soma das carteiras DEV</small></article>
-              <article className="admin-stat"><span>EQUIPAMENTOS INSTALADOS</span><strong>{number(snapshot.installed_equipment_count)}</strong><small>{number(snapshot.installed_hashrate)} H/s persistentes</small></article>
-              <article className="admin-stat"><span>CICLOS ABERTOS</span><strong>{number(snapshot.pool_open_cycles)}</strong><small>Mining Pool</small></article>
-              <article className="admin-stat"><span>CICLOS LIQUIDADOS</span><strong>{number(snapshot.pool_settled_cycles)}</strong><small>{number(snapshot.pool_distributed_pc)} PC distribuídos no DEV</small></article>
-            </div>
-
-            <section className="admin-panel">
-              <div className="admin-panel-heading"><div><span className="admin-eyebrow">LEDGER PERSISTENTE</span><h2>Movimentações recentes</h2></div><span>Últimas 20</span></div>
-              {snapshot.latest_transactions.length === 0 ? <p className="admin-empty">Nenhuma movimentação persistente registrada.</p> : (
-                <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Data</th><th>Jogador</th><th>Tipo</th><th>Variação</th><th>Saldo após</th><th>Referência</th></tr></thead><tbody>
-                  {snapshot.latest_transactions.map((tx) => <tr key={tx.id}><td>{date(tx.created_at)}</td><td><strong>{tx.display_name}</strong><small>{shortId(tx.user_id)}</small></td><td>{tx.transaction_type}</td><td className={tx.amount >= 0 ? 'admin-positive' : 'admin-negative'}>{tx.amount > 0 ? '+' : ''}{number(tx.amount)} PC</td><td>{number(tx.balance_after)} PC</td><td>{tx.description || '—'}</td></tr>)}
-                </tbody></table></div>
-              )}
-            </section>
-
             <section className="admin-panel">
               <div className="admin-panel-heading"><div><span className="admin-eyebrow">GESTÃO DE CONTAS · FASE 7A</span><h2>Diretório de jogadores</h2></div><span>{number(directory?.total ?? 0)} contas</span></div>
               <p className="admin-empty">Pesquise pelo nome ou pelo início do UUID. O diretório é somente leitura; os únicos controles disponíveis são bloquear ou desbloquear contas comuns, com motivo obrigatório e confirmação explícita.</p>
@@ -304,7 +296,7 @@ export default function AdminDashboard({ userEmail, onSignOut }: { userEmail: st
               {!directoryError && directory && directory.players.length > 0 && (
                 <>
                   <div className="admin-directory-meta"><span>Exibindo {number(pageStart)}–{number(pageEnd)} de {number(directory.total)}</span><span>Consulta e ações de acesso auditadas</span></div>
-                  <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo</th><th>Nível / XP</th><th>VIP</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th><th>Acesso</th><th>Controle</th></tr></thead><tbody>
+                  <div className="admin-table-wrap"><table className="admin-table admin-directory-table"><thead><tr><th>Jogador / UUID</th><th>Cadastro</th><th>Saldo legado</th><th>Nível / XP</th><th>VIP legado</th><th>Equipamentos</th><th>Hashrate</th><th>Passe</th><th>Acesso</th><th>Controle</th></tr></thead><tbody>
                     {directory.players.map((player) => <tr key={player.user_id}>
                       <td><strong>{player.display_name || 'Jogador'}</strong><small>{player.user_id}</small></td>
                       <td>{date(player.created_at)}</td>
