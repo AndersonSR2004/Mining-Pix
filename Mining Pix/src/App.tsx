@@ -1,6 +1,7 @@
 import GenesisPass from './GenesisPass'
 import { useEffect, useState } from 'react'
 import RoyaltyPanel from './RoyaltyPanel'
+import PersistentVipPanel from './PersistentVipPanel'
 import Games from './Games.tsx'
 import CompetitionPanel from './CompetitionPanel.tsx'
 import DepixWalletPanel from './DepixWalletPanel.tsx'
@@ -83,7 +84,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
         <span className="eyebrow">INFRAESTRUTURA PERMANENTE</span><h1>Salas e equipamentos</h1>
         <p className="page-description">Gerencie salas, equipamentos instalados e itens disponíveis no inventário em uma única tela.</p>
         <PersistentFacilityPanel mode="management" />
-        <RoyaltyPanel family="rack" />
+        <RoyaltyPanel />
       </section>
     )
   }
@@ -112,7 +113,7 @@ function App({ userId, email, displayName, onSignOut }: AppProps) {
     return (
       <section className="page-content">
         <span className="eyebrow">PROGRAMA DE BENEFÍCIOS</span><h1>VIP</h1>
-        <RoyaltyPanel family="vip" />
+        <PersistentVipPanel onOpenWallet={() => setPage('Carteira')} />
       </section>
     )
   }
