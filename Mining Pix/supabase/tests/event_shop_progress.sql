@@ -1,5 +1,6 @@
 begin;
-insert into auth.users(id,email) values ('bc60c0dd-bace-4e7f-9362-7e81a7fced21','event-shop-fixture@example.invalid');
+insert into auth.users(id,email) values ('bc60c0dd-bace-4e7f-9362-7e81a7fced21','event-shop-fixture@example.invalid'),
+ ('bc60c0dd-bace-4e7f-9362-7e81a7fced24','event-shop-observer@example.invalid');
 insert into public.game_events(id,title,event_type,status,starts_at,ends_at,payload,created_by,updated_by)
 values ('bc60c0dd-bace-4e7f-9362-7e81a7fced22','Teste','event','live',now()-interval '1 minute',now()+interval '1 minute','{"mechanic":"progression"}',
  'bc60c0dd-bace-4e7f-9362-7e81a7fced21','bc60c0dd-bace-4e7f-9362-7e81a7fced21');
@@ -13,7 +14,16 @@ begin
   perform public.depix_sandbox_purchase('bc60c0dd-bace-4e7f-9362-7e81a7fced23','room','5');
   perform public.depix_sandbox_purchase('bc60c0dd-bace-4e7f-9362-7e81a7fced23','room','5');
   if public.get_event_shop_progress(event)->>'points' is distinct from '5000'
-      or public.get_event_shop_progress(event)#>>'{ranking,0,is_you}' is distinct from 'true' then raise exception 'Incorrect score'; end if;
+      or public.get_event_shop_progress(event)->'ranking' is distinct from '[]'::jsonb then raise exception 'Incorrect score'; end if;
+end;
+$$;
+select set_config('request.jwt.claim.sub','bc60c0dd-bace-4e7f-9362-7e81a7fced24',true);
+do $$
+begin
+  if public.get_event_shop_progress('bc60c0dd-bace-4e7f-9362-7e81a7fced22')
+    is distinct from '{"points":"0","ranking":[]}'::jsonb then
+    raise exception 'Another player’s score was returned';
+  end if;
 end;
 $$;
 rollback;
